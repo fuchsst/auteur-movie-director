@@ -1,0 +1,93 @@
+backend_services:
+  comfyui:
+    name: "ComfyUI Server"
+    description: "Primary generative backend for complex workflows"
+    api_endpoint: "http://localhost:8188"
+    health_check_endpoint: "/system_stats"
+    supported_operations:
+      - "image_generation"
+      - "video_generation"
+      - "character_training"
+      - "style_transfer"
+      - "face_enhancement"
+    default_timeout: 300
+    max_retries: 3
+    
+  wan2gp:
+    name: "Wan2GP Server" 
+    description: "Fast video generation for previews and iterations"
+    api_endpoint: "http://localhost:7860"
+    health_check_endpoint: "/info"
+    supported_operations:
+      - "text_to_video"
+      - "image_to_video"
+      - "video_upscaling"
+    default_timeout: 120
+    max_retries: 2
+    
+  litellm:
+    name: "LiteLLM Server"
+    description: "Local LLM server for text generation and analysis"
+    api_endpoint: "http://localhost:4000"
+    health_check_endpoint: "/health"
+    supported_operations:
+      - "text_generation"
+      - "script_analysis"
+      - "character_development"
+      - "dialogue_generation"
+    default_timeout: 60
+    max_retries: 2
+
+connection_settings:
+  check_interval: 30  # seconds
+  startup_wait: 5     # seconds to wait on addon load
+  auto_reconnect: true
+  connection_timeout: 10
+  
+vram_management:
+  enabled: true
+  monitoring_interval: 5  # seconds
+  thresholds:
+    low_vram_warning: 2048   # MB
+    critical_vram_error: 1024 # MB
+  optimization:
+    auto_model_unloading: true
+    sequential_execution: true
+    batch_size_reduction: true
+
+model_profiles:
+  # VRAM requirements for different models
+  character_generation:
+    basic_consistency: 6144    # MB - IPAdapter + ControlNet
+    enhanced_fidelity: 8192    # MB - + ReActor face swap
+    lora_training: 12288       # MB - Full LoRA training pipeline
+    
+  video_generation:
+    ltx_video_full: 24576      # MB - LTX-Video full precision
+    ltx_video_distilled: 6144  # MB - LTX-Video distilled/quantized
+    wan2gp_causvid: 8192       # MB - CausVid model
+    wan2gp_hunyuan: 12288      # MB - HunyuanVideo model
+    
+  style_processing:
+    style_lora_basic: 4096     # MB - Basic style transfer
+    style_lora_training: 8192  # MB - Style LoRA training
+    
+  audio_processing:
+    rvc_voice_cloning: 2048    # MB - RVC voice synthesis
+    audio_ldm: 4096           # MB - AudioLDM sound generation
+
+error_handling:
+  log_level: "INFO"
+  log_file: "movie_director.log"
+  error_recovery:
+    auto_retry: true
+    fallback_backends: 
+      comfyui: ["wan2gp"]  # If ComfyUI fails, try Wan2GP
+      wan2gp: []           # No fallback for Wan2GP
+    graceful_degradation: true
+
+development:
+  debug_mode: false
+  verbose_logging: false
+  mock_backends: false  # Use mock responses when backends unavailable
+  performance_profiling: false

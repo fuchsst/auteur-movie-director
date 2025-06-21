@@ -1,0 +1,84 @@
+workflow_name: "Quick Video Generation - Wan2GP"
+description: "Fast video generation using Wan2GP for previews and quick iterations"
+version: "1.0"
+
+config:
+  api_endpoint: "http://localhost:7860"
+  method: "text_to_video"
+  model_selection: "causvid"
+
+parameters:
+  prompt: "{video_prompt}"
+  negative_prompt: "blurry, low quality, static, poor motion, unrealistic"
+  num_inference_steps: 20
+  guidance_scale: 7.5
+  width: 512
+  height: 768
+  num_frames: 16
+  fps: 8
+  seed: "{generation_seed}"
+  batch_size: 1
+  enable_temporal_attention: true
+  motion_bucket_id: 127
+
+output_settings:
+  format: "mp4"
+  codec: "h264"
+  quality: "medium"
+  filename_pattern: "quick_shot_{shot_number}_{timestamp}.mp4"
+
+parameter_mapping:
+  video_prompt: "Text description of the video scene"
+  shot_number: "Shot number for file naming"
+  generation_seed: "Random seed for generation"
+  timestamp: "Timestamp for unique file naming"
+
+camera_presets:
+  static:
+    motion_bucket_id: 50
+    num_frames: 8
+  slow_motion:
+    motion_bucket_id: 100
+    num_frames: 24
+    fps: 12
+  dynamic:
+    motion_bucket_id: 180
+    num_frames: 16
+    fps: 8
+
+quality_presets:
+  draft:
+    num_inference_steps: 10
+    width: 256
+    height: 384
+    num_frames: 8
+  preview:
+    num_inference_steps: 20
+    width: 512
+    height: 768
+    num_frames: 16
+  final:
+    num_inference_steps: 30
+    width: 768
+    height: 1024
+    num_frames: 24
+
+requirements:
+  models:
+    - "CausVid-512x512-1B"
+    - "HunyuanVideo"
+  vram_estimate: "8GB"
+  processing_time: "30-90 seconds"
+  api_dependencies:
+    - "gradio_client"
+    - "torch"
+    - "transformers"
+
+error_handling:
+  timeout: 300
+  max_retries: 3
+  fallback_model: "CausVid-512x512-1B"
+  error_responses:
+    model_loading_failed: "Switch to fallback model"
+    insufficient_vram: "Reduce batch size and resolution"
+    timeout: "Retry with reduced steps"

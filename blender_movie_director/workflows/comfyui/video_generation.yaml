@@ -1,0 +1,135 @@
+workflow_name: "Video Generation - LTX-Video"
+description: "Generate video clips using LTX-Video model with character and style consistency"
+version: "1.0"
+
+nodes:
+  "1":
+    class_type: "LTXVideoModelLoader"
+    inputs:
+      model_path: "ltx-video-2b-v0.9.safetensors"
+      precision: "fp16"
+
+  "2":
+    class_type: "LTXVideoTextEncode"
+    inputs:
+      text: "{video_prompt}"
+      model: ["1", 0]
+
+  "3":
+    class_type: "LTXVideoNegativePrompt"
+    inputs:
+      text: "blurry, low quality, distorted, static, poor lighting, unrealistic motion"
+      model: ["1", 0]
+
+  "4":
+    class_type: "LTXVideoLatentNoise"
+    inputs:
+      width: 512
+      height: 768
+      frames: 24
+      batch_size: 1
+      seed: "{generation_seed}"
+
+  "5":
+    class_type: "LoadImage"
+    inputs:
+      image: "{reference_image_path}"
+    optional: true
+
+  "6":
+    class_type: "ImageToLatent"
+    inputs:
+      image: ["5", 0]
+      vae: ["1", 2]
+    optional: true
+
+  "7":
+    class_type: "LTXVideoSampler"
+    inputs:
+      model: ["1", 0]
+      positive: ["2", 0]
+      negative: ["3", 0]
+      latent_image: ["4", 0]
+      reference_latent: ["6", 0]
+      seed: "{generation_seed}"
+      steps: 30
+      cfg: 3.0
+      sampler_name: "euler"
+      scheduler: "normal"
+      denoise: 1.0
+      frame_rate: 24
+      motion_scale: 1.0
+
+  "8":
+    class_type: "LTXVideoVAEDecode"
+    inputs:
+      samples: ["7", 0]
+      vae: ["1", 2]
+
+  "9":
+    class_type: "VideoUpscale"
+    inputs:
+      video: ["8", 0]
+      scale_factor: 2.0
+      model: "realesrgan-x2plus"
+    optional: true
+
+  "10":
+    class_type: "SaveVideo"
+    inputs:
+      video: ["9", 0]
+      filename_prefix: "shot_{shot_number}_{timestamp}"
+      format: "mp4"
+      fps: 24
+      quality: "high"
+
+  "11":
+    class_type: "CharacterLoRALoader"
+    inputs:
+      lora_path: "{character_lora_path}"
+      model: ["1", 0]
+      strength: 0.8
+    optional: true
+
+  "12":
+    class_type: "StyleLoRALoader"
+    inputs:
+      lora_path: "{style_lora_path}"
+      model: ["11", 0]
+      strength: 0.6
+    optional: true
+
+parameter_mapping:
+  video_prompt: "Text description of the video scene"
+  reference_image_path: "Optional reference image for consistency"
+  character_lora_path: "Path to character LoRA file"
+  style_lora_path: "Path to style LoRA file"
+  shot_number: "Shot number for file naming"
+  generation_seed: "Random seed for generation"
+  timestamp: "Timestamp for unique file naming"
+
+camera_control:
+  zoom_in:
+    motion_scale: 0.8
+    camera_prompt: "slow zoom in"
+  zoom_out:
+    motion_scale: 0.8
+    camera_prompt: "slow zoom out"
+  pan_left:
+    motion_scale: 1.2
+    camera_prompt: "pan left"
+  pan_right:
+    motion_scale: 1.2
+    camera_prompt: "pan right"
+  static:
+    motion_scale: 0.2
+    camera_prompt: "static shot"
+
+requirements:
+  models:
+    - "ltx-video-2b-v0.9.safetensors"
+    - "realesrgan-x2plus.pth"
+  vram_estimate: "24GB"
+  processing_time: "5-10 minutes"
+  output_format: "mp4"
+  output_resolution: "1024x1536"
