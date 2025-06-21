@@ -1,0 +1,177 @@
+name: "Blender Movie Director Addon Development Lifecycle"
+description: "Complete development workflow for the Blender AI Movie Director addon"
+
+phases:
+  - name: "Foundation Phase"
+    description: "Establish core addon structure and basic functionality"
+    agents:
+      - architect
+      - dev
+      - blender-ui-expert
+    tasks:
+      - create-addon-structure
+      - design-ui-panels
+      - setup-custom-properties
+    deliverables:
+      - "Working Blender addon with basic UI"
+      - "Project structure following best practices"
+      - "Core data model implementation"
+    success_criteria:
+      - "Addon loads without errors in Blender 4.0+"
+      - "Basic UI panels visible in 3D Viewport sidebar"
+      - "Custom properties save/load correctly"
+
+  - name: "AI Integration Phase"
+    description: "Implement CrewAI agents and backend connections"
+    agents:
+      - crewai-integrator
+      - backend-connector
+      - performance-optimizer
+    tasks:
+      - implement-crewai-agents
+      - connect-generative-backends
+      - implement-vram-budgeting
+    deliverables:
+      - "Film crew agents implemented with CrewAI"
+      - "Working connections to ComfyUI, Wan2GP, LiteLLM"
+      - "VRAM budgeting system operational"
+    success_criteria:
+      - "Agents coordinate effectively"
+      - "Backend APIs respond correctly"
+      - "Resource management prevents crashes"
+
+  - name: "Production Pipeline Phase"
+    description: "Implement core film production workflows"
+    agents:
+      - dev
+      - blender-ui-expert
+      - performance-optimizer
+    tasks:
+      - implement-script-development
+      - implement-character-system
+      - implement-video-generation
+      - implement-audio-system
+    deliverables:
+      - "Script editor with AI assistance"
+      - "Character asset management system"
+      - "Video generation pipeline"
+      - "Audio generation and voice cloning"
+    success_criteria:
+      - "End-to-end script-to-video workflow works"
+      - "Character consistency maintained across shots"
+      - "Audio-video synchronization functional"
+
+  - name: "Integration & Polish Phase"
+    description: "Complete Blender integration and user experience optimization"
+    agents:
+      - blender-ui-expert
+      - qa
+      - pm
+    tasks:
+      - integrate-vse-assembly
+      - optimize-ui-workflows
+      - implement-asset-browser
+      - create-export-pipeline
+    deliverables:
+      - "VSE assembly automation"
+      - "Asset Browser integration"
+      - "Export pipeline with multiple formats"
+      - "Polished user experience"
+    success_criteria:
+      - "Seamless Blender workflow integration"
+      - "Professional output quality"
+      - "Intuitive user interface"
+
+  - name: "Quality Assurance Phase"
+    description: "Comprehensive testing and optimization"
+    agents:
+      - qa
+      - performance-optimizer
+      - dev
+    tasks:
+      - cross-version-testing
+      - performance-optimization
+      - error-handling-validation
+      - user-acceptance-testing
+    deliverables:
+      - "Cross-version compatibility report"
+      - "Performance optimization results"
+      - "Comprehensive error handling"
+      - "User feedback integration"
+    success_criteria:
+      - "Works across target Blender versions"
+      - "Meets performance benchmarks"
+      - "Robust error recovery"
+
+review_gates:
+  - phase: "Foundation Phase"
+    criteria:
+      - "Addon architecture review by architect"
+      - "UI/UX design review by blender-ui-expert"
+      - "Code quality review by dev"
+  
+  - phase: "AI Integration Phase"
+    criteria:
+      - "Agent coordination review by crewai-integrator"
+      - "Backend integration review by backend-connector"
+      - "Resource management review by performance-optimizer"
+  
+  - phase: "Production Pipeline Phase"
+    criteria:
+      - "Workflow functionality review by pm"
+      - "Performance review by performance-optimizer"
+      - "User experience review by blender-ui-expert"
+
+  - phase: "Integration & Polish Phase"
+    criteria:
+      - "Blender integration review by blender-ui-expert"
+      - "Feature completeness review by pm"
+      - "Quality review by qa"
+
+  - phase: "Quality Assurance Phase"
+    criteria:
+      - "Final quality gate by qa"
+      - "Performance validation by performance-optimizer"
+      - "Release readiness review by pm"
+
+continuous_processes:
+  - name: "Performance Monitoring"
+    frequency: "Every sprint"
+    owner: "performance-optimizer"
+    activities:
+      - "VRAM usage profiling"
+      - "UI responsiveness testing"
+      - "Generation speed benchmarking"
+
+  - name: "Code Quality"
+    frequency: "Every commit"
+    owner: "dev"
+    activities:
+      - "Code review"
+      - "Automated testing"
+      - "Blender best practices validation"
+
+  - name: "User Experience Validation"
+    frequency: "Every major feature"
+    owner: "blender-ui-expert"
+    activities:
+      - "UI consistency checking"
+      - "Workflow validation"
+      - "Accessibility review"
+
+risk_mitigation:
+  - risk: "Backend API compatibility changes"
+    mitigation: "Maintain versioned API clients with fallback strategies"
+    owner: "backend-connector"
+  
+  - risk: "Blender API changes in future versions"
+    mitigation: "Abstract Blender interactions through utility layer"
+    owner: "architect"
+  
+  - risk: "VRAM limitations on target hardware"
+    mitigation: "Comprehensive VRAM budgeting and sequential loading"
+    owner: "performance-optimizer"
+  
+  - risk: "CrewAI framework updates breaking compatibility"
+    mitigation: "Pin specific versions and maintain migration strategies"
+    owner: "crewai-integrator"

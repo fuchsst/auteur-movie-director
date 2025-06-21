@@ -1,0 +1,25 @@
+bundle:
+  name: Blender Addon Core Development Team
+  icon: 🎬
+  description: Essential agents for Blender Movie Director addon development, focused on architecture, implementation, and Blender integration
+agents:
+  - architect
+  - dev
+  - blender-ui-expert
+  - performance-optimizer
+  - qa
+workflows:
+  - addon-development-lifecycle
+specializations:
+  - Blender addon architecture and design
+  - Python development with bpy API
+  - UI/UX design following Blender guidelines
+  - Performance optimization and VRAM management
+  - Quality assurance and cross-platform testing
+focus_areas:
+  - Core addon structure and registration
+  - Blender-native UI implementation
+  - Custom properties and data models
+  - Operator and panel development
+  - Asset Browser integration
+  - Performance optimization for consumer hardware

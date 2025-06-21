@@ -1,0 +1,222 @@
+name: "AI-Powered Film Production Workflow"
+description: "Complete workflow for creating films using the Blender Movie Director addon"
+
+stages:
+  - name: "Concept Development"
+    description: "Transform initial idea into structured concept"
+    agent: "screenwriter"
+    inputs:
+      - "Initial creative concept or idea"
+      - "Target audience and style preferences"
+      - "Duration and format requirements"
+    tasks:
+      - "Concept expansion and development"
+      - "Genre and tone definition"
+      - "Basic character and setting ideation"
+    outputs:
+      - "Expanded concept document"
+      - "Character and setting outlines"
+      - "Style and tone guidelines"
+
+  - name: "Script Development"
+    description: "Create detailed screenplay from concept"
+    agent: "screenwriter"
+    inputs:
+      - "Expanded concept document"
+      - "Character and setting outlines"
+    tasks:
+      - "Screenplay writing with AI assistance"
+      - "Dialogue refinement and character voice"
+      - "Scene structure optimization"
+    outputs:
+      - "Complete formatted screenplay"
+      - "Scene breakdown with shot descriptions"
+      - "Character dialogue samples"
+
+  - name: "Pre-Production Planning"
+    description: "Prepare all assets and production elements"
+    agents:
+      - "casting_director"
+      - "art_director"
+      - "producer"
+    parallel_workflows:
+      - name: "Character Development"
+        agent: "casting_director"
+        tasks:
+          - "Character reference collection"
+          - "Character LoRA training (if needed)"
+          - "Voice model creation"
+        outputs:
+          - "Character asset library"
+          - "Trained character models"
+          - "Voice synthesis models"
+      
+      - name: "Visual Style Development"
+        agent: "art_director"
+        tasks:
+          - "Style reference curation"
+          - "Style model training (if needed)"
+          - "Color palette and mood definition"
+        outputs:
+          - "Style guide documentation"
+          - "Style transfer models"
+          - "Visual consistency standards"
+      
+      - name: "Production Planning"
+        agent: "producer"
+        tasks:
+          - "Resource requirement analysis"
+          - "Shot complexity assessment"
+          - "Rendering strategy planning"
+        outputs:
+          - "Production schedule"
+          - "Resource allocation plan"
+          - "Quality targets definition"
+
+  - name: "Production Phase"
+    description: "Generate all video and audio content"
+    agents:
+      - "cinematographer"
+      - "sound_designer"
+    parallel_workflows:
+      - name: "Video Generation"
+        agent: "cinematographer"
+        tasks:
+          - "Shot-by-shot video generation"
+          - "Character consistency application"
+          - "Style consistency enforcement"
+          - "Camera movement and composition"
+        outputs:
+          - "Raw video clips for all shots"
+          - "Camera metadata and settings"
+          - "Quality assessment reports"
+      
+      - name: "Audio Production"
+        agent: "sound_designer"
+        tasks:
+          - "Character dialogue generation"
+          - "Sound effects creation"
+          - "Ambient audio generation"
+          - "Audio-video synchronization"
+        outputs:
+          - "Character dialogue tracks"
+          - "Sound effects library"
+          - "Ambient audio tracks"
+          - "Synchronized audio files"
+
+  - name: "Post-Production"
+    description: "Assemble and enhance final film"
+    agent: "editor"
+    inputs:
+      - "All generated video clips"
+      - "All audio tracks and effects"
+      - "Style and quality guidelines"
+    tasks:
+      - "Video sequence assembly in Blender VSE"
+      - "Audio-video synchronization"
+      - "Quality enhancement and restoration"
+      - "Color grading and final polish"
+    outputs:
+      - "Assembled film sequence"
+      - "Enhanced and polished video"
+      - "Multiple export formats"
+
+quality_gates:
+  - stage: "Script Development"
+    criteria:
+      - "Screenplay follows proper formatting"
+      - "Character voices are distinct and consistent"
+      - "Scene transitions are smooth and logical"
+      - "Dialogue supports visual storytelling"
+    reviewer: "producer"
+
+  - stage: "Pre-Production Planning"
+    criteria:
+      - "Character assets maintain visual consistency"
+      - "Style guide is comprehensive and applicable"
+      - "Resource requirements are realistic"
+      - "Production plan is achievable"
+    reviewer: "producer"
+
+  - stage: "Production Phase"
+    criteria:
+      - "Video quality meets professional standards"
+      - "Character consistency maintained across shots"
+      - "Audio quality is clear and well-synchronized"
+      - "Style consistency enforced throughout"
+    reviewer: "producer"
+
+  - stage: "Post-Production"
+    criteria:
+      - "Final film meets original creative vision"
+      - "Technical quality is broadcast-ready"
+      - "Audio-video synchronization is perfect"
+      - "Export formats are correctly generated"
+    reviewer: "producer"
+
+optimization_strategies:
+  - name: "Resource-Aware Generation"
+    description: "Adapt generation strategy based on available VRAM"
+    conditions:
+      - "High VRAM (24GB+): Parallel processing, high-quality models"
+      - "Medium VRAM (16-24GB): Sequential processing, standard quality"
+      - "Low VRAM (<16GB): Simplified workflows, efficiency models"
+
+  - name: "Quality vs Speed Trade-offs"
+    description: "Balance generation quality with production timeline"
+    options:
+      - "Preview Mode: Fast, lower quality for rapid iteration"
+      - "Production Mode: High quality for final output"
+      - "Hybrid Mode: Preview for planning, production for finals"
+
+  - name: "Iterative Refinement"
+    description: "Support iterative creative workflow"
+    features:
+      - "Non-destructive editing capabilities"
+      - "Version control for generated assets"
+      - "Rapid preview and adjustment cycles"
+      - "Selective re-generation of specific shots"
+
+error_recovery:
+  - scenario: "Backend service unavailable"
+    strategy: "Graceful degradation to alternative backends or local processing"
+    
+  - scenario: "Insufficient VRAM for complex shot"
+    strategy: "Automatic workflow simplification or sequential processing"
+    
+  - scenario: "Character consistency failure"
+    strategy: "Fallback to baseline consistency methods or manual adjustment"
+    
+  - scenario: "Audio synchronization issues"
+    strategy: "Manual sync tools and semi-automatic correction"
+
+user_interaction_points:
+  - stage: "Concept Development"
+    interactions:
+      - "Initial concept input and refinement"
+      - "Style preference selection"
+      - "Target audience specification"
+
+  - stage: "Script Development"
+    interactions:
+      - "Script review and editing"
+      - "Character voice approval"
+      - "Scene structure validation"
+
+  - stage: "Pre-Production Planning"
+    interactions:
+      - "Character reference approval"
+      - "Style guide validation"
+      - "Production plan review"
+
+  - stage: "Production Phase"
+    interactions:
+      - "Shot approval and iteration"
+      - "Quality settings adjustment"
+      - "Progress monitoring and control"
+
+  - stage: "Post-Production"
+    interactions:
+      - "Final edit review and approval"
+      - "Export format selection"
+      - "Distribution preparation"

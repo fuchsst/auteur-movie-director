@@ -1,0 +1,32 @@
+core-project-information:
+  dev-story-location: docs/plugin-development-stories
+  prd:
+    prd-file: docs/blender-addon-requirements.md
+    prdVersion: v4  
+    prdSharded: true
+    prdShardedLocation: docs/addon-requirements
+    epicFilePattern: epic-{n}*.md
+  architecture:
+    architecture-file: docs/addon-architecture.md
+    architectureVersion: v4
+    architectureSharded: true
+    architectureShardedLocation: docs/addon-architecture
+  blender-architecture:
+    blender-ui-guidelines-file: docs/blender-ui-guidelines.md
+    architectureVersion: v4
+    architectureSharded: true
+    architectureShardedLocation: docs/blender-architecture
+  customTechnicalDocuments:
+    - docs/blender-best-practices.md
+    - docs/performance-optimization.md
+    - docs/resource-management.md
+    - docs/crewai-integration-patterns.md
+    - docs/comfyui-api-reference.md
+  devLoadAlwaysFiles:
+    - .bmad-core/utils/blender-api-best-practices.md
+    - .bmad-core/data/blender-addon-development-kb.md
+    - .bmad-core/data/comfyui-api-guide.md
+    - .bmad-core/templates/blender-addon-requirements.md
+    - .bmad-core/templates/addon-architecture.md
+  devDebugLog: .ai/addon-debug-log.md
+  agentCoreDump: .ai/addon-core-dump{n}.md

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:docs.blender.org)"
+    ],
+    "deny": []
+  }
+}

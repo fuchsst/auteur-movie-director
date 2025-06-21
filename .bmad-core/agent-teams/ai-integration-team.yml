@@ -1,0 +1,23 @@
+bundle:
+  name: AI Integration Specialists
+  icon: 🤖
+  description: Specialized agents for CrewAI integration and generative backend coordination
+agents:
+  - crewai-integrator
+  - backend-connector
+  - performance-optimizer
+  - architect
+workflows:
+  - film-production-workflow
+specializations:
+  - CrewAI multi-agent orchestration
+  - Generative AI backend integration
+  - Resource management and VRAM optimization
+  - Film crew agent design and coordination
+focus_areas:
+  - CrewAI agent implementation for film production roles
+  - ComfyUI workflow integration and management
+  - Wan2GP and LiteLLM service coordination
+  - VRAM budgeting and sequential model loading
+  - Error handling and fallback strategies
+  - Async operation management
