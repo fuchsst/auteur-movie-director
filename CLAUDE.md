@@ -8,11 +8,17 @@ This document presents the definitive project blueprint for a local-first, agent
 
 ## **I. The Generative Studio: Vision and Architectural Philosophy**
 
-This section establishes the project's conceptual foundation, defining the core principles that guide the system's architecture and functionality. It frames the project not as a simple tool, but as a complete, intelligent creative environment designed to integrate seamlessly into an artist's existing workflow.
+This section establishes the project's conceptual foundation, defining the core principles that guide the system's architecture and functionality. It frames the project not as a simple tool, but as a complete, intelligent creative environment designed to integrate seamlessly into an artist's existing workflow through a **regenerative content model**.
 
 ### **1.1. From Tool to Studio: A Paradigm Shift in Content Creation**
 
-The fundamental objective of this project is to create a system that functions as a complete movie studio, not merely a management tool for pre-existing media.1 Whereas a conventional media manager organizes and retrieves files, this generative studio originates content. It is a system of creation, designed to transform abstract concepts into fully realized cinematic sequences directly within the artist's primary digital content creation environment: Blender.1
+The fundamental objective of this project is to create a system that functions as a complete movie studio, not merely a management tool for pre-existing media. Whereas a conventional media manager organizes and retrieves files, this generative studio originates content through a **regenerative architecture** where creative intent and parameters drive automated content creation.
+
+**Regenerative Content Model:**
+- **Project definitions** (characters, scenes, dialogue, camera notes) are stored persistently in the .blend file
+- **Generated content** (videos, audio, LoRA models) exists as file references that can be recreated at any time
+- **Creative intent** drives content generation, allowing for infinite iterations and model evolution
+- **Version control** becomes manageable as .blend files remain small and focused on creative decisions
 
 The envisioned workflow begins with a user's high-level creative spark—a character idea, a plot synopsis, a stylistic mood—entered into a custom panel within the Blender user interface. The system then orchestrates a series of generative processes to develop this concept into a structured narrative, design the characters and world, generate the individual shots as video clips complete with audio, and assemble them into a coherent final product within Blender's Video Sequence Editor (VSE) or 3D viewport.1 This approach necessitates a move beyond single-purpose generative tools and toward an integrated, multi-agent system where each component collaborates to fulfill a specific role in the production pipeline, much like a human film crew.
 

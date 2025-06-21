@@ -14,13 +14,29 @@ The main addon module implementing a BMAD-architected generative film studio for
 - **Configuration** (`config/`) - Templates and hardware optimization
 - **Workflows** (`workflows/`) - Pre-configured templates for generative tasks
 
-### Data Model
-The addon treats creative elements as interconnected "Generative Assets" stored directly in the .blend file:
-- 🎭 **Characters** - Empty objects with LoRA and voice model paths
-- 🎨 **Styles** - Visual aesthetic definitions and style LoRAs  
-- 🗺️ **Locations** - Environment settings and lighting descriptions
-- 🎬 **Scenes** - Collections containing shot sequences
-- 🎥 **Shots** - Individual video clips with dialogue and camera notes
+### Data Model - Regenerative Content Architecture
+The addon follows a **regenerative content model** where only project definitions are stored in the .blend file, while all generated content exists as file references that can be recreated at any time:
+
+**Stored in .blend file (Persistent Project Data):**
+- 🎭 **Characters** - Descriptions, prompts, reference image paths, LoRA training parameters
+- 🎨 **Styles** - Visual aesthetic definitions, style prompts, reference image paths  
+- 🗺️ **Locations** - Environment descriptions, lighting notes, reference materials
+- 🎬 **Scenes** - Narrative structure, scene descriptions, location assignments
+- 🎥 **Shots** - Dialogue text, camera directions, generation parameters, character/style assignments
+
+**Generated Content (File References Only):**
+- Character LoRA models (.safetensors) - Regenerated from reference images and parameters
+- Style LoRA models (.safetensors) - Recreated from style definitions and training data
+- Video clips (.mp4) - Regenerated from shot parameters and current model versions
+- Audio tracks (.wav) - Recreated from dialogue text and voice model settings
+- Images (.png) - Thumbnails and reference materials
+
+**Benefits of Regenerative Architecture:**
+- **Version Control Friendly** - .blend files remain small and manageable
+- **Model Evolution** - Content automatically improves as AI models are updated
+- **Storage Efficiency** - Generated assets don't bloat project files
+- **Collaboration** - Teams share project definitions, not large generated files
+- **Iterative Refinement** - Easy to regenerate content with modified parameters
 
 ## Development Patterns
 
@@ -49,11 +65,29 @@ class MOVIE_DIRECTOR_PT_main_panel(Panel):
     bl_category = "Movie Director"
 ```
 
-### Asset Management
+### Asset Management - Regenerative Model
 ```python
-# Store data in .blend file custom properties
+# Store project definitions in .blend file custom properties
 scene.movie_director.project_name = "My Film"
-character_obj.movie_director.character_lora_path = "//assets/character.safetensors"
+character_obj.movie_director_character.description = "Young warrior with determined expression"
+character_obj.movie_director_character.reference_images_path = "//references/warrior_ref/"
+
+# Generated content stored as file references only
+character_obj.movie_director_character.character_lora_path = "//generated/character_warrior.safetensors"
+shot_obj.movie_director_shot.video_clip_path = "//generated/shot_001.mp4"
+
+# Regeneration workflow
+def regenerate_character_assets(character_obj):
+    """Regenerate all character content from stored definitions"""
+    # Read stored parameters
+    description = character_obj.movie_director_character.description
+    ref_path = character_obj.movie_director_character.reference_images_path
+    
+    # Trigger regeneration via backend
+    casting_director.regenerate_character_lora(description, ref_path)
+    
+    # Update file reference paths
+    character_obj.movie_director_character.character_lora_path = new_lora_path
 ```
 
 ## Key Integration Points
@@ -70,12 +104,24 @@ character_obj.movie_director.character_lora_path = "//assets/character.safetenso
 - [Blender API Patterns](/.bmad-core/data/bpy-*.md)
 - [Backend Integration](/.bmad-core/data/*-api-guide.md)
 
-## Development Flow
+## Development Flow - Regenerative Workflow
 
-1. **Script Development** → Screenwriter agent → Scene/Shot objects created
-2. **Asset Creation** → Casting/Art Director agents → Character/Style assets
-3. **Video Generation** → Cinematographer agent → Shot video clips  
-4. **Audio Creation** → Sound Designer agent → Dialogue and effects
-5. **Final Assembly** → Editor agent → VSE sequence composition
+1. **Project Definition** → Screenwriter agent → Scene/Shot definitions stored in .blend
+2. **Asset Definition** → Casting/Art Director agents → Character/Style parameters stored
+3. **Content Generation** → Cinematographer agent → Video clips generated and referenced  
+4. **Audio Generation** → Sound Designer agent → Audio tracks generated and referenced
+5. **Final Assembly** → Editor agent → VSE sequence with generated file references
 
-The addon transforms Blender from a 3D modeling tool into a complete generative film studio.
+**Regeneration Triggers:**
+- Model updates → Automatically regenerate all content with improved quality
+- Parameter changes → Regenerate specific assets with modified settings
+- Batch regeneration → Recreate entire project with new models/settings
+- Selective regeneration → Update only specific shots/characters/styles
+
+**Version Control Benefits:**
+- .blend files remain small (KB vs GB) containing only project logic
+- Generated assets stored separately and can be gitignored
+- Teams collaborate on creative intent, not generated files
+- Easy to experiment with different AI models and settings
+
+The addon transforms Blender from a 3D modeling tool into a complete regenerative film studio where creative intent drives automated content creation.
