@@ -1,9 +1,9 @@
 # Product Requirements Document: Backend Integration Service Layer
 
-**Version:** 1.0  
-**Date:** 2025-01-21  
+**Version:** 1.1  
+**Date:** 2025-01-27  
 **Owner:** BMAD Business Analyst  
-**Status:** Draft - Stakeholder Review  
+**Status:** Updated - Stakeholder Review  
 **PRD ID:** PRD-001  
 **Dependencies:** None (Foundation layer for all other PRD systems)  
 
@@ -37,7 +37,7 @@ This foundation layer directly enables the regenerative content model that defin
 ### Current Limitations in Generative Film Production
 1. **Fragmented Workflow**: Artists must juggle multiple disconnected tools (ComfyUI web interface, command-line tools, manual file management)
 2. **Technical Barriers**: Complex backend setup and API knowledge required for AI generation
-3. **No Resource Management**: Manual VRAM monitoring leads to crashes and failed generations
+3. **Backend Resource Complexity**: Users must understand backend-specific resource requirements
 4. **Poor User Experience**: Context switching between applications breaks creative flow
 5. **Inconsistent Results**: Lack of automated asset management leads to style/character inconsistencies
 
@@ -45,7 +45,7 @@ This foundation layer directly enables the regenerative content model that defin
 - **No AI Integration**: Blender has powerful 3D capabilities but zero native AI generation support
 - **Manual Asset Management**: Artists manually import/organize generated content
 - **Complex Setup**: Current AI tools require technical expertise to configure and operate
-- **Resource Conflicts**: Multiple AI models competing for limited VRAM cause system instability
+- **Backend Configuration**: Each backend requires separate configuration and resource management
 
 ### Gaps in Agent-Based Film Creation Pipeline
 - **Non-Functional Agents**: Current agent framework lacks backend execution capabilities
@@ -62,10 +62,10 @@ The Backend Integration Service Layer implements a robust, async-first architect
 
 **Core Components:**
 1. **Unified API Client Manager** - Abstracted interfaces for ComfyUI, Wan2GP, and LiteLLM
-2. **Workflow Execution Engine** - Template-driven, parameter-injection workflow runner
-3. **VRAM Budget Manager** - Intelligent resource allocation and model lifecycle management
-4. **Task Queue System** - Async job management with progress tracking and error recovery
-5. **File Management Service** - Generated asset organization and Blender integration
+2. **Workflow Execution Engine** - Template-driven, parameter-injection workflow runner  
+3. **Task Queue System** - Async job management with progress tracking and error recovery
+4. **File Management Service** - Generated asset organization and Blender integration
+5. **Backend Resource Delegation** - Rely on ComfyUI and Wan2GP for VRAM and resource management
 
 ### Integration with Existing Film Crew Agents
 - **Screenwriter Agent**: Uses LiteLLM client for script development and analysis
@@ -115,7 +115,7 @@ The Backend Integration Service Layer implements a robust, async-first architect
 - **When** I click "Generate Character Variations" 
 - **Then** the system loads the appropriate ComfyUI workflow template based on consistency tier
 - **And** injects character-specific parameters (reference image paths, descriptions, LoRA paths if available)
-- **And** executes the workflow on the ComfyUI backend with optimal VRAM management
+- **And** executes the workflow on the ComfyUI backend with its native resource management
 - **And** imports generated images back into Blender as assets with regenerative parameters
 - **And** updates the character's asset browser preview and usage tracking
 
@@ -128,26 +128,28 @@ The Backend Integration Service Layer implements a robust, async-first architect
 - **And** executes coordinated video and audio generation with real-time progress updates
 - **And** imports final video clip and synchronized audio into Blender VSE at correct timeline position
 
-### Epic 3: Resource Management
-**As a user with limited VRAM, I want the system to automatically manage AI model loading/unloading so that I can run complex workflows without crashes.**
+### Epic 3: Backend Optimization and Selection
+**As a user, I want the system to intelligently route tasks to the appropriate backend, leveraging each backend's native resource management capabilities.**
 
-#### User Story 3.1: VRAM Budget Management
-- **Given** I'm attempting to generate content that requires more VRAM than available
-- **When** the system calculates resource requirements
-- **Then** it automatically breaks the workflow into sequential steps
-- **And** loads only required models for each step
-- **And** unloads models between steps to free memory
-- **And** provides clear feedback about memory optimization steps taken
-
-#### User Story 3.2: Intelligent Backend Selection
+#### User Story 3.1: Intelligent Backend Selection
 - **Given** I request video generation for a shot
 - **When** the system has multiple backend options available
 - **Then** it selects the optimal backend based on:
-  - Available VRAM vs model requirements
+  - Task complexity and requirements
   - Desired quality level (draft vs final)
   - Character/style consistency needs
+  - Backend-specific capabilities
   - Estimated processing time
 - **And** provides rationale for backend selection in progress panel
+- **And** lets the backend handle its own resource management
+
+#### User Story 3.2: Backend Error Recovery
+- **Given** I'm generating content through a backend service
+- **When** the backend reports a resource constraint or error
+- **Then** the system captures the error gracefully
+- **And** provides user-friendly error messages
+- **And** suggests alternative approaches (different backend, simplified workflow)
+- **And** allows retry with modified parameters
 
 ### Epic 4: Audio Integration and Coordination
 **As a filmmaker, I want audio generation to be seamlessly integrated with video generation so that I can create complete audiovisual content without manual synchronization.**
@@ -256,11 +258,11 @@ def generate_video_clip_tool(prompt: str, character_refs: List[str], style_path:
 
 ### Performance and Resource Considerations
 
-#### 1. VRAM Management
-- **Dynamic Profiling**: Runtime detection of available GPU memory
-- **Model Footprint Database**: Pre-calculated VRAM requirements for all supported models
-- **Sequential Execution**: Automatic workflow segmentation for memory-constrained systems
-- **Optimization Strategies**: Model quantization and precision reduction when appropriate
+#### 1. Backend Resource Delegation
+- **Backend Autonomy**: Each backend (ComfyUI, Wan2GP) manages its own resources
+- **Error Propagation**: Clear communication of backend resource errors to users
+- **Workflow Optimization**: Leverage backend-specific optimizations and capabilities
+- **Configuration Passthrough**: Allow users to configure backend-specific resource settings
 
 #### 2. Storage Management and Regenerative Content Model
 - **Generated Asset Organization**: Hierarchical directory structure by project/scene/shot
@@ -348,15 +350,15 @@ def generate_video_clip_tool(prompt: str, character_refs: List[str], style_path:
   - Develop comprehensive testing suite for backend compatibility
   - Create mock backends for development and testing
 
-#### Medium Risk: VRAM Management Complexity
-- **Risk**: Inaccurate VRAM profiling leads to crashes or poor performance
+#### Medium Risk: Backend Resource Limitations
+- **Risk**: Backend services hit resource limits causing generation failures
 - **Probability**: Medium (30%)
 - **Impact**: Medium - User frustration and workflow interruption
 - **Mitigation Strategy**:
-  - Extensive testing across different GPU configurations
-  - Conservative memory estimates with safety margins
-  - User-configurable memory limits and manual overrides
-  - Clear error messages with resolution guidance
+  - Clear error messaging from backend services
+  - Workflow simplification suggestions
+  - Backend configuration guidance in documentation
+  - Alternative backend routing for resource-intensive tasks
 
 #### Medium Risk: Blender API Changes
 - **Risk**: Future Blender updates break addon compatibility
@@ -496,6 +498,20 @@ def generate_video_clip_tool(prompt: str, character_refs: List[str], style_path:
 
 ## Cross-PRD Integration Specifications
 
+### Integration with Node-Based Production Canvas (PRD-006)
+- **Backend Execution from Nodes**: Node graph execution triggers backend API calls
+- **Progress Visualization**: Real-time backend progress displayed on nodes
+- **Error Display**: Backend errors shown directly on affected nodes
+- **Pipeline Configuration**: Node-based pipeline selection routes to appropriate backends
+
+### Integration with Regenerative Content Model (PRD-007)
+- **Parameter Storage**: Backend integration stores all generation parameters for regeneration
+- **Regeneration Queue**: Backend manages regeneration requests efficiently
+- **File Reference Updates**: Backend updates file references after generation/regeneration
+- **Model Version Tracking**: Backend tracks which models were used for future regeneration
+
+## Original Cross-PRD Integration Specifications
+
 ### Complex Multi-System Workflows
 
 #### Character-Environment-Style Coordination Workflow
@@ -514,11 +530,11 @@ def generate_video_clip_tool(prompt: str, character_refs: List[str], style_path:
 
 ### Resource Management Coordination
 
-#### VRAM Arbitration for Multi-System Operations
-- **Priority System**: Character LoRA (highest) > Style LoRA > Environment > Audio processing
-- **Sequential Loading**: Dynamic model unloading/loading based on shot requirements
-- **Memory Budgeting**: Real-time VRAM allocation across all active systems
-- **User Feedback**: Clear indication of memory-based processing decisions
+#### Backend Resource Coordination
+- **Task Distribution**: Intelligent routing to appropriate backends based on capabilities
+- **Error Handling**: Unified error handling across different backend services
+- **Progress Aggregation**: Combined progress reporting from multiple backends
+- **Configuration Management**: Centralized backend configuration interface
 
 ### UI Navigation Framework
 

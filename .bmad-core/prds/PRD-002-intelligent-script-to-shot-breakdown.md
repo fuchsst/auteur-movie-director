@@ -1,11 +1,11 @@
 # Product Requirements Document: Intelligent Script-to-Shot Breakdown System
 
-**Version:** 1.0  
-**Date:** 2025-01-21  
+**Version:** 1.1  
+**Date:** 2025-01-27  
 **Owner:** BMAD Business Analyst  
-**Status:** Draft - Stakeholder Review  
+**Status:** Updated - Stakeholder Review  
 **PRD ID:** PRD-002  
-**Dependencies:** Backend Integration Service Layer (PRD-001), Character Consistency Engine (PRD-003), Style Consistency Framework (PRD-004), Environment Management & Background Generation System (PRD-005)
+**Dependencies:** Backend Integration Service Layer (PRD-001), Character Consistency Engine (PRD-003), Style Consistency Framework (PRD-004), Environment Management & Background Generation System (PRD-005), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007)
 
 ---
 
@@ -74,6 +74,7 @@ The Intelligent Script-to-Shot Breakdown System integrates the Screenwriter agen
 7. **Technical Annotation** - Add camera movement, shot size, and composition suggestions
 8. **Asset Linkage System** - Automatic cross-referencing between scenes, characters, and environments
 9. **Blender Integration** - Automatically create Scene collections and Shot objects with complete metadata
+10. **Node Canvas Population** - Generate complete node graph structure from script breakdown
 
 ### Integration with Existing Film Crew Agents
 **Screenwriter Agent Enhancement:**
@@ -166,6 +167,7 @@ The Intelligent Script-to-Shot Breakdown System integrates the Screenwriter agen
 - **And** establishes character-scene linkage for all identified characters
 - **And** organizes scenes hierarchically in Blender's Outliner
 - **And** provides a summary of created scenes and any parsing warnings
+- **And** optionally generates a complete node graph structure in the Production Canvas
 
 **Acceptance Criteria:**
 - Scene collections created with proper naming convention (e.g., "Scene 01 - INT. CAFE - DAY")
@@ -174,6 +176,7 @@ The Intelligent Script-to-Shot Breakdown System integrates the Screenwriter agen
 - Environment assets created and linked to appropriate scenes
 - Hierarchical organization under main "Scenes" collection
 - Clear user feedback about parsing results and any ambiguities
+- Option to generate node canvas representation of script structure
 
 ### Epic 3: Intelligent Shot Generation
 **As a content creator, I want the system to automatically generate appropriate shot lists for each scene based on the action and dialogue, so that I have a professional cinematographic foundation for video generation.**
@@ -268,6 +271,40 @@ The Intelligent Script-to-Shot Breakdown System integrates the Screenwriter agen
 - Audio-visual style coordination suggestions with style consistency framework
 - Audio asset placeholder creation with regenerative parameter storage
 
+### Epic 6: Node Canvas Integration
+**As a visual thinker, I want the script breakdown to automatically populate the node-based production canvas, so I can see and manipulate the film structure as a visual graph.**
+
+#### User Story 6.1: Automatic Node Graph Generation
+- **Given** I have completed script import and breakdown
+- **When** I open the Production Canvas node editor
+- **Then** I see a complete node graph representing my film structure
+- **And** Scene Group nodes are created for each script scene
+- **And** Shot nodes are properly connected within their scenes
+- **And** Character and Environment asset nodes are linked appropriately
+- **And** the graph layout is organized and readable
+
+**Acceptance Criteria:**
+- Automatic node graph creation from script data
+- Proper hierarchical organization (Project → Scene → Shot)
+- Asset nodes created and connected based on script analysis
+- Clean, organized layout with minimal crossing connections
+- Node properties populated from script metadata
+
+#### User Story 6.2: Bidirectional Script-Node Synchronization
+- **Given** I have both script data and node graph representation
+- **When** I make changes in either the panel interface or node canvas
+- **Then** changes are synchronized between both representations
+- **And** script updates trigger node graph updates
+- **And** node modifications update script breakdown data
+- **And** conflicts are handled gracefully with user choice
+
+**Acceptance Criteria:**
+- Real-time synchronization between data representations
+- Change propagation in both directions
+- Conflict resolution UI for contradictory changes
+- Preservation of user customizations during sync
+- Clear indication of sync status and any issues
+
 ---
 
 ## Technical Requirements
@@ -292,6 +329,11 @@ class MOVIE_DIRECTOR_OT_import_script(Operator):
         scene_generator = SceneStructureGenerator(context)
         scene_generator.create_from_script(parsed_script)
         
+        # Optionally generate node canvas
+        if context.scene.movie_director.auto_generate_nodes:
+            node_generator = NodeCanvasGenerator(context)
+            node_generator.create_from_script(parsed_script)
+        
         return {'FINISHED'}
 ```
 
@@ -304,7 +346,38 @@ class MOVIE_DIRECTOR_OT_import_script(Operator):
 - **Metadata Storage**: Complete script analysis results stored in scene properties
 - **Regenerative Architecture**: Script breakdown parameters stored for regeneration, not final content
 
-#### 3. UI Integration
+#### 3. Node Canvas Integration
+```python
+class NodeCanvasGenerator:
+    """Generates node graph from parsed script data"""
+    
+    def create_from_script(self, parsed_script):
+        # Create or get node tree
+        node_tree = self.get_or_create_node_tree()
+        
+        # Create project settings node
+        project_node = self.create_project_node(node_tree, parsed_script.metadata)
+        
+        # Create scene group nodes
+        scene_nodes = []
+        for scene in parsed_script.scenes:
+            scene_node = self.create_scene_group_node(node_tree, scene)
+            
+            # Create shot nodes within scene
+            self.populate_scene_shots(scene_node.node_tree, scene.shots)
+            
+            # Link to project flow
+            self.link_nodes(node_tree, project_node, scene_node)
+            scene_nodes.append(scene_node)
+        
+        # Create and link asset nodes
+        self.create_asset_nodes(node_tree, parsed_script.characters, parsed_script.environments)
+        
+        # Auto-layout for readability
+        self.auto_layout_nodes(node_tree)
+```
+
+#### 4. UI Integration
 ```python
 class MOVIE_DIRECTOR_PT_script_breakdown(Panel):
     """Script breakdown and review panel"""
@@ -317,10 +390,14 @@ class MOVIE_DIRECTOR_PT_script_breakdown(Panel):
         # Script import section
         layout.operator("movie_director.import_script")
         
+        # Node canvas options
+        layout.prop(context.scene.movie_director, "auto_generate_nodes")
+        
         # Scene/shot review section
         if context.scene.movie_director.script_imported:
             layout.operator("movie_director.review_breakdown")
             layout.operator("movie_director.regenerate_shots")
+            layout.operator("movie_director.open_node_canvas")
 ```
 
 ### CrewAI Framework Integration
@@ -681,6 +758,31 @@ class ScriptBreakdownWorkflow:
 ---
 
 ## Cross-PRD Integration Specifications
+
+### Node Canvas Integration (PRD-006)
+
+#### Script-to-Node Graph Generation
+- **Integration**: PRD-002 → PRD-006
+- **Process**: Script import optionally generates complete node graph structure
+- **Data Flow**: Scene hierarchy, shot sequences, and asset relationships to node canvas
+- **User Experience**: Single import creates both traditional and node-based representations
+- **Synchronization**: Bidirectional updates between panel UI and node canvas
+
+#### Visual Script Navigation
+- **Integration**: PRD-002 ↔ PRD-006
+- **Process**: Changes in either representation update the other
+- **Navigation**: Click scene in panel to highlight in node graph
+- **Editing**: Modify script structure through node manipulation
+- **Consistency**: Shared data model ensures perfect synchronization
+
+### Regenerative Content Integration (PRD-007)
+
+#### Script Breakdown Parameter Storage
+- **Integration**: PRD-002 → PRD-007
+- **Process**: All script analysis parameters stored for regeneration
+- **Data Storage**: Script parsing results, shot decisions, asset assignments
+- **Regeneration**: Complete script breakdown can be regenerated with updates
+- **Evolution**: New AI models can re-analyze scripts for improved breakdowns
 
 ### Asset Creation Workflow Integration
 
