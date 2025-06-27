@@ -17,9 +17,9 @@
 ## Acceptance Criteria
 
 ### Functional Requirements
-- [ ] Manage connections for all 5 backend services
+- [ ] Manage connections for all 4 backend services (ComfyUI, Wan2GP, RVC, AudioLDM)
 - [ ] Implement connection pooling for HTTP services
-- [ ] Maintain WebSocket connections efficiently
+- [ ] Maintain client library connections efficiently
 - [ ] Handle connection lifecycle (create, reuse, destroy)
 - [ ] Support concurrent request handling
 - [ ] Implement connection limits per service
@@ -101,28 +101,55 @@ class ConnectionPoolManager:
 
 **Service-Specific Connection Pools:**
 ```python
-class WebSocketPool(ConnectionPool):
-    """Pool for WebSocket connections (ComfyUI)"""
+class ComfyUIPool(ConnectionPool):
+    """Pool for ComfyUI client connections"""
     
+    def __init__(self, service_name: str, host: str, port: int):
+        super().__init__(service_name)
+        self.host = host
+        self.port = port
+        
     async def create_connection(self):
-        """Create new WebSocket connection"""
-        ws = await websockets.connect(
-            self.url,
-            ping_interval=30,
-            ping_timeout=10
-        )
-        return WebSocketConnection(ws)
+        """Create new ComfyUI client connection"""
+        from comfyui_api_client import ComfyUIClient
+        client = ComfyUIClient(f"{self.host}:{self.port}")
+        client.connect()
+        return client
         
     async def validate_connection(self, conn):
-        """Check if WebSocket is still alive"""
+        """Check if ComfyUI client is still connected"""
         try:
-            await conn.ws.ping()
+            # Test with a simple request
+            import requests
+            response = requests.get(f"http://{self.host}:{self.port}/system_stats", timeout=2)
+            return response.status_code == 200
+        except:
+            return False
+
+class GradioPool(ConnectionPool):
+    """Pool for Gradio client connections"""
+    
+    def __init__(self, service_name: str, url: str):
+        super().__init__(service_name)
+        self.url = url
+        
+    async def create_connection(self):
+        """Create new Gradio client connection"""
+        from gradio_client import Client
+        client = Client(self.url)
+        return client
+        
+    async def validate_connection(self, conn):
+        """Check if Gradio client is still valid"""
+        try:
+            # Gradio clients are stateless, always valid if server is up
+            conn.view_api()
             return True
         except:
             return False
 
 class HTTPPool(ConnectionPool):
-    """Pool for HTTP connections (LiteLLM, RVC, etc)"""
+    """Pool for HTTP connections (RVC, AudioLDM)"""
     
     def __init__(self, service_name: str, base_url: str):
         super().__init__(service_name)
@@ -269,19 +296,24 @@ class ConnectionStats:
 ```python
 SERVICE_POOL_CONFIGS = {
     'comfyui': ConnectionConfig(
-        max_connections=5,  # WebSocket connections
+        max_connections=5,  # ComfyUI client instances
         min_connections=1,
         health_check_interval=30
     ),
-    'litellm': ConnectionConfig(
-        max_connections=20,  # HTTP connections
-        min_connections=5,
-        idle_timeout=600
-    ),
     'wan2gp': ConnectionConfig(
-        max_connections=10,
+        max_connections=10,  # Gradio client connections
         min_connections=2,
         connection_timeout=60  # Longer for Gradio
+    ),
+    'rvc': ConnectionConfig(
+        max_connections=15,  # HTTP connections
+        min_connections=3,
+        idle_timeout=300
+    ),
+    'audioldm': ConnectionConfig(
+        max_connections=15,  # HTTP connections
+        min_connections=3,
+        idle_timeout=300
     )
 }
 ```

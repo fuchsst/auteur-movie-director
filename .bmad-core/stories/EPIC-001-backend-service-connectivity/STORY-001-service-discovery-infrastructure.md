@@ -19,7 +19,6 @@
 ### Functional Requirements
 - [ ] Discovers ComfyUI on default port (8188) and configurable ports
 - [ ] Discovers Wan2GP on default port (7860) and configurable ports  
-- [ ] Discovers LiteLLM on default port (8000) and configurable ports
 - [ ] Discovers RVC on default port (7865) and configurable ports
 - [ ] Discovers AudioLDM on default port (7863) and configurable ports
 - [ ] Falls back to manual configuration if auto-discovery fails
@@ -55,9 +54,8 @@
 class ServiceDiscoveryManager:
     def __init__(self):
         self.services = {
-            'comfyui': {'default_port': 8188, 'protocol': 'websocket'},
+            'comfyui': {'default_port': 8188, 'protocol': 'http'},  # Uses HTTP API
             'wan2gp': {'default_port': 7860, 'protocol': 'http'},
-            'litellm': {'default_port': 8000, 'protocol': 'http'},
             'rvc': {'default_port': 7865, 'protocol': 'http'},
             'audioldm': {'default_port': 7863, 'protocol': 'http'}
         }
@@ -81,9 +79,8 @@ class ServiceDiscoveryManager:
 4. Implement exponential backoff for retries
 
 **Service Detection Endpoints:**
-- ComfyUI: `ws://localhost:8188/ws` (WebSocket test)
+- ComfyUI: `http://localhost:8188/system_stats` (HTTP API endpoint)
 - Wan2GP: `http://localhost:7860/api/health`
-- LiteLLM: `http://localhost:8000/health`
 - RVC: `http://localhost:7865/api/status`
 - AudioLDM: `http://localhost:7863/api/ready`
 
@@ -96,7 +93,6 @@ class ServiceDiscoveryManager:
 ### Dependencies
 - Python `asyncio` for async operations
 - `aiohttp` for HTTP service detection
-- `websockets` for WebSocket detection
 - Thread pool executor for parallel scanning
 - No external Blender addon dependencies
 

@@ -113,10 +113,17 @@ class MOVIE_DIRECTOR_PT_health_dashboard(Panel):
         row = layout.row()
         row.prop(props, "metrics_time_range", expand=True)
         
-        # Service metrics
+        # Backend service metrics
+        layout.label(text="Backend Services:", icon='LINKED')
         for service in props.backend_services:
             if service.status == 'connected':
                 self.draw_service_metrics(layout, service)
+                
+        # LLM metrics
+        layout.separator()
+        layout.label(text="LLM Integration:", icon='TEXT')
+        if props.llm_status.configured:
+            self.draw_llm_metrics(layout, props.llm_status)
                 
         # Export button
         layout.operator("movie_director.export_metrics", 
@@ -157,6 +164,37 @@ def draw_service_metrics(self, layout, service):
         row = col.row()
         row.label(text="Queue:")
         row.label(text=str(queue_depth))
+
+def draw_llm_metrics(self, layout, llm_status):
+    """Draw metrics for LLM integration"""
+    metrics = get_llm_metrics()
+    
+    box = layout.box()
+    box.label(text="Language Models", icon='TEXT')
+    
+    col = box.column(align=True)
+    
+    # Active model
+    row = col.row()
+    row.label(text="Active Model:")
+    row.label(text=llm_status.active_model)
+    
+    # Token usage
+    if token_stats := metrics.get('token_usage'):
+        row = col.row()
+        row.label(text="Tokens Used:")
+        row.label(text=f"{token_stats['total']:,}")
+        
+        row = col.row()
+        row.label(text="Avg Response:")
+        self.draw_metric_bar(row, token_stats['avg_response_time'], 
+                            max_value=2000, unit="ms")
+    
+    # Cost tracking
+    if cost_data := metrics.get('cost_estimate'):
+        row = col.row()
+        row.label(text="Est. Cost:")
+        row.label(text=f"${cost_data['total']:.2f}")
         
 def draw_metric_bar(self, layout, value, max_value, unit=""):
     """Draw a visual metric bar"""
@@ -253,11 +291,19 @@ class MOVIE_DIRECTOR_OT_export_metrics(Operator):
 ```
 
 ### Metrics to Track
+
+**Backend Services:**
 1. **Performance**: Response time, throughput
 2. **Reliability**: Success rate, uptime
 3. **Resource**: Queue depth, memory usage
 4. **Errors**: Error rate, error types
 5. **Usage**: Request count, peak times
+
+**LLM Integration:**
+1. **Usage**: Token count, model distribution
+2. **Performance**: Response latency
+3. **Cost**: Estimated spend by model
+4. **Availability**: Active models count
 
 ### Data Retention
 - Real-time: Last 5 minutes (1s granularity)
@@ -288,7 +334,8 @@ class TestMetricsCollection(unittest.TestCase):
 - Memory usage monitoring
 
 ## Dependencies
-- STORY-002-004: Backend clients provide metrics
+- STORY-002-003: Backend clients provide metrics
+- STORY-004: LLM Integration Layer provides usage stats
 - STORY-010: Health check service feeds data
 - Metrics visualization library (optional)
 

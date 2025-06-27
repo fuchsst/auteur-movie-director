@@ -15,23 +15,23 @@ These stories establish the core connectivity infrastructure that all other func
   - Automatic discovery of all backend services
   - Port scanning and protocol detection
   
-- **[STORY-002: WebSocket Client for ComfyUI](./STORY-002-websocket-client-comfyui.md)** (5 points)
-  - WebSocket connection handling for ComfyUI
-  - Real-time message passing and events
+- **[STORY-002: ComfyUI Client Integration](./STORY-002-comfyui-client-integration.md)** (5 points)
+  - ComfyUI API client integration using comfyui_api_client
+  - Workflow submission and result handling
   
 - **[STORY-003: Gradio Client for Wan2GP](./STORY-003-gradio-client-wan2gp.md)** (5 points)
-  - Gradio interface connection for Wan2GP
+  - Gradio interface connection using gradio_client
   - Job submission and file handling
   
-- **[STORY-004: HTTP Client for LiteLLM](./STORY-004-http-client-litellm.md)** (3 points)
-  - REST API client for LiteLLM
-  - Streaming and non-streaming support
+- **[STORY-004: LLM Integration Layer](./STORY-004-llm-integration-layer.md)** (3 points)
+  - Unified LLM interface using litellm library
+  - Multi-provider support with fallback
 
 ### 🎨 UI Integration Stories
 These stories provide the user interface for monitoring and configuring connections.
 
 - **[STORY-005: Connection Status Panel](./STORY-005-connection-status-panel.md)** (5 points)
-  - Real-time status display for all services
+  - Real-time status display for 4 backend services + LLM integration
   - Visual indicators and health summary
   
 - **[STORY-006: Service Configuration UI](./STORY-006-service-configuration-ui.md)** (5 points)
@@ -62,8 +62,8 @@ These stories implement the core backend management systems.
   - Operation queue during disconnection
   
 - **[STORY-012: Service Registry](./STORY-012-service-registry.md)** (5 points)
-  - Backend capability catalog
-  - Dynamic feature discovery
+  - Backend capability catalog and LLM model registry
+  - Dynamic feature discovery for services and models
 
 ### 💾 Data Model & Persistence Stories
 These stories handle configuration and state persistence.
@@ -96,9 +96,9 @@ The stories have specific dependencies that should guide implementation order:
 ```
 Foundation Layer (Sprint 1-2)
 ├── STORY-001: Service Discovery ──┐
-├── STORY-002: WebSocket Client ───┼─→ STORY-009: Connection Pool
+├── STORY-002: ComfyUI Client ─────┼─→ STORY-009: Connection Pool
 ├── STORY-003: Gradio Client ──────┤
-└── STORY-004: HTTP Client ────────┘
+└── STORY-004: LLM Integration ────┘
 
 UI Layer (Sprint 2-3)
 ├── STORY-005: Status Panel ───────→ STORY-008: Health Dashboard
@@ -117,6 +117,12 @@ Data & Testing (Sprint 4-5)
 ```
 
 ## Implementation Guidelines
+
+### Key Architecture Changes
+1. **LiteLLM as Library**: LiteLLM is used as a Python library for LLM integration, not as a backend service
+2. **4 Backend Services**: ComfyUI, Wan2GP, RVC, and AudioLDM are the actual backend services
+3. **Python Client Libraries**: Using comfyui_api_client and gradio_client for backend integration
+4. **Separate LLM Management**: LLM models and API keys managed separately from backend services
 
 ### Development Approach
 1. **Test-Driven Development**: Write tests (STORY-015) alongside implementation

@@ -17,14 +17,15 @@
 ## Acceptance Criteria
 
 ### Functional Requirements
-- [ ] Perform periodic health checks on all services
+- [ ] Perform periodic health checks on all backend services
+- [ ] Validate LLM API keys and model availability
 - [ ] Detect service availability changes within 30 seconds
 - [ ] Check service-specific health endpoints
 - [ ] Verify service capabilities and versions
 - [ ] Track health check history
-- [ ] Trigger reconnection on recovery
+- [ ] Trigger reconnection on recovery for backends
 - [ ] Support custom health check intervals
-- [ ] Aggregate health status across services
+- [ ] Aggregate health status across services and LLMs
 
 ### Technical Requirements
 - [ ] Async health check execution
@@ -87,6 +88,7 @@ class HealthCheckService:
         """Start health monitoring for all services"""
         self._running = True
         
+        # Monitor backend services
         for service in BACKEND_SERVICES:
             # Initialize health state
             self.health_states[service] = ServiceHealth(service)
@@ -96,52 +98,26 @@ class HealthCheckService:
                 self._health_check_loop(service)
             )
             self._tasks[service] = task
+            
+        # Monitor LLM integration separately
+        self.health_states['llm'] = ServiceHealth('llm')
+        llm_task = asyncio.create_task(
+            self._llm_health_check_loop()
+        )
+        self._tasks['llm'] = llm_task
 ```
 
 **Service-Specific Health Checkers:**
 ```python
 async def check_comfyui_health(self, url: str) -> Dict:
-    """Health check for ComfyUI WebSocket service"""
+    """Health check for ComfyUI service"""
     try:
         start_time = time.time()
         
-        # Test WebSocket connection
-        async with websockets.connect(url, timeout=5) as ws:
-            # Send system stats request
-            await ws.send(json.dumps({
-                "type": "system_stats"
-            }))
-            
-            # Wait for response
-            response = await asyncio.wait_for(ws.recv(), timeout=3)
-            data = json.loads(response)
-            
-            return {
-                'healthy': True,
-                'response_time': time.time() - start_time,
-                'version': data.get('version'),
-                'capabilities': {
-                    'models': data.get('models', []),
-                    'vram_available': data.get('vram_free'),
-                    'queue_size': data.get('queue_size', 0)
-                }
-            }
-            
-    except Exception as e:
-        return {
-            'healthy': False,
-            'error': str(e),
-            'response_time': time.time() - start_time
-        }
-
-async def check_litellm_health(self, url: str) -> Dict:
-    """Health check for LiteLLM HTTP service"""
-    try:
-        start_time = time.time()
-        
+        # Test HTTP endpoint
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"{url}/health",
+                f"{url}/system_stats",
                 timeout=aiohttp.ClientTimeout(total=5)
             ) as response:
                 data = await response.json()
@@ -152,16 +128,71 @@ async def check_litellm_health(self, url: str) -> Dict:
                     'version': data.get('version'),
                     'capabilities': {
                         'models': data.get('models', []),
-                        'rate_limit': data.get('rate_limit')
+                        'vram_available': data.get('vram_free'),
+                        'queue_size': data.get('queue_size', 0)
                     }
                 }
-                
+            
     except Exception as e:
         return {
             'healthy': False,
             'error': str(e),
             'response_time': time.time() - start_time
         }
+
+async def check_llm_health(self) -> Dict:
+    """Health check for LLM integration (API key validation)"""
+    try:
+        import litellm
+        start_time = time.time()
+        
+        # Get configured models from LLM integration
+        available_models = []
+        errors = []
+        
+        # Check common models
+        test_models = ["gpt-3.5-turbo", "claude-2", "llama-2-70b"]
+        
+        for model in test_models:
+            try:
+                # Check if API key is valid for this model
+                is_valid = litellm.check_valid_key(model)
+                if is_valid:
+                    available_models.append(model)
+            except Exception as e:
+                errors.append(f"{model}: {str(e)}")
+                
+        return {
+            'healthy': len(available_models) > 0,
+            'response_time': time.time() - start_time,
+            'available_models': available_models,
+            'errors': errors,
+            'capabilities': {
+                'models': available_models,
+                'providers': self._get_configured_providers()
+            }
+        }
+        
+    except Exception as e:
+        return {
+            'healthy': False,
+            'error': str(e),
+            'response_time': time.time() - start_time
+        }
+        
+def _get_configured_providers(self) -> List[str]:
+    """Get list of configured LLM providers"""
+    providers = []
+    import os
+    
+    if os.getenv("OPENAI_API_KEY"):
+        providers.append("openai")
+    if os.getenv("ANTHROPIC_API_KEY"):
+        providers.append("anthropic")
+    if os.getenv("AZURE_API_KEY"):
+        providers.append("azure")
+        
+    return providers
 ```
 
 **Health Check Loop:**
@@ -184,6 +215,30 @@ async def _health_check_loop(self, service: str):
             
             # Mark as unhealthy on check failure
             await self._update_health_state(service, {
+                'healthy': False,
+                'error': str(e)
+            })
+            
+        # Wait for next check
+        await asyncio.sleep(interval)
+
+async def _llm_health_check_loop(self):
+    """Separate health check loop for LLM integration"""
+    interval = 60  # Check less frequently since API keys don't change often
+    
+    while self._running:
+        try:
+            # Perform LLM health check
+            result = await self.check_llm_health()
+            
+            # Update health state
+            await self._update_health_state('llm', result)
+            
+        except Exception as e:
+            logger.error(f"LLM health check error: {e}")
+            
+            # Mark as unhealthy on check failure
+            await self._update_health_state('llm', {
                 'healthy': False,
                 'error': str(e)
             })
@@ -264,21 +319,32 @@ def get_system_health(self) -> HealthStatus:
     if not self.health_states:
         return HealthStatus.UNKNOWN
         
-    statuses = [h.status for h in self.health_states.values()]
+    # Separate backend and LLM health
+    backend_statuses = [h.status for k, h in self.health_states.items() if k != 'llm']
+    llm_status = self.health_states.get('llm', ServiceHealth('llm')).status
     
-    # System is unhealthy if any critical service is unhealthy
-    critical_services = ['comfyui', 'litellm']
-    for service in critical_services:
-        if self.health_states[service].status == HealthStatus.UNHEALTHY:
+    # System is unhealthy if critical backend is unhealthy
+    critical_backends = ['comfyui']
+    for service in critical_backends:
+        if service in self.health_states and self.health_states[service].status == HealthStatus.UNHEALTHY:
             return HealthStatus.UNHEALTHY
             
-    # System is degraded if any service is degraded/unhealthy
-    if any(s in [HealthStatus.DEGRADED, HealthStatus.UNHEALTHY] for s in statuses):
+    # System is degraded if any backend is unhealthy or if LLM is unavailable
+    if any(s == HealthStatus.UNHEALTHY for s in backend_statuses):
+        return HealthStatus.DEGRADED
+        
+    # If LLM is unhealthy, system is degraded but not critical
+    if llm_status == HealthStatus.UNHEALTHY:
         return HealthStatus.DEGRADED
         
     # System is healthy only if all services are healthy
-    if all(s == HealthStatus.HEALTHY for s in statuses):
+    all_statuses = backend_statuses + [llm_status]
+    if all(s == HealthStatus.HEALTHY for s in all_statuses):
         return HealthStatus.HEALTHY
+        
+    # Any degraded service means system is degraded
+    if any(s == HealthStatus.DEGRADED for s in all_statuses):
+        return HealthStatus.DEGRADED
         
     return HealthStatus.UNKNOWN
 ```
@@ -291,15 +357,25 @@ HEALTH_CHECK_CONFIG = {
         'timeout': 5,
         'endpoint': '/system_stats'
     },
-    'litellm': {
-        'interval': 30,
-        'timeout': 5,
-        'endpoint': '/health'
-    },
     'wan2gp': {
         'interval': 60,  # Less frequent for Gradio
         'timeout': 10,
         'endpoint': '/api/health'
+    },
+    'rvc': {
+        'interval': 30,
+        'timeout': 5,
+        'endpoint': '/api/status'
+    },
+    'audioldm': {
+        'interval': 30,
+        'timeout': 5,
+        'endpoint': '/api/ready'
+    },
+    'llm': {
+        'interval': 60,  # Less frequent for API key checks
+        'timeout': 10,
+        'type': 'api_key_validation'
     }
 }
 ```

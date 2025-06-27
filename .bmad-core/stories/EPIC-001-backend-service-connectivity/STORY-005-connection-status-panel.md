@@ -17,9 +17,11 @@
 ## Acceptance Criteria
 
 ### Functional Requirements
-- [ ] Display status for all 5 backend services (ComfyUI, Wan2GP, LiteLLM, RVC, AudioLDM)
+- [ ] Display status for all 4 backend services (ComfyUI, Wan2GP, RVC, AudioLDM)
+- [ ] Show separate status for LLM integration (API key validity)
 - [ ] Show connection state: Connected (green), Connecting (yellow), Disconnected (red)
 - [ ] Display service version/capability info when connected
+- [ ] Show available LLM models when configured
 - [ ] Provide "Refresh" button to re-check connections
 - [ ] Show last connection attempt timestamp
 - [ ] Indicate if service is required vs optional
@@ -74,9 +76,15 @@ class MOVIE_DIRECTOR_PT_connection_status(Panel):
         row.operator("movie_director.refresh_connections", 
                     text="", icon='FILE_REFRESH')
         
-        # Service list
+        # Backend services
+        layout.label(text="Backend Services:", icon='LINKED')
         for service in props.backend_services:
             self.draw_service_status(layout, service)
+            
+        # LLM Integration
+        layout.separator()
+        layout.label(text="LLM Integration:", icon='TEXT')
+        self.draw_llm_status(layout, props.llm_status)
 ```
 
 **Service Status Display:**
@@ -109,6 +117,36 @@ def draw_service_status(self, layout, service):
         if service.error_message:
             col.label(text=f"Error: {service.error_message}", 
                      icon='ERROR')
+                     
+def draw_llm_status(self, layout, llm_status):
+    """Draw LLM integration status"""
+    box = layout.box()
+    row = box.row()
+    
+    # LLM status icon and name
+    icon = 'CHECKMARK' if llm_status.configured else 'X'
+    row.label(text="Language Models", icon='TEXT')
+    
+    # Configuration state
+    if llm_status.configured:
+        row.label(text="Configured", icon='CHECKMARK')
+    else:
+        row.label(text="Not Configured", icon='X')
+    
+    # Expandable details
+    if llm_status.show_details:
+        col = box.column(align=True)
+        
+        if llm_status.configured:
+            col.label(text=f"Active Model: {llm_status.active_model}")
+            col.label(text=f"Available Models: {llm_status.model_count}")
+            col.label(text=f"Providers: {llm_status.providers}")
+        else:
+            col.label(text="No API keys configured", icon='INFO')
+            col.label(text="Set environment variables:")
+            col.label(text="  - OPENAI_API_KEY")
+            col.label(text="  - ANTHROPIC_API_KEY")
+            col.label(text="  - AZURE_API_KEY")
 ```
 
 **Status Properties:**
@@ -131,18 +169,30 @@ class BackendServiceStatus(PropertyGroup):
     error_message: StringProperty(name="Error Message")
     show_details: BoolProperty(name="Show Details", default=False)
     is_required: BoolProperty(name="Required Service", default=True)
+
+class LLMIntegrationStatus(PropertyGroup):
+    configured: BoolProperty(name="Configured", default=False)
+    active_model: StringProperty(name="Active Model", default="None")
+    model_count: IntProperty(name="Model Count", default=0)
+    providers: StringProperty(name="Providers", default="")
+    show_details: BoolProperty(name="Show Details", default=False)
+    last_check: StringProperty(name="Last Check")
 ```
 
 **Real-time Updates:**
 ```python
 def connection_status_timer():
     """Timer function for UI updates"""
-    # Get current connection states
-    states = get_backend_states()
+    # Get current backend connection states
+    backend_states = get_backend_states()
     
-    # Update properties
-    for service, state in states.items():
+    # Update backend service properties
+    for service, state in backend_states.items():
         update_service_property(service, state)
+    
+    # Get LLM integration status
+    llm_state = get_llm_status()
+    update_llm_property(llm_state)
     
     # Trigger UI redraw
     for area in bpy.context.screen.areas:
@@ -162,10 +212,15 @@ bpy.app.timers.register(connection_status_timer)
 - Icons from Blender's icon set
 
 ### Visual Design
-- Green checkmark: Connected
-- Yellow clock: Connecting
-- Red X: Disconnected
-- Orange warning: Error state
+- Backend Services:
+  - Green checkmark: Connected
+  - Yellow clock: Connecting
+  - Red X: Disconnected
+  - Orange warning: Error state
+- LLM Integration:
+  - Green checkmark: API keys configured
+  - Red X: No API keys
+  - Shows model count when configured
 - Overall health uses traffic light metaphor
 
 ### User Interactions
@@ -199,8 +254,10 @@ class TestConnectionPanel(unittest.TestCase):
 - Accessibility testing
 
 ## Dependencies
-- STORY-001: Service Discovery (provides status data)
-- STORY-002-004: Backend clients (provide connection state)
+- STORY-001: Service Discovery (provides backend status data)
+- STORY-002-003: Backend clients (provide connection state)
+- STORY-004: LLM Integration Layer (provides model availability)
+- STORY-010: Health Check Service (provides status updates)
 - Blender 3.6+ for UI features
 
 ## Related Stories

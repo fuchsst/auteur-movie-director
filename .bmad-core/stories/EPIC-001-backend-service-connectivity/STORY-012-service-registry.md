@@ -11,13 +11,14 @@
 ## Story Description
 
 **As the** backend integration system  
-**I want** a centralized registry of backend service capabilities  
+**I want** a centralized registry of backend service capabilities and LLM models  
 **So that** the system can intelligently route requests and manage features  
 
 ## Acceptance Criteria
 
 ### Functional Requirements
 - [ ] Register all backend services with their capabilities
+- [ ] Track available LLM models and providers separately
 - [ ] Track service versions and supported features
 - [ ] Provide capability queries for routing decisions
 - [ ] Update registry based on health check discoveries
@@ -25,6 +26,7 @@
 - [ ] Export registry for debugging
 - [ ] Validate capability compatibility
 - [ ] Provide service metadata access
+- [ ] Separate LLM capabilities from backend services
 
 ### Technical Requirements
 - [ ] Thread-safe registry operations
@@ -101,18 +103,54 @@ class ServiceRegistry:
                 self._notify_change(service_name, previous, metadata)
 ```
 
+**LLM Registry:**
+```python
+@dataclass
+class LLMModel:
+    """Information about an available LLM model"""
+    model_id: str
+    provider: str
+    capabilities: List[str] = field(default_factory=list)
+    context_length: int = 4096
+    cost_per_1k_tokens: Dict[str, float] = field(default_factory=dict)
+    
+class LLMRegistry:
+    """Separate registry for LLM models"""
+    def __init__(self):
+        self._models: Dict[str, LLMModel] = {}
+        self._providers: Set[str] = set()
+        self._lock = threading.RLock()
+        
+    def register_model(self, model: LLMModel):
+        """Register an available LLM model"""
+        with self._lock:
+            self._models[model.model_id] = model
+            self._providers.add(model.provider)
+            
+    def update_from_litellm(self):
+        """Update registry from LiteLLM's available models"""
+        import litellm
+        
+        # Get available models
+        available_models = litellm.get_valid_models()
+        
+        for model_id in available_models:
+            provider = self._get_provider_from_model_id(model_id)
+            
+            model = LLMModel(
+                model_id=model_id,
+                provider=provider,
+                capabilities=["text_generation", "chat"],
+                context_length=self._get_context_length(model_id)
+            )
+            
+            self.register_model(model)
+```
+
 **Capability Definitions:**
 ```python
-# Standard capability definitions
-CAPABILITY_DEFINITIONS = {
-    "text_generation": {
-        "version": "1.0",
-        "parameters": {
-            "max_tokens": {"type": "int", "min": 1, "max": 100000},
-            "temperature": {"type": "float", "min": 0.0, "max": 2.0},
-            "models": {"type": "list", "items": "string"}
-        }
-    },
+# Standard capability definitions for backend services
+BACKEND_CAPABILITY_DEFINITIONS = {
     "image_generation": {
         "version": "1.0",
         "parameters": {
@@ -138,6 +176,25 @@ CAPABILITY_DEFINITIONS = {
             "duration": {"type": "float", "min": 0.1, "max": 300.0},
             "sample_rate": {"type": "int", "choices": [16000, 22050, 44100, 48000]},
             "models": {"type": "list", "items": "string"}
+        }
+    }
+}
+
+# LLM capabilities are separate
+LLM_CAPABILITY_DEFINITIONS = {
+    "text_generation": {
+        "version": "1.0",
+        "parameters": {
+            "max_tokens": {"type": "int", "min": 1, "max": 100000},
+            "temperature": {"type": "float", "min": 0.0, "max": 2.0},
+            "top_p": {"type": "float", "min": 0.0, "max": 1.0}
+        }
+    },
+    "chat": {
+        "version": "1.0",
+        "parameters": {
+            "system_prompt": {"type": "string"},
+            "history_length": {"type": "int", "min": 0, "max": 100}
         }
     }
 }
@@ -188,18 +245,23 @@ class ServiceDiscoveryIntegration:
 class CapabilityQuery:
     """Query service capabilities"""
     
+    def __init__(self, service_registry: ServiceRegistry, llm_registry: LLMRegistry):
+        self.service_registry = service_registry
+        self.llm_registry = llm_registry
+        self._lock = threading.RLock()
+    
     def find_services_with_capability(self, 
                                     capability: str,
                                     min_version: Optional[str] = None) -> List[str]:
-        """Find all services supporting a capability"""
+        """Find all backend services supporting a capability"""
         services = []
         
         with self._lock:
             # Use capability index for fast lookup
-            candidates = self._capability_index.get(capability, set())
+            candidates = self.service_registry._capability_index.get(capability, set())
             
             for service_name in candidates:
-                metadata = self._services[service_name]
+                metadata = self.service_registry._services[service_name]
                 
                 # Check version requirement
                 if min_version:
@@ -210,19 +272,30 @@ class CapabilityQuery:
                     services.append(service_name)
                     
         return services
+    
+    def find_llm_models_with_capability(self, capability: str) -> List[str]:
+        """Find all LLM models supporting a capability"""
+        models = []
+        
+        with self._lock:
+            for model_id, model in self.llm_registry._models.items():
+                if capability in model.capabilities:
+                    models.append(model_id)
+                    
+        return models
         
     def get_service_models(self, service: str, capability: str) -> List[str]:
-        """Get available models for a service capability"""
+        """Get available models for a backend service capability"""
         with self._lock:
-            metadata = self._services.get(service)
+            metadata = self.service_registry._services.get(service)
             if not metadata:
                 return []
                 
             # Get models filtered by capability
-            if capability == "text_generation":
-                return [m for m in metadata.models if m.startswith("llm-")]
-            elif capability == "image_generation":
+            if capability == "image_generation":
                 return [m for m in metadata.models if m.startswith("sd-") or m.startswith("flux-")]
+            elif capability == "video_generation":
+                return [m for m in metadata.models if m.startswith("ltx-") or m.startswith("cog-")]
             # ... etc
             
             return metadata.models
@@ -231,25 +304,36 @@ class CapabilityQuery:
 **Registry Persistence:**
 ```python
 class RegistryPersistence:
-    """Persist registry to disk"""
+    """Persist registries to disk"""
     
-    def save_registry(self, filepath: Path):
-        """Save registry to JSON file"""
+    def __init__(self, service_registry: ServiceRegistry, llm_registry: LLMRegistry):
+        self.service_registry = service_registry
+        self.llm_registry = llm_registry
+        self._lock = threading.RLock()
+    
+    def save_registries(self, filepath: Path):
+        """Save both registries to JSON file"""
         data = {
             "version": "1.0",
             "timestamp": datetime.now().isoformat(),
-            "services": {}
+            "services": {},
+            "llm_models": {}
         }
         
         with self._lock:
-            for name, metadata in self._services.items():
+            # Save backend services
+            for name, metadata in self.service_registry._services.items():
                 data["services"][name] = self._metadata_to_dict(metadata)
+            
+            # Save LLM models
+            for model_id, model in self.llm_registry._models.items():
+                data["llm_models"][model_id] = self._model_to_dict(model)
                 
         with open(filepath, 'w') as f:
             json.dump(data, f, indent=2)
             
-    def load_registry(self, filepath: Path):
-        """Load registry from JSON file"""
+    def load_registries(self, filepath: Path):
+        """Load both registries from JSON file"""
         if not filepath.exists():
             return
             
@@ -260,10 +344,15 @@ class RegistryPersistence:
         if data.get("version") != "1.0":
             raise ValueError(f"Unsupported registry version: {data.get('version')}")
             
-        # Load services
+        # Load backend services
         for name, service_data in data.get("services", {}).items():
             metadata = self._dict_to_metadata(service_data)
-            self.register_service(name, metadata)
+            self.service_registry.register_service(name, metadata)
+            
+        # Load LLM models
+        for model_id, model_data in data.get("llm_models", {}).items():
+            model = self._dict_to_model(model_data)
+            self.llm_registry.register_model(model)
 ```
 
 **Blender Property Integration:**
@@ -333,12 +422,30 @@ COMFYUI_CAPABILITIES = [
     )
 ]
 
-# LiteLLM capabilities
-LITELLM_CAPABILITIES = [
+# Wan2GP capabilities
+WAN2GP_CAPABILITIES = [
     ServiceCapability(
-        name="text_generation",
+        name="video_generation",
         version="1.0",
-        parameters={"streaming": True, "function_calling": True}
+        parameters={"models": ["causvid", "hunyuan-video"]}
+    )
+]
+
+# RVC capabilities
+RVC_CAPABILITIES = [
+    ServiceCapability(
+        name="voice_cloning",
+        version="1.0",
+        parameters={"models": ["rvc-v2"], "audio_formats": ["wav", "mp3"]}
+    )
+]
+
+# AudioLDM capabilities  
+AUDIOLDM_CAPABILITIES = [
+    ServiceCapability(
+        name="audio_generation",
+        version="1.0",
+        parameters={"models": ["audioldm-l", "audioldm-s-full"]}
     )
 ]
 ```
@@ -368,8 +475,9 @@ class TestServiceRegistry(unittest.TestCase):
 - Event system validation
 
 ## Dependencies
-- STORY-010: Health checks provide capability data
-- STORY-001: Service discovery initiates registration
+- STORY-010: Health checks provide capability data for backends and LLM availability
+- STORY-001: Service discovery initiates registration (backends only)
+- STORY-004: LLM Integration Layer provides model availability
 - Used by EPIC-007 (Intelligent Routing)
 
 ## Related Stories

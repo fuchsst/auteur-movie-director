@@ -63,7 +63,7 @@ class Wan2GPGradioClient:
         self.connected = False
         self.job_queue = {}
         
-    async def connect(self):
+    def connect(self):
         """Initialize Gradio client connection"""
         try:
             self.client = Client(self.url)
@@ -75,25 +75,26 @@ class Wan2GPGradioClient:
             self.connected = False
             raise ConnectionError(f"Failed to connect to Wan2GP: {e}")
             
-    async def generate_video(self, 
-                           prompt: str,
-                           model: str = "causvid",
-                           **kwargs):
+    def generate_video(self, 
+                      prompt: str,
+                      model: str = "causvid",
+                      **kwargs):
         """Submit video generation request"""
         if not self.connected:
-            await self.connect()
+            self.connect()
             
         # Map parameters to Gradio interface
+        # Use submit() for async execution or predict() for sync
         job = self.client.submit(
             prompt,
             model,
             kwargs.get('num_frames', 32),
             kwargs.get('resolution', '512x512'),
-            fn_index=0  # Assuming first function is generate
+            api_name="/generate"  # Use api_name instead of fn_index
         )
         
         # Track job
-        job_id = str(job)
+        job_id = id(job)  # Use Python id since Job doesn't have string repr
         self.job_queue[job_id] = job
         
         return job_id
@@ -102,22 +103,26 @@ class Wan2GPGradioClient:
 **Job Management:**
 ```python
 class Wan2GPJobManager:
-    async def wait_for_completion(self, job_id: str):
+    def wait_for_completion(self, job_id: int):
         """Wait for job completion with progress updates"""
         job = self.job_queue.get(job_id)
         if not job:
             raise ValueError(f"Unknown job: {job_id}")
             
-        while not job.done():
-            # Get progress if available
-            progress = getattr(job, 'progress', None)
-            if progress:
-                await self._update_progress(job_id, progress)
-            await asyncio.sleep(1)
-            
-        # Get result
+        # Blocking wait for result
         result = job.result()
         return self._process_result(result)
+        
+    def get_status(self, job_id: int):
+        """Get current job status without blocking"""
+        job = self.job_queue.get(job_id)
+        if not job:
+            raise ValueError(f"Unknown job: {job_id}")
+            
+        return {
+            'done': job.done(),
+            'status': job.status()
+        }
 ```
 
 **File Handling:**
