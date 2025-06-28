@@ -258,3 +258,221 @@ The success of this endeavor rests on a disciplined approach to both software en
 #### **Works cited**
 
 1. accessed January 1, 1970,
+
+---
+
+## **Development Setup and Workflow**
+
+### **Quick Start**
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/blender-movie-director.git
+   cd blender-movie-director
+   ```
+
+2. **Set up development environment:**
+   ```bash
+   ./scripts/setup.sh dev
+   ```
+   This will:
+   - Create a Python virtual environment
+   - Install all dependencies
+   - Set up pre-commit hooks
+   - Create necessary directories
+
+3. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
+
+4. **Run Blender with the addon:**
+   ```bash
+   ./scripts/run-blender.sh
+   ```
+
+### **Development Scripts**
+
+All development tasks are automated through scripts in the `scripts/` directory:
+
+#### **Environment Setup**
+- `./scripts/setup.sh [dev|test]` - Set up Python environment
+  - `dev`: Install all development dependencies (default)
+  - `test`: Install only testing dependencies
+  - Creates virtual environment, installs packages, sets up pre-commit
+
+#### **Running Code**
+- `./scripts/run-blender.sh [blend_file]` - Launch Blender with addon loaded
+  - Automatically activates the addon in development mode
+  - Optional: Pass a .blend file to open
+  - Set `BLENDER_PATH` environment variable if Blender not in PATH
+
+- `./scripts/run-script.sh <script.py> [args]` - Run Python scripts with project environment
+  - Example: `./scripts/run-script.sh tests/manual_test_discovery.py`
+  - Activates venv and sets PYTHONPATH automatically
+
+- `./scripts/blender-python.sh` - Access Blender's Python environment
+  - Interactive mode: `./scripts/blender-python.sh -i`
+  - Run command: `./scripts/blender-python.sh -c 'import bpy; print(bpy.app.version)'`
+  - Run script: `./scripts/blender-python.sh script.py`
+
+#### **Testing**
+- `./scripts/test.sh [type]` - Run tests
+  - `all`: Run all tests and linting (default)
+  - `unit`: Run unit tests only
+  - `integration`: Run integration tests only
+  - `coverage`: Generate coverage report
+  - `lint`: Run code quality checks
+  - `format`: Auto-format code
+  - `quick`: Fast tests without integration
+
+#### **Backend Services**
+- `./scripts/dev-server.sh [command]` - Manage backend services
+  - `all`: Start all services (default)
+  - `stop`: Stop all services
+  - `status`: Check service status
+  - `comfyui|wan2gp|rvc|audioldm`: Start specific service
+  - Configure paths in `.env` file
+
+#### **Distribution**
+- `./scripts/package.sh [filename]` - Create addon .zip for distribution
+  - Packages addon with proper structure
+  - Excludes development files
+  - Output in `dist/` directory
+
+### **Using Make**
+
+Alternatively, use the Makefile for common tasks:
+
+```bash
+make help          # Show all commands
+make setup         # Set up development environment
+make run           # Run Blender with addon
+make test          # Run all tests
+make lint          # Check code quality
+make format        # Format code
+make services      # Start backend services
+make package       # Create distribution package
+make clean         # Clean build artifacts
+```
+
+### **Project Structure**
+
+```
+blender-movie-director/
+├── blender_movie_director/    # Main addon code
+│   ├── agents/               # AI agent implementations
+│   ├── backend/             # Service integrations
+│   ├── ui/                  # Blender UI components
+│   └── workflows/           # Generative templates
+├── tests/                   # Test suite
+│   ├── test_*.py           # Automated tests
+│   └── manual_*.py        # Manual test scripts
+├── scripts/                 # Development scripts
+├── requirements*.txt       # Python dependencies
+├── pyproject.toml         # Modern Python packaging
+├── .env.example           # Environment template
+└── Makefile              # Development shortcuts
+```
+
+### **Development Workflow**
+
+1. **Before starting work:**
+   ```bash
+   git pull origin main
+   ./scripts/setup.sh dev
+   ```
+
+2. **During development:**
+   ```bash
+   # Run Blender with live reload
+   ./scripts/run-blender.sh
+   
+   # Test your changes
+   ./scripts/test.sh quick
+   
+   # Check code quality
+   ./scripts/test.sh lint
+   ```
+
+3. **Before committing:**
+   ```bash
+   # Format code
+   ./scripts/test.sh format
+   
+   # Run full test suite
+   ./scripts/test.sh all
+   
+   # Package for testing
+   ./scripts/package.sh
+   ```
+
+### **Testing with Backend Services**
+
+1. **Start services:**
+   ```bash
+   ./scripts/dev-server.sh all
+   ```
+
+2. **Check status:**
+   ```bash
+   ./scripts/dev-server.sh status
+   ```
+
+3. **Test service discovery:**
+   ```bash
+   # Run automated tests
+   pytest tests/test_service_discovery.py -v
+   
+   # Or use manual test script
+   ./scripts/run-script.sh tests/manual_test_discovery.py
+   ```
+
+4. **Stop services:**
+   ```bash
+   ./scripts/dev-server.sh stop
+   ```
+
+### **Environment Variables**
+
+Key environment variables (set in `.env`):
+
+- `BLENDER_PATH`: Path to Blender executable
+- `COMFYUI_PORT`: ComfyUI service port (default: 8188)
+- `WAN2GP_PORT`: Wan2GP service port (default: 7860)
+- `RVC_PORT`: RVC service port (default: 7865)
+- `AUDIOLDM_PORT`: AudioLDM service port (default: 7863)
+- `DEBUG`: Enable debug mode (true/false)
+- `LOG_LEVEL`: Logging verbosity (DEBUG/INFO/WARNING/ERROR)
+
+### **Troubleshooting**
+
+**Blender not found:**
+```bash
+export BLENDER_PATH=/path/to/blender
+# Or add to .env file
+```
+
+**Import errors in Blender:**
+```bash
+# Ensure addon is properly installed
+./scripts/run-blender.sh
+# Check console for errors
+```
+
+**Service discovery fails:**
+```bash
+# Check services are running
+./scripts/dev-server.sh status
+# Test discovery standalone
+./scripts/run-script.sh examples/test_service_discovery.py
+```
+
+**Tests fail with import errors:**
+```bash
+# Ensure virtual environment is activated
+source venv/bin/activate
+# Reinstall dependencies
+pip install -r requirements-dev.txt
+```
