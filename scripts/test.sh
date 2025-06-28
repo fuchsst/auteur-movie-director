@@ -26,6 +26,14 @@ if [ ! -d ".venv" ]; then
     exit 1
 fi
 
+# Unset conda environment variables that cause path issues in Git Bash
+unset CONDA_PREFIX
+unset CONDA_DEFAULT_ENV
+unset CONDA_SHLVL
+unset CONDA_EXE
+unset CONDA_PYTHON_EXE
+unset CONDA_PROMPT_MODIFIER
+
 # Parse command line arguments
 TEST_TYPE="${1:-all}"
 EXTRA_ARGS="${@:2}"

@@ -41,17 +41,17 @@ install_uv() {
         echo -e "${YELLOW}📦 Installing UV package manager...${NC}"
         
         # Detect OS and install UV accordingly
-        if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]] || [[ "$OSTYPE" == "cygwin" ]]; then
-            # Windows
+        if [[ "$OSTYPE" == "win32" ]]; then
+            # Native Windows (not Git Bash)
             echo -e "${BLUE}🪟 Detected Windows environment${NC}"
             powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
         else
-            # Unix-like (Linux, macOS, WSL)
+            # Unix-like (Linux, macOS, WSL, Git Bash)
             echo -e "${BLUE}🐧 Detected Unix-like environment${NC}"
             curl -LsSf https://astral.sh/uv/install.sh | sh
         fi
         
-        # Add UV to PATH for current session
+        # Add UV to PATH for current session (always use Unix-style paths in Git Bash)
         export PATH="$HOME/.cargo/bin:$PATH"
         export PATH="$HOME/.local/bin:$PATH"
         
@@ -72,6 +72,15 @@ install_uv() {
 setup_environment() {
     echo -e "${YELLOW}🐍 Setting up Python environment...${NC}"
     
+    # Unset conda environment variables that cause path issues in Git Bash
+    echo -e "${BLUE}🔧 Clearing conda environment variables for UV compatibility...${NC}"
+    unset CONDA_PREFIX
+    unset CONDA_DEFAULT_ENV
+    unset CONDA_SHLVL
+    unset CONDA_EXE
+    unset CONDA_PYTHON_EXE
+    unset CONDA_PROMPT_MODIFIER
+    
     # Clean install if requested
     if [ "$CLEAN_INSTALL" = true ]; then
         if [ -d ".venv" ]; then
@@ -86,31 +95,31 @@ setup_environment() {
     
     # Create virtual environment with UV if it doesn't exist
     if [ ! -d ".venv" ]; then
-        echo -e "${GREEN}📦 Creating virtual environment...${NC}"
-        uv venv
+        echo -e "${GREEN}📦 Creating virtual environment with Python 3.11...${NC}"
+        uv venv --python 3.11
     else
         echo -e "${GREEN}✅ Virtual environment already exists${NC}"
     fi
     
-    # Install dependencies based on setup type
+    # Install dependencies based on setup type using modern UV workflow
     echo -e "${GREEN}📚 Installing dependencies for: $SETUP_TYPE${NC}"
     
     case "$SETUP_TYPE" in
         "dev")
             echo -e "${BLUE}Installing development dependencies (ai, dev, test)...${NC}"
-            uv pip install -e ".[ai,dev,test]"
+            uv sync --extra ai --extra dev --extra test
             ;;
         "test")
             echo -e "${BLUE}Installing test dependencies only...${NC}"
-            uv pip install -e ".[test]"
+            uv sync --extra test
             ;;
         "prod")
             echo -e "${BLUE}Installing production dependencies only...${NC}"
-            uv pip install -e "."
+            uv sync
             ;;
         "blender")
             echo -e "${BLUE}Installing Blender runtime dependencies...${NC}"
-            uv pip install -e ".[blender]"
+            uv sync --extra blender
             ;;
         *)
             echo -e "${RED}❌ Unknown setup type: $SETUP_TYPE${NC}"
@@ -118,10 +127,6 @@ setup_environment() {
             exit 1
             ;;
     esac
-    
-    # Sync dependencies to generate/update lock file
-    echo -e "${GREEN}🔒 Syncing dependencies and lock file...${NC}"
-    uv sync
 }
 
 # Function for post-setup configuration

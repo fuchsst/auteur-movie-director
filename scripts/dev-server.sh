@@ -10,7 +10,9 @@ cd "$PROJECT_ROOT"
 # Load environment variables if .env exists
 if [ -f ".env" ]; then
     echo "📋 Loading environment variables from .env..."
-    export $(grep -v '^#' .env | xargs)
+    set -a  # automatically export all variables
+    source .env
+    set +a
 fi
 
 # Default ports (can be overridden in .env)

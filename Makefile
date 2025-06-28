@@ -22,9 +22,27 @@ help:
 	@echo "  make format      - Format code automatically"
 	@echo ""
 	@echo "Backend Services:"
-	@echo "  make services    - Start all backend services"
-	@echo "  make services-stop - Stop all backend services"
-	@echo "  make services-status - Check service status"
+	@echo "  make services         - Start all backend services"
+	@echo "  make services-stop    - Stop all backend services"
+	@echo "  make services-status  - Check service status"
+	@echo "  make services-restart - Restart all services"
+	@echo "  make services-logs    - View service logs"
+	@echo ""
+	@echo "Individual Services:"
+	@echo "  make service-comfyui  - Start ComfyUI only"
+	@echo "  make service-wan2gp   - Start Wan2GP only"
+	@echo "  make service-rvc      - Start RVC only"
+	@echo "  make service-audioldm - Start AudioLDM only"
+	@echo ""
+	@echo "Docker Services:"
+	@echo "  make services-docker      - Start all services in Docker"
+	@echo "  make services-docker-stop - Stop Docker services"
+	@echo ""
+	@echo "Docker Compose (Alternative):"
+	@echo "  make docker-up     - Start services with docker-compose"
+	@echo "  make docker-down   - Stop docker-compose services"
+	@echo "  make docker-logs   - View docker-compose logs"
+	@echo "  make docker-status - Check docker-compose status"
 	@echo ""
 	@echo "Distribution:"
 	@echo "  make package     - Create addon .zip file"
@@ -67,13 +85,52 @@ format:
 
 # Backend services
 services:
-	@./scripts/dev-server.sh all
+	@./scripts/services.sh start all
 
 services-stop:
-	@./scripts/dev-server.sh stop
+	@./scripts/services.sh stop all
 
 services-status:
-	@./scripts/dev-server.sh status
+	@./scripts/services.sh status
+
+services-restart:
+	@./scripts/services.sh restart all
+
+services-logs:
+	@./scripts/services.sh logs
+
+# Individual service targets
+service-comfyui:
+	@./scripts/services.sh start comfyui
+
+service-wan2gp:
+	@./scripts/services.sh start wan2gp
+
+service-rvc:
+	@./scripts/services.sh start rvc
+
+service-audioldm:
+	@./scripts/services.sh start audioldm
+
+# Docker services
+services-docker:
+	@USE_DOCKER=true ./scripts/services.sh start all
+
+services-docker-stop:
+	@USE_DOCKER=true ./scripts/services.sh stop all
+
+# Docker Compose services
+docker-up:
+	@docker-compose up -d
+
+docker-down:
+	@docker-compose down
+
+docker-logs:
+	@docker-compose logs -f
+
+docker-status:
+	@docker-compose ps
 
 # Distribution
 package:

@@ -18,7 +18,7 @@ This command implements the full BMAD workflow using our established film crew p
 6. **Status Tracking** - Project Manager persona
 
 ## Execution Flow
-The AI developer (Claude) orchestrates the development process by assuming the defined personas for each stage of the BMAD methodology.
+The AI developer (Cline) orchestrates the development process by assuming the defined personas for each stage of the BMAD methodology.
 
 1.  **Requirements Analysis (Business Analyst):**
     -   Receive and analyze the Product Requirements Document (PRD) for the given feature.

@@ -14,6 +14,13 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# Load environment variables from .env file if it exists
+if [ -f ".env" ]; then
+    set -a  # automatically export all variables
+    source <(grep -E '^[A-Z_].+=' .env)
+    set +a  # stop automatically exporting
+fi
+
 # Try to find Blender
 find_blender() {
     # Check BLENDER_PATH environment variable first
