@@ -110,6 +110,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# UV specific
+uv.lock
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -127,6 +130,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ruff cache
+.ruff_cache/
+
+# Consolidated cache directory for all tools
+.cache/
 
 # Blender specific
 *.blend1
@@ -206,7 +215,6 @@ logs/
 *.log
 
 # Temporary development files
-test_*
 debug_*
 scratch_*
 temp_*

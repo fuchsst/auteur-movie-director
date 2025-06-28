@@ -8,12 +8,16 @@ help:
 	@echo "============================================"
 	@echo ""
 	@echo "Setup & Installation:"
-	@echo "  make setup       - Set up development environment"
-	@echo "  make setup-test  - Set up test environment only"
+	@echo "  make setup       - Full dev setup (installs UV if needed)"
+	@echo "  make setup-test  - Test environment only"
+	@echo "  make setup-clean - Clean setup (removes existing environment)"
+	@echo "  make setup-prod  - Production environment only"
 	@echo ""
 	@echo "Development:"
 	@echo "  make run         - Run Blender with addon loaded"
 	@echo "  make test        - Run all tests"
+	@echo "  make test-quick  - Run quick tests (no integration)"
+	@echo "  make test-coverage - Generate coverage report"
 	@echo "  make lint        - Run code quality checks"
 	@echo "  make format      - Format code automatically"
 	@echo ""
@@ -26,15 +30,21 @@ help:
 	@echo "  make package     - Create addon .zip file"
 	@echo "  make clean       - Clean build artifacts"
 	@echo ""
-	@echo "Documentation:"
-	@echo "  make docs        - Build documentation (TODO)"
+	@echo "Blender Integration:"
+	@echo "  make blender-deps - Install deps in Blender's Python"
 
-# Setup commands
+# Setup commands - always use setup.sh which handles UV installation
 setup:
 	@./scripts/setup.sh dev
 
 setup-test:
 	@./scripts/setup.sh test
+
+setup-clean:
+	@./scripts/setup.sh dev --clean
+
+setup-prod:
+	@./scripts/setup.sh prod
 
 # Development commands
 run:
@@ -94,13 +104,26 @@ install: setup
 install-dev: setup
 
 install-hooks:
-	@source venv/bin/activate && pre-commit install
+	@uv run pre-commit install
 
-# CI/CD helpers
+# Blender integration
+blender-deps:
+	@./scripts/blender-python.sh --install-addon-deps
+
+# CI/CD helpers - use UV commands
 ci-test:
-	@source venv/bin/activate && pytest --cov=blender_movie_director --cov-report=xml
+	@uv run pytest --cov=blender_movie_director --cov-report=xml
 
 ci-lint:
-	@source venv/bin/activate && ruff check blender_movie_director tests
-	@source venv/bin/activate && black --check blender_movie_director tests
-	@source venv/bin/activate && mypy blender_movie_director
+	@uv run ruff check blender_movie_director tests
+	@uv run black --check blender_movie_director tests
+	@uv run mypy blender_movie_director
+
+# UV specific commands
+uv-update:
+	@echo "📦 Updating UV to latest version..."
+	@curl -LsSf https://astral.sh/uv/install.sh | sh
+
+uv-lock:
+	@echo "🔒 Regenerating lock file..."
+	@uv pip compile pyproject.toml -o uv.lock

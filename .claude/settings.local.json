@@ -4,7 +4,9 @@
       "Bash(mkdir:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "WebFetch(domain:docs.blender.org)"
+      "WebFetch(domain:docs.blender.org)",
+      "Bash(uv run pytest:*)",
+      "Bash(make:*)"
     ],
     "deny": []
   }

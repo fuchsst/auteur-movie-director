@@ -6,10 +6,9 @@ including panels, operators, and property integration.
 """
 
 import bpy
-from . import panels
-from . import operators  
-from . import properties
-from . import asset_browser
+
+from . import asset_browser, operators, panels, properties
+
 
 def register():
     """Register all UI components"""
@@ -17,8 +16,9 @@ def register():
     operators.register()
     panels.register()
     asset_browser.register()
-    
+
     print("Movie Director UI components registered")
+
 
 def unregister():
     """Unregister all UI components"""
@@ -26,5 +26,5 @@ def unregister():
     panels.unregister()
     operators.unregister()
     properties.unregister()
-    
+
     print("Movie Director UI components unregistered")

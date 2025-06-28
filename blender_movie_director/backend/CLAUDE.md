@@ -2,37 +2,56 @@
 
 ## Overview
 
-The backend layer provides unified API integration with local generative services. It abstracts the complexity of multiple AI backends behind consistent Python interfaces, enabling intelligent task routing and robust error handling.
+The backend layer implements the service connectivity architecture defined in [PRD-001](/.bmad-core/prds/PRD-001-backend-integration-service-layer.md). It provides unified API integration with local generative services through consistent Python interfaces, enabling intelligent task routing and robust error handling.
 
-## Backend Services
+## Architecture
 
-### Generative Engines
+As per PRD-001, the backend layer consists of:
+
+### 4 Backend Services
 - **ComfyUI** (`comfyui/`) - Complex image/video workflows with advanced compositing
 - **Wan2GP** (`wan2gp/`) - Fast video generation with multiple model support  
-- **LiteLLM** (`litellm/`) - Text generation for script development and prompts
+- **RVC** - Voice cloning and audio processing (integration pending)
+- **AudioLDM** - Sound effects and ambient audio generation (integration pending)
 
-### Integration Architecture
+### LLM Integration Layer
+- **LiteLLM** (`litellm/`) - Python library for unified LLM access (not a backend service)
+- Supports multiple providers: OpenAI, Anthropic, Azure, local models
+- Used by the Screenwriter agent for narrative development
 
+## Core Components
+
+### Service Discovery (`service_discovery.py`)
+Implements automatic discovery of backend services as specified in PRD-001:
+- Scans default and custom ports
+- Validates service availability via health endpoints
+- Completes discovery within 5-second target
+- Supports parallel discovery of all services
+
+### Client Integration Pattern
 ```python
-# Backend client pattern
-class BackendClient:
-    def __init__(self, base_url):
-        self.base_url = base_url
-        self.client = None
-        self.is_connected = False
-    
-    async def generate(self, prompt, config):
-        """Unified generation interface"""
-        pass
-    
-    def check_health(self):
-        """Service health verification"""
-        pass
+# Using existing Python clients as per PRD-001
+from comfyui_api_client import ComfyUIClient
+from gradio_client import Client as GradioClient
+import litellm
+
+# Backend service clients
+comfyui = ComfyUIClient("http://localhost:8188")
+wan2gp = GradioClient("http://localhost:7860")
+
+# LLM integration (not a backend service)
+response = litellm.completion(model="gpt-3.5-turbo", messages=[...])
 ```
 
 ## Task Routing Logic
 
 ### Intelligent Backend Selection
+As defined in PRD-001, the Producer agent routes tasks based on:
+- Task complexity and requirements
+- Available hardware resources (VRAM)
+- Service capabilities
+- Performance requirements
+
 ```python
 def select_optimal_backend(task_type, complexity, available_resources):
     """Route tasks to most appropriate backend"""
@@ -41,117 +60,89 @@ def select_optimal_backend(task_type, complexity, available_resources):
         return wan2gp_client  # Fast generation
     elif task_type == "character_consistency":
         return comfyui_client  # Advanced workflows
-    elif task_type == "text_generation":
-        return litellm_client  # Language models
-    
-    # Fallback logic for resource constraints
-    if available_resources.vram < 8:
-        return wan2gp_client  # More efficient
-    else:
-        return comfyui_client  # Higher quality
+    elif task_type == "voice_generation":
+        return rvc_client  # Voice cloning
+    elif task_type == "sound_effects":
+        return audioldm_client  # Audio generation
 ```
 
-### Workflow Templates
-```python
-# Template-based workflow management
-class WorkflowTemplate:
-    def __init__(self, template_path):
-        self.template = load_json(template_path)
-    
-    def customize(self, **parameters):
-        """Insert job-specific parameters"""
-        workflow = self.template.copy()
-        for key, value in parameters.items():
-            workflow = replace_placeholder(workflow, key, value)
-        return workflow
-```
+## Connection Management
 
-## API Client Implementation
+### Health Check Service
+Per PRD-001 requirements:
+- Monitors all 4 backend services
+- Separate API key validation for LLM integration
+- Updates status every 30 seconds
+- Provides metrics for the Health Dashboard
 
-### ComfyUI Integration
-```python
-# ComfyUI workflow execution
-async def execute_comfyui_workflow(workflow_json, inputs):
-    client = ComfyUIClient("http://localhost:8188")
-    
-    # Customize workflow with inputs
-    workflow = customize_workflow(workflow_json, inputs)
-    
-    # Submit to ComfyUI
-    result = await client.queue_prompt(workflow)
-    return result
-```
-
-### Wan2GP Integration  
-```python
-# Wan2GP model-specific generation
-async def generate_with_wan2gp(prompt, model="hunyuan"):
-    client = Wan2GPClient("http://localhost:7860")
-    
-    # Route to appropriate model endpoint
-    result = await client.generate_text_to_video(prompt, model)
-    return result
-```
-
-### LiteLLM Integration
-```python
-# Text generation with model flexibility
-async def generate_text(prompt, model="llama3"):
-    client = LiteLLMClient("http://localhost:4000")
-    
-    # Unified API for multiple LLM providers
-    response = await client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content
-```
+### Connection Pool Manager
+- Maintains persistent connections to backends
+- Thread-safe pool operations
+- Automatic reconnection with exponential backoff
+- Resource cleanup on shutdown
 
 ## Error Handling & Resilience
 
-### Connection Management
+### Robust Connection Management
 ```python
-class RobustBackendClient:
-    def __init__(self, primary_url, fallback_url=None):
-        self.primary = BackendClient(primary_url)
-        self.fallback = BackendClient(fallback_url) if fallback_url else None
+class ResilientBackendClient:
+    """Implements resilience patterns from PRD-001"""
     
-    async def generate_with_fallback(self, *args, **kwargs):
-        try:
-            return await self.primary.generate(*args, **kwargs)
-        except ConnectionError:
-            if self.fallback:
-                return await self.fallback.generate(*args, **kwargs)
-            raise
+    async def execute_with_retry(self, operation, max_retries=3):
+        for attempt in range(max_retries):
+            try:
+                return await operation()
+            except ConnectionError:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    raise
 ```
 
 ### Resource Monitoring
-- **Health Checks** - Periodic service availability verification
-- **Load Balancing** - Distribute tasks across available backends
-- **Graceful Degradation** - Fallback to simpler models when needed
+- VRAM usage tracking
+- Queue depth monitoring
+- Response time metrics
+- Success rate calculation
+
+## Integration with Agent System
+
+The backend layer serves the film crew agents:
+- **Screenwriter** → LiteLLM for text generation
+- **Cinematographer** → ComfyUI/Wan2GP for video generation
+- **Sound Designer** → RVC/AudioLDM for audio
+- **Casting Director** → ComfyUI for character consistency
 
 ## Development Patterns
 
 ### Async Operations
+All backend operations are asynchronous to maintain UI responsiveness:
 ```python
-# Non-blocking generation for UI responsiveness
-async def async_generate_shot(shot_obj):
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, generate_shot, shot_obj)
+async def generate_content(prompt, backend):
+    """Non-blocking generation"""
+    result = await backend.generate_async(prompt)
     
     # Update UI on main thread
-    bpy.app.timers.register(lambda: update_shot_ui(shot_obj, result))
+    bpy.app.timers.register(
+        lambda: update_ui_with_result(result)
+    )
 ```
 
 ### Configuration Management
-- **Service URLs** stored in addon preferences
-- **Model Selection** based on hardware capabilities
-- **Template Paths** for workflow customization
+- Service URLs in addon preferences
+- Custom ports via .env file
+- Model selection based on hardware
+- Template paths for workflows
 
-## Reference Documentation
+## Testing
 
+Run backend integration tests:
+```bash
+pytest tests/test_service_discovery.py -v
+./scripts/run-script.sh tests/manual_test_discovery.py
+```
+
+## Reference
+- [PRD-001: Backend Integration Service Layer](/.bmad-core/prds/PRD-001-backend-integration-service-layer.md)
+- [STORY-001: Service Discovery](/.bmad-core/stories/EPIC-001-backend-service-connectivity/STORY-001-service-discovery-infrastructure.md)
 - [ComfyUI API Guide](/.bmad-core/data/comfyui-api-guide.md)
-- [Wan2GP Integration](/.bmad-core/data/wan2gp-api-guide.md)
-- [Async Patterns](/.bmad-core/data/bpy-utils-guide.md#async-operations)
-
-The backend layer ensures reliable, efficient access to generative AI capabilities while maintaining system responsiveness.

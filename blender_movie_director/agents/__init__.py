@@ -5,13 +5,16 @@ BMAD-architected agent system implementing specialized film crew roles.
 Each agent represents a familiar production role and collaborates via CrewAI.
 """
 
-from . import producer
-from . import screenwriter
-from . import casting_director
-from . import art_director
-from . import cinematographer
-from . import sound_designer
-from . import editor
+from . import (
+    art_director,
+    casting_director,
+    cinematographer,
+    editor,
+    producer,
+    screenwriter,
+    sound_designer,
+)
+
 
 def register():
     """Register all agent modules"""
@@ -22,8 +25,9 @@ def register():
     cinematographer.register()
     sound_designer.register()
     editor.register()
-    
+
     print("BMAD Film Crew Agents registered")
+
 
 def unregister():
     """Unregister all agent modules"""
@@ -34,5 +38,5 @@ def unregister():
     casting_director.unregister()
     screenwriter.unregister()
     producer.unregister()
-    
+
     print("BMAD Film Crew Agents unregistered")
