@@ -1,4 +1,5 @@
 Use `make` to run project commands!
+Avoid fallbacks! Fail early instead! Use one clear consistent approach! Assume prerequisits, and fail if they are not met!
 
 # Blender Movie Director - Workspace Instructions
 

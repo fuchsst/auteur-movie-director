@@ -7,14 +7,18 @@ set -e  # Exit on error
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# Load environment variables from .env file if it exists
+if [ -f ".env" ]; then
+    set -a  # automatically export all variables
+    source <(grep -E '^[A-Z_].*=' .env)
+    set +a  # stop automatically exporting
+fi
+
 # Activate virtual environment if it exists
 if [ -d "venv" ]; then
     echo "🔌 Activating virtual environment..."
     source venv/bin/activate
 fi
-
-# Set Python path to include our addon
-export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
 
 # Default Blender executable (can be overridden with BLENDER_PATH env var)
 BLENDER_PATH="${BLENDER_PATH:-blender}"
@@ -34,36 +38,50 @@ fi
 BLENDER_VERSION=$("$BLENDER_PATH" --version | grep -oE 'Blender [0-9]+\.[0-9]+' | cut -d' ' -f2)
 echo "🎬 Found Blender $BLENDER_VERSION at: $BLENDER_PATH"
 
-# Prepare Blender startup script
-STARTUP_SCRIPT=$(cat << 'EOF'
-import sys
-import os
+# Set Blender system scripts path to the installation scripts directory
+BLENDER_DIR="$(dirname "$BLENDER_PATH")"
+export BLENDER_SYSTEM_SCRIPTS="$BLENDER_DIR/$BLENDER_VERSION/scripts"
+echo "📁 BLENDER_SYSTEM_SCRIPTS set to: $BLENDER_SYSTEM_SCRIPTS"
 
-# Add addon directory to Python path
-addon_path = os.environ.get('ADDON_PATH', '.')
-if addon_path not in sys.path:
-    sys.path.insert(0, addon_path)
+# Bundle dependencies for self-contained addon
+echo "📦 Bundling dependencies..."
+./scripts/setup.sh bundle
 
-# Enable the addon
-import bpy
-addon_name = "blender_movie_director"
+# Auto-install addon for development
+echo "🔧 Installing addon for development..."
 
-# Disable existing version if any
-if addon_name in bpy.context.preferences.addons:
-    bpy.ops.preferences.addon_disable(module=addon_name)
+# Determine Blender user scripts directory (user's AppData on Windows)
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    # Windows: Use AppData directory
+    BLENDER_USER_SCRIPTS="$HOME/AppData/Roaming/Blender Foundation/Blender/$BLENDER_VERSION/scripts/addons"
+else
+    # Unix systems: Use user config directory
+    BLENDER_USER_SCRIPTS="$HOME/.config/blender/$BLENDER_VERSION/scripts/addons"
+fi
 
-# Enable our development version
-try:
-    bpy.ops.preferences.addon_enable(module=addon_name)
-    print(f"✅ {addon_name} addon enabled successfully")
-except Exception as e:
-    print(f"❌ Failed to enable addon: {e}")
-    print("Make sure to run ./scripts/setup.sh first")
+# Create the addons directory if it doesn't exist
+mkdir -p "$BLENDER_USER_SCRIPTS"
 
-# Save preferences
-bpy.ops.wm.save_userpref()
-EOF
-)
+# Target addon directory
+ADDON_TARGET="$BLENDER_USER_SCRIPTS/blender_movie_director"
+
+# Remove existing installation if present
+if [ -e "$ADDON_TARGET" ]; then
+    echo "🗑️  Removing existing installation..."
+    rm -rf "$ADDON_TARGET"
+fi
+
+# On Windows, copy the directory since symlinks require admin privileges
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    echo "📋 Copying addon to Blender (Windows)..."
+    cp -r "$PROJECT_ROOT/blender_movie_director" "$ADDON_TARGET"
+    echo "✅ Addon copied successfully"
+else
+    # On Unix systems, create a symlink for easier development
+    echo "🔗 Creating symlink to addon..."
+    ln -s "$PROJECT_ROOT/blender_movie_director" "$ADDON_TARGET"
+    echo "✅ Symlink created successfully"
+fi
 
 # Launch options
 BLEND_FILE="${1:-$PROJECT_ROOT/bmad_project_template.blend}"
@@ -76,15 +94,22 @@ else
     BLEND_FILE=""
 fi
 
-# Set addon path environment variable
-export ADDON_PATH="$PROJECT_ROOT"
-
 # Launch Blender
 echo "🚀 Launching Blender with Movie Director addon..."
 echo ""
+echo "The addon has been automatically installed. To enable it:"
+echo "  1. Go to Edit > Preferences > Add-ons"
+echo "  2. Search for 'Blender Movie Director'"
+echo "  3. Check the box to enable it"
+echo "  4. Look for the 'Movie Director' tab in the 3D View sidebar (press N)"
+echo ""
+echo "For development workflow:"
+echo "  - After making code changes, run 'make run' again to update the addon"
+echo "  - Then press F8 in Blender to reload scripts"
+echo ""
 
 if [ -n "$BLEND_FILE" ]; then
-    "$BLENDER_PATH" "$BLEND_FILE" --python-expr "$STARTUP_SCRIPT"
+    "$BLENDER_PATH" "$BLEND_FILE"
 else
-    "$BLENDER_PATH" --python-expr "$STARTUP_SCRIPT"
+    "$BLENDER_PATH"
 fi

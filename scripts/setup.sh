@@ -26,7 +26,7 @@ for arg in "$@"; do
         --clean)
             CLEAN_INSTALL=true
             ;;
-        dev|test|prod|blender)
+        dev|test|prod|blender|bundle)
             SETUP_TYPE="$arg"
             ;;
     esac
@@ -66,6 +66,70 @@ install_uv() {
     else
         echo -e "${GREEN}✅ UV already installed: $(uv --version)${NC}"
     fi
+}
+
+# Function to bundle dependencies for self-contained addon
+bundle_dependencies() {
+    echo -e "${YELLOW}📦 Bundling dependencies for self-contained Blender addon...${NC}"
+    
+    # Ensure we have a virtual environment
+    if [ ! -d ".venv" ]; then
+        echo -e "${YELLOW}Creating virtual environment first...${NC}"
+        uv venv --python 3.11
+        uv sync --extra ai
+    fi
+    
+    # Create libs directory in addon
+    LIBS_DIR="$PROJECT_ROOT/blender_movie_director/libs"
+    
+    # Clean existing libs directory
+    if [ -d "$LIBS_DIR" ]; then
+        echo -e "${YELLOW}🗑️  Removing existing libs directory...${NC}"
+        rm -rf "$LIBS_DIR"
+    fi
+    
+    echo -e "${GREEN}📁 Creating libs directory: $LIBS_DIR${NC}"
+    mkdir -p "$LIBS_DIR"
+    
+    # Install production dependencies into libs directory
+    echo -e "${BLUE}📚 Installing production dependencies into libs...${NC}"
+    uv pip install --target "$LIBS_DIR" \
+        aiohttp \
+        pyyaml \
+        requests \
+        crewai \
+        litellm \
+        gradio-client \
+        numpy \
+        --no-deps
+    
+    # Install additional core dependencies with their deps
+    echo -e "${BLUE}📚 Installing additional core dependencies...${NC}"
+    uv pip install --target "$LIBS_DIR" \
+        aiohttp \
+        pyyaml \
+        requests
+    
+    # Create __init__.py in libs to make it a package
+    touch "$LIBS_DIR/__init__.py"
+    
+    # Clean up unnecessary files
+    echo -e "${BLUE}🧹 Cleaning up unnecessary files...${NC}"
+    find "$LIBS_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find "$LIBS_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+    find "$LIBS_DIR" -type f -name "*.pyo" -delete 2>/dev/null || true
+    find "$LIBS_DIR" -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true
+    find "$LIBS_DIR" -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+    
+    # Calculate size
+    LIBS_SIZE=$(du -sh "$LIBS_DIR" 2>/dev/null | cut -f1 || echo "unknown")
+    
+    echo ""
+    echo -e "${GREEN}✅ Dependencies bundled successfully!${NC}"
+    echo -e "${BLUE}📊 Bundled libraries size: $LIBS_SIZE${NC}"
+    echo -e "${BLUE}📁 Location: $LIBS_DIR${NC}"
+    echo ""
+    echo -e "${YELLOW}The addon is now self-contained and ready for Blender!${NC}"
 }
 
 # Function to setup Python environment
@@ -121,9 +185,14 @@ setup_environment() {
             echo -e "${BLUE}Installing Blender runtime dependencies...${NC}"
             uv sync --extra blender
             ;;
+        "bundle")
+            echo -e "${BLUE}Bundling dependencies for self-contained addon...${NC}"
+            bundle_dependencies
+            return  # Skip normal post-setup for bundle
+            ;;
         *)
             echo -e "${RED}❌ Unknown setup type: $SETUP_TYPE${NC}"
-            echo "Valid options: dev, test, prod, blender"
+            echo "Valid options: dev, test, prod, blender, bundle"
             exit 1
             ;;
     esac
