@@ -31,9 +31,9 @@ dependencies = [
 [project.optional-dependencies]
 ai = [
     "crewai>=0.134.0",
-    "litellm>=1.72.0",  # Match crewai's requirement
+    "litellm>=1.72.0",
     "gradio-client>=1.10.4",
-    # "comfyui-api-client>=0.1.0",  # Uncomment when available
+    "comfyui-api-client>=0.1.0",
 ]
 dev = [
     "black>=25.1.0",

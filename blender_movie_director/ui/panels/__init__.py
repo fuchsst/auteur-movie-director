@@ -8,6 +8,12 @@ Located in 3D Viewport sidebar with intuitive film production controls.
 import bpy
 from bpy.types import Panel
 
+# Import service status panels
+from .service_status_panel import (
+    MOVIE_DIRECTOR_PT_service_status,
+    MOVIE_DIRECTOR_PT_service_config,
+)
+
 
 class MOVIE_DIRECTOR_PT_main_panel(Panel):
     """Main Movie Director panel"""
@@ -168,6 +174,11 @@ class MOVIE_DIRECTOR_PT_shot_properties(Panel):
 
 def register():
     """Register all panels"""
+    # Register service status panels first (they appear at top)
+    bpy.utils.register_class(MOVIE_DIRECTOR_PT_service_status)
+    bpy.utils.register_class(MOVIE_DIRECTOR_PT_service_config)
+    
+    # Register main panels
     bpy.utils.register_class(MOVIE_DIRECTOR_PT_main_panel)
     bpy.utils.register_class(MOVIE_DIRECTOR_PT_assets_panel)
     bpy.utils.register_class(MOVIE_DIRECTOR_PT_production_panel)
@@ -176,7 +187,12 @@ def register():
 
 def unregister():
     """Unregister all panels"""
+    # Unregister in reverse order
     bpy.utils.unregister_class(MOVIE_DIRECTOR_PT_shot_properties)
     bpy.utils.unregister_class(MOVIE_DIRECTOR_PT_production_panel)
     bpy.utils.unregister_class(MOVIE_DIRECTOR_PT_assets_panel)
     bpy.utils.unregister_class(MOVIE_DIRECTOR_PT_main_panel)
+    
+    # Unregister service status panels last
+    bpy.utils.unregister_class(MOVIE_DIRECTOR_PT_service_config)
+    bpy.utils.unregister_class(MOVIE_DIRECTOR_PT_service_status)
