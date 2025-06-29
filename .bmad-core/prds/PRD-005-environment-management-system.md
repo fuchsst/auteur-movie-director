@@ -289,304 +289,183 @@ The Environment Management & Background Generation System leverages the distribu
 
 ### Web Application Architecture
 
-#### 1. Frontend Components (SvelteKit)
-```typescript
-// Environment Gallery Component with Real-time Sync
-export class EnvironmentGallery extends SvelteComponent {
-    private websocket: WebSocket;
-    private environments = writable<Environment[]>([]);
-    
-    onMount() {
-        // Connect to environment updates
-        this.websocket = new WebSocket(`${WS_URL}/project/${projectId}/environments`);
-        
-        // Handle real-time updates
-        this.websocket.on('environment.update', (data: EnvironmentUpdate) => {
-            this.updateEnvironmentInGallery(data);
-            this.generateLivePreview(data.environmentId);
-        });
-        
-        // Handle generation progress
-        this.websocket.on('generation.progress', (data: GenerationProgress) => {
-            this.updateGenerationStatus(data.environmentId, data.progress);
-        });
-    }
-    
-    async generateMultiAngle(environmentId: string, options: AngleOptions) {
-        const response = await fetch(`/api/environments/${environmentId}/multi-angle`, {
-            method: 'POST',
-            body: JSON.stringify(options)
-        });
-        
-        // Track batch generation progress
-        this.trackBatchGeneration(await response.json());
-    }
-}
+#### 1. SvelteKit Frontend Requirements
 
-// Environment Variation Component
-export class EnvironmentVariations extends SvelteComponent {
-    private selectedEnvironment = writable(null);
-    private variations = writable<Variation[]>([]);
-    
-    async generateVariations(environmentId: string, types: VariationType[]) {
-        const response = await fetch(`/api/environments/${environmentId}/variations`, {
-            method: 'POST',
-            body: JSON.stringify({ types })
-        });
-        
-        const jobId = await response.json();
-        
-        // Real-time variation updates
-        this.websocket.on(`variations.${jobId}`, (variation: Variation) => {
-            this.addVariation(variation);
-            this.notifyTeam('New variation available!');
-        });
-    }
-}
-```
+**Environment Gallery Component Requirements:**
+- Real-time synchronization via WebSocket following draft4_canvas.md protocol
+- Display environment assets with quality tier indicators
+- Drag-and-drop integration with Production Canvas (PRD-006)
+- Team collaboration features with presence indicators
+- Version history visualization with rollback capability
+- Asset references by ID only (no file path exposure)
+- Multi-angle view switching with consistency validation
+- Batch generation controls for variations
 
-#### 2. API Endpoints (FastAPI)
-```python
-@app.post("/api/environments/{environment_id}/generate")
-async def generate_environment(
-    environment_id: str,
-    params: EnvironmentGenerationParams,
-    current_user: User = Depends(get_current_user)
-):
-    """Submit environment generation job"""
-    # Validate parameters
-    environment = await get_environment(environment_id)
-    
-    # Queue generation with style coordination
-    task = celery_app.send_task(
-        'environment.generate',
-        args=[environment_id, params.dict()],
-        priority=calculate_priority(current_user.tier),
-        queue='gpu_environment'
-    )
-    
-    # Notify team
-    await notify_team_websocket(environment.project_id, {
-        'type': 'generation.started',
-        'environmentId': environment_id,
-        'initiatedBy': current_user.id
-    })
-    
-    return {"job_id": task.id, "status": "queued"}
+**Environment Creation Interface Requirements:**
+- Multiple reference image upload with validation
+- Quality tier selection (Low/Standard/High):
+  - Low: Basic environments, 512x512, fast generation
+  - Standard: Detailed environments, 768x768, balanced
+  - High: Premium environments, 1024x1024+, maximum detail
+- Location type classification interface
+- Metadata input (name, description, context)
+- Real-time preview generation and updates
+- Team collaboration features with annotations
 
-@app.post("/api/environments/{environment_id}/multi-angle")
-async def generate_multi_angle(
-    environment_id: str,
-    angle_params: MultiAngleParams,
-    current_user: User = Depends(get_current_user)
-):
-    """Generate multiple camera angles for environment"""
-    # Define standard angle set
-    angles = angle_params.angles or [
-        "wide_establishing", "medium_wide", "medium",
-        "medium_close", "low_angle", "high_angle"
-    ]
-    
-    # Queue parallel generation
-    tasks = []
-    for angle in angles:
-        task = celery_app.send_task(
-            'environment.generate_angle',
-            args=[environment_id, angle, angle_params.dict()],
-            queue='gpu_environment'
-        )
-        tasks.append(task.id)
-    
-    return {"task_ids": tasks, "angle_count": len(angles)}
-```
+**Multi-Angle Generation Interface:**
+- Standard angle set controls (wide, medium, close, etc.)
+- Custom camera position specification
+- Spatial consistency validation display
+- Batch generation progress tracking
+- Result comparison grid with approval workflow
+- Integration with cinematography planning tools
 
-#### 3. Environment Processing Tasks
-```python
-@celery_app.task(name='environment.generate')
-def generate_environment_task(environment_id: str, params: Dict):
-    """Generate environment with distributed processing"""
-    
-    # Get style context
-    style_context = get_project_style_context(environment_id)
-    
-    # Select appropriate model
-    if params.get('use_360', False):
-        workflow = 'environment_360_generation'
-    else:
-        workflow = 'environment_standard_generation'
-    
-    # Execute generation
-    generator = EnvironmentGenerator()
-    result = generator.generate(
-        workflow=workflow,
-        params={
-            **params,
-            'style_context': style_context
-        },
-        progress_callback=lambda p: notify_progress(environment_id, p)
-    )
-    
-    # Validate consistency
-    if style_context:
-        consistency_score = validate_environment_style(result, style_context)
-        result['style_consistency'] = consistency_score
-    
-    return result
+#### 2. FastAPI Endpoint Requirements
 
-@celery_app.task(name='environment.generate_variations')
-def generate_variations_task(environment_id: str, variation_types: List[str]):
-    """Generate time/weather/seasonal variations"""
-    
-    base_environment = get_environment_data(environment_id)
-    variations = []
-    
-    for var_type in variation_types:
-        # Use Function Runner for advanced models
-        if var_type in ['seasonal', 'weather']:
-            task = celery_app.send_task(
-                'function_runner.execute',
-                args=[{
-                    'model': 'environment_variation_model',
-                    'params': {
-                        'base': base_environment,
-                        'type': var_type
-                    }
-                }],
-                queue='function_runner'
-            )
-            variations.append(task.get())
-        else:
-            # Standard variation
-            result = generate_standard_variation(base_environment, var_type)
-            variations.append(result)
-    
-    return variations
-```
+**Environment Generation Endpoint Requirements:**
+- Accept environment ID and quality tier parameters
+- Validate reference image requirements per quality tier:
+  - Low: Basic validation, minimal resources
+  - Standard: Balanced validation, moderate resources
+  - High: Comprehensive validation, maximum resources
+- Queue to appropriate worker pool based on quality
+- Calculate priority based on user tier and project urgency
+- Store generation job metadata in PostgreSQL
+- Broadcast generation start notification via WebSocket
+- Return job ID and estimated completion time
+- Coordinate with style consistency framework (PRD-004)
 
-#### 4. Multi-Angle Coordination System
-```python
-class MultiAngleCoordinator:
-    """Manages consistent multi-angle environment generation"""
-    
-    async def generate_angle_set(self, environment_id: str, angles: List[str]):
-        """Generate coordinated angle set"""
-        
-        base_environment = await get_environment(environment_id)
-        
-        # Generate depth map for spatial consistency
-        depth_map = await self.generate_depth_map(base_environment)
-        
-        # Parallel angle generation with consistency
-        angle_tasks = []
-        for angle in angles:
-            task = self.generate_single_angle(
-                base_environment,
-                angle,
-                depth_map,
-                consistency_reference=base_environment.primary_view
-            )
-            angle_tasks.append(task)
-        
-        # Wait for all angles
-        results = await asyncio.gather(*angle_tasks)
-        
-        # Validate spatial consistency
-        consistency_scores = self.validate_angle_consistency(results)
-        
-        return {
-            'angles': results,
-            'consistency': consistency_scores,
-            'depth_map': depth_map
-        }
-    
-    def validate_angle_consistency(self, angles: List[Dict]):
-        """Ensure spatial and visual consistency across angles"""
-        
-        scores = []
-        base_angle = angles[0]
-        
-        for angle in angles[1:]:
-            # Check spatial consistency
-            spatial_score = self.check_spatial_consistency(
-                base_angle['depth_map'],
-                angle['depth_map']
-            )
-            
-            # Check visual consistency
-            visual_score = self.check_visual_consistency(
-                base_angle['image'],
-                angle['image']
-            )
-            
-            scores.append({
-                'angle': angle['type'],
-                'spatial': spatial_score,
-                'visual': visual_score
-            })
-        
-        return scores
-```
+**Multi-Angle Generation Endpoints:**
+- Support batch angle generation (6+ standard angles)
+- Coordinate spatial consistency across angles
+- Integrate with character placement requirements (PRD-003)
+- Quality-based angle processing with fallback handling
+- Progress streaming via WebSocket events
+- Depth map generation for spatial validation
+- Custom angle specification support
 
-### Database Schema Extensions
+**Environment Variation Endpoints:**
+- Time-of-day variation generation
+- Weather condition adaptation
+- Seasonal transformation processing
+- Identity preservation validation
+- Batch variation processing
+- Template creation and sharing
+- Cross-project environment reuse
+
+#### 3. Celery Task Processing Architecture
+
+**Quality-Tiered Environment Processing:**
+- **Low Quality Queue** (`environment_low`): Basic environments, minimal VRAM
+- **Standard Quality Queue** (`environment_standard`): Detailed environments, balanced resources
+- **High Quality Queue** (`environment_high`): Premium environments, maximum resources
+
+**Environment-Specific Celery Tasks:**
+- `environment.generate` - Distributed environment generation on GPU workers
+- `environment.generate_multi_angle` - Coordinated multi-angle generation
+- `environment.generate_variations` - Time/weather/seasonal variations
+- `environment.validate_consistency` - Cross-angle consistency validation
+- `environment.optimize_output` - Post-generation optimization and compression
+
+**Function Runner Integration Requirements:**
+- FLUX Environment Models for high-quality generation
+- 360° Environment Generation for immersive worlds
+- Depth-Aware Models for multi-layer composition
+- Style-Adaptive Environment Models for automatic integration
+- Advanced variation models for complex transformations
+
+**Progress Streaming Requirements:**
+- Real-time generation progress via WebSocket events per draft4_canvas.md
+- Batch angle generation progress with angle-by-angle updates
+- Variation processing progress with type-specific status
+- Consistency validation status updates
+- Error handling and fallback notifications
+
+**Cross-System Integration:**
+- Style coordination parameters from PRD-004
+- Character placement requirements from PRD-003
+- Script-driven creation from PRD-002
+- Node graph updates for PRD-006 canvas
+- File path resolution via PRD-008 service
+- Regenerative parameters storage per PRD-007
+
+#### 4. WebSocket Protocol for Environment Collaboration
+
+**Environment-Specific Events (extending draft4_canvas.md):**
+
+| Event Name | Direction | Payload Schema | Description |
+|------------|-----------|----------------|-------------|
+| `client:environment.update` | C → S | `{"environment_id": "...", "data": {...}}` | Environment property updates |
+| `client:environment.generate` | C → S | `{"environment_id": "...", "quality": "standard"}` | Initiate generation |
+| `client:environment.multi_angle` | C → S | `{"environment_id": "...", "angles": [...]}` | Multi-angle generation |
+| `server:environment.updated` | S → C | `{"environment_id": "...", "data": {...}}` | Environment state changes |
+| `server:generation.progress` | S → C | `{"job_id": "...", "progress": 45, "step": "..."}` | Generation progress |
+| `server:angle.complete` | S → C | `{"environment_id": "...", "angle": "...", "result_url": "..."}` | Angle generation result |
+| `server:variation.complete` | S → C | `{"environment_id": "...", "type": "...", "result_url": "..."}` | Variation result |
+
+**Multi-Angle Coordination Requirements:**
+- Spatial consistency validation algorithms
+- Depth map generation for reference
+- Parallel angle processing with coordination
+- Visual consistency scoring
+- Automatic reference point selection
+- Batch validation and approval workflow
+
+**Real-time Collaboration Requirements:**
+- Database as authoritative source following draft4_canvas.md
+- Optimistic updates with server confirmation
+- Conflict resolution for simultaneous environment edits
+- Automatic preview generation on environment updates
+- Team notification for generation job status changes
+- Presence indicators for active environment editors
+
+### Database Schema Requirements
 
 #### PostgreSQL Tables for Environment Management
-```sql
--- Environment assets with collaboration
-CREATE TABLE environments (
-    id UUID PRIMARY KEY,
-    project_id UUID REFERENCES projects(id),
-    name VARCHAR(255),
-    description TEXT,
-    location_type VARCHAR(100),
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
-    parameters JSONB,
-    style_context JSONB
-);
 
--- Multi-angle generation tracking
-CREATE TABLE environment_angles (
-    id UUID PRIMARY KEY,
-    environment_id UUID REFERENCES environments(id),
-    angle_type VARCHAR(50),
-    generation_params JSONB,
-    file_reference JSONB,
-    consistency_score FLOAT,
-    created_at TIMESTAMP
-);
+**Environments Table (extending PRD-001 assets table):**
+- UUID primary key for environment identification
+- Project ID foreign key following PRD-008 structure
+- Environment metadata (name, description, location type)
+- Quality tier parameters for regeneration
+- Style context integration with PRD-004
+- User attribution and collaboration tracking
+- File path references (no direct paths exposed)
+- Script linkage for PRD-002 integration
 
--- Environment variations
-CREATE TABLE environment_variations (
-    id UUID PRIMARY KEY,
-    environment_id UUID REFERENCES environments(id),
-    variation_type VARCHAR(50), -- time_of_day, weather, season
-    variation_params JSONB,
-    file_reference JSONB,
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP
-);
+**Environment Angles Table:**
+- Multi-angle generation tracking and validation
+- Angle type classification (wide, medium, close, etc.)
+- Generation parameters for regeneration capability
+- Consistency scores and validation results
+- Spatial reference data for coordination
+- User attribution and timestamp tracking
+- File references via S3/storage service
 
--- Scene-environment linkages
-CREATE TABLE scene_environments (
-    id UUID PRIMARY KEY,
-    scene_id UUID REFERENCES scenes(id),
-    environment_id UUID REFERENCES environments(id),
-    usage_context JSONB,
-    created_at TIMESTAMP
-);
+**Environment Variations Table:**
+- Time/weather/seasonal variation management
+- Variation type classification and parameters
+- Base environment relationship tracking
+- Identity preservation scoring
+- Generation parameters for reproducibility
+- Team voting and approval tracking
+- Cross-project template sharing
 
--- Team collaboration on environments
-CREATE TABLE environment_annotations (
-    id UUID PRIMARY KEY,
-    environment_id UUID REFERENCES environments(id),
-    user_id UUID REFERENCES users(id),
-    annotation_type VARCHAR(50),
-    content TEXT,
-    coordinates JSONB,
-    created_at TIMESTAMP
-);
-```
+**Environment Collaboration Table:**
+- Team annotations and feedback on environments
+- Real-time editing state management
+- Multi-angle comparison notes
+- Change attribution and version history
+- Conflict resolution tracking
+- Activity timestamps for presence
+
+**Environment Templates Table:**
+- Cross-project environment sharing
+- Complete regeneration parameters
+- Usage tracking and analytics
+- Public/private sharing permissions
+- Organization and access control
+- Template evolution versioning
 
 ### Performance Optimizations
 
@@ -650,6 +529,155 @@ CREATE TABLE environment_annotations (
 - **Generation Throughput**: 100+ per hour
 - **Storage Efficiency**: <200MB per environment set
 - **API Performance**: 5,000+ requests/hour
+
+---
+
+## Architectural Compliance Requirements
+
+### Draft4_Canvas.md Integration
+**WebSocket Protocol Implementation:**
+- Extend core event schema with environment-specific collaboration events
+- Implement ConnectionManager for environment gallery sessions
+- Support real-time environment updates with optimistic UI
+- Handle generation progress streaming to all connected clients
+- Maintain database as authoritative source per specification
+
+### Draft4_Filestructure.md Compliance
+**File Storage Integration:**
+- Store environments in `01_Assets/Generative_Assets/Locations/` directory
+- Follow atomic versioning for environment files
+- Never expose file paths to frontend - use environment IDs only
+- Integrate with Git LFS for large environment files
+- Support VRAM-tier routing for generation tasks
+
+### Cross-PRD Dependencies
+**Character Consistency Integration (PRD-003):**
+- Coordinate environment generation with character placement
+- Implement character-aware environment scaling algorithms
+- Support real-time conflict detection for character-environment balance
+- Maintain character prominence during environment adaptation
+
+**Style Framework Integration (PRD-004):**
+- Adapt environment parameters to project style requirements
+- Coordinate color palettes and aesthetic elements
+- Support style-aware environment generation
+- Integrate with brand compliance validation
+
+**Script Integration (PRD-002):**
+- Automatic environment creation from script location analysis
+- Scene mood adaptation for environment generation
+- Context-aware environment suggestions
+- Narrative-driven atmospheric adjustments
+
+**Production Canvas Integration (PRD-006):**
+- Represent environments as draggable asset nodes in Svelte Flow
+- Support visual dependency highlighting for environment connections
+- Enable real-time environment preview updates in canvas
+- Integrate with hierarchical scene/shot organization
+
+**Regenerative Model Compliance (PRD-007):**
+- Store complete environment regeneration parameters
+- Support environment recreation with updated models
+- Maintain version history for environment evolution
+- Enable cross-project environment template sharing
+
+---
+
+## Implementation Validation
+
+### Core Architecture Validation
+**Backend Services Compliance:**
+- Validate environment storage in correct PRD-008 directory structure
+- Test ID-based asset references with no exposed file paths
+- Ensure Git LFS integration for environment file versioning
+- Verify cross-project environment template sharing functionality
+- Test real-time asset synchronization via WebSocket
+
+**Quality-Tier Processing:**
+- Validate routing to appropriate VRAM-tier worker pools
+- Test distributed environment generation across GPU workers
+- Ensure quality-based fallback mechanisms work correctly
+- Verify progress streaming for generation and variations
+- Test resource utilization efficiency across quality tiers
+
+**Multi-Angle Coordination:**
+- Spatial consistency validation across generated angles
+- Depth map generation and reference systems
+- Parallel processing coordination for angle sets
+- Visual consistency scoring and validation
+- Automatic quality assurance workflows
+
+### Cross-System Integration Testing
+**Environment-Character Coordination:**
+- Character placement validation in generated environments
+- Scale and proportion accuracy testing
+- Character prominence preservation algorithms
+- Real-time conflict detection and resolution
+
+**Environment-Style Integration:**
+- Style framework application to environments (PRD-004)
+- Color palette and aesthetic consistency
+- Brand compliance validation
+- Cross-system parameter synchronization
+
+**Script-Environment Automation:**
+- Automatic environment creation from script analysis (PRD-002)
+- Scene mood adaptation accuracy
+- Context-aware generation suggestions
+- Narrative-driven atmospheric adjustments
+
+### Performance and Scalability Testing
+**Environment Generation Performance:**
+- Generation throughput across quality tiers
+- Multi-angle set creation speed and accuracy
+- Variation generation efficiency
+- Real-time preview generation and distribution
+- Storage and CDN performance optimization
+
+**Collaboration Features:**
+- Multi-user environment editing without conflicts
+- Real-time preview updates across team members
+- Environment parameter synchronization within 500ms
+- Version control and rollback capabilities
+- Cross-team environment sharing workflows
+
+---
+
+## Architecture Alignment Summary
+
+### Draft4_Canvas.md Compliance
+✅ **WebSocket Protocol**: Extended event schema with environment-specific collaboration events  
+✅ **Asset Management**: Environment assets with ID-based references and real-time sync  
+✅ **State Management**: Database authoritative with optimistic environment updates  
+✅ **Connection Management**: Per-project environment gallery sessions with presence  
+✅ **Real-time Sync**: Environment generation progress and updates <500ms  
+
+### Draft4_Filestructure.md Integration
+✅ **VRAM Management**: Quality-tier routing for environment generation tasks  
+✅ **File Storage**: Environments in `01_Assets/Generative_Assets/Locations/` directory  
+✅ **Path Resolution**: ID-based references with no exposed file paths  
+✅ **Git LFS**: Environment files tracked automatically with versioning  
+✅ **Quality Tiers**: Three-tier processing with appropriate resource allocation  
+
+### Cross-System Backend Services
+✅ **Character Integration** (PRD-003): Character placement and prominence preservation  
+✅ **Style Coordination** (PRD-004): Aesthetic consistency and brand compliance  
+✅ **Script Integration** (PRD-002): Automatic creation from location analysis  
+✅ **Canvas Integration** (PRD-006): Environment nodes in Svelte Flow with dependencies  
+✅ **Regenerative Model** (PRD-007): Complete parameter storage for recreation  
+✅ **File Structure** (PRD-008): Complete project organization compliance  
+
+### Professional Environment Standards
+✅ **Multi-Angle Generation**: Coordinated camera coverage with spatial consistency  
+✅ **Variation Engine**: Time/weather/seasonal adaptations with identity preservation  
+✅ **Collaboration Features**: Multi-user environment development with conflict resolution  
+✅ **Template System**: Cross-project environment sharing and reuse  
+✅ **Quality Assurance**: Automated consistency validation and professional approval  
+
+---
+
+**Environment Management Foundation:**
+This PRD successfully establishes the Environment Management & Background Generation System as a professional-grade, collaborative system that integrates seamlessly with the Movie Director platform architecture while providing broadcast-quality environment consistency through distributed AI processing and real-time team coordination.
 
 ---
 

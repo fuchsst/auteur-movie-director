@@ -280,29 +280,88 @@ The Node-Based Production Canvas introduces a web-based visual editor using Svel
 
 ### Web Application Architecture
 
-#### 1. Svelte Flow Integration Requirements
-**Component Architecture:**
-- Main Production Canvas component using Svelte Flow library
+#### Node Type Specifications
+
+**Input/Output Socket Types:**
+- **Video**: MP4, MOV, WebM clips
+- **Image**: PNG, JPEG, WebP frames
+- **Audio**: WAV, MP3, AAC tracks
+- **Text**: String data for prompts
+- **Character**: Reference to character asset
+- **Style**: Reference to style parameters
+- **Environment**: Reference to location asset
+- **Number**: Numeric parameters
+- **Boolean**: True/false flags
+- **Array**: Lists of items (e.g., multiple images)
+
+**Socket Compatibility Rules:**
+- Video outputs can connect to video inputs
+- Image sequences can convert to video
+- Asset references only connect to matching types
+- Type conversion nodes available for flexibility
+- Multiple connections allowed for certain inputs
+- Validation prevents incompatible connections
+
+#### 1. Svelte Flow Integration Requirements (Per Draft4_Canvas.md)
+
+**Component Architecture Compliance:**
+- Main Production Canvas component using Svelte Flow library exactly as specified
 - Reactive state management with Svelte stores for nodes and edges
-- WebSocket integration for real-time synchronization
-- Custom node and edge type registration system
+- WebSocket integration following exact draft4_canvas.md protocol specification
+- Custom node and edge type registration system per Table 1 specifications
+- Hierarchical granularity with subflows as detailed in architectural blueprint
 
 **Core Functionality Requirements:**
-- Initialize canvas with project-specific node types
-- Handle node position changes with optimistic updates
-- Broadcast changes to connected team members
-- Maintain local state synchronized with server
-- Support undo/redo operations
-- Auto-save functionality with debouncing
+- Initialize canvas with project-specific node types from draft4_canvas.md Table 1
+- Handle node position changes with optimistic updates (client-side immediate, server confirmation)
+- Broadcast changes via exact WebSocket events from Table 4
+- Maintain local state synchronized with server as authoritative source
+- Support undo/redo operations with version-based conflict resolution
+- Auto-save functionality with debouncing following resilience patterns
 
-**Event Handling:**
-- Node selection and multi-selection
-- Connection validation between compatible node types
-- Drag-and-drop from asset library
+**Event Handling (Exact Draft4_Canvas.md Compliance):**
+- Node selection and multi-selection with presence indicators
+- Connection validation between compatible node types per socket specifications
+- Drag-and-drop from asset library with visual feedback
 - Keyboard shortcuts for common operations
-- Context menus for node-specific actions
+- Context menus for node-specific actions per component specifications
 
 #### 2. Custom Node Component Requirements
+
+**Pipeline Node Requirements (Draft4_Canvas.md Table 1 Compliance):**
+- Pipeline name label display
+- Version dropdown for model selection (optional)
+- Backend integration (ComfyUI, Wan2GP, Function Runner)
+- Resource requirement indicators per quality tier
+- Compatibility validation with connected nodes
+- Output type specification for socket connections
+- Custom workflow upload support
+- Template library access with sharing capabilities
+- No direct backend interaction - provides pipeline_id for Shot Nodes
+
+**Transition Node Requirements:**
+- Two video input handles
+- Transition type selector (cut, fade, wipe, etc.)
+- Duration control slider
+- Preview of transition effect
+- Output handle for combined video
+- Frame overlap settings
+
+**Composite Node Requirements:**
+- Multiple layer inputs with ordering
+- Blend mode selector per layer
+- Opacity controls
+- Mask input support
+- Real-time preview
+- Output resolution settings
+
+**Audio Node Requirements:**
+- Audio file input or generation
+- Waveform visualization
+- Sync markers for video alignment
+- Volume and effects controls
+- Voice character selection
+- Output handle for audio track
 
 **Character Node Requirements:**
 - Display character thumbnail/avatar prominently
@@ -335,6 +394,10 @@ The Node-Based Production Canvas introduces a web-based visual editor using Svel
 - User avatar showing who's working on it
 - Scene/shot identifier in header
 - Output handle for sequence connections
+- Camera control settings (2D pan/zoom vs 3D movement)
+- Seed value display and lock toggle
+- Duration/frame count settings
+- Motion strength parameter
 
 **Quality Tier Display Requirements:**
 - Dropdown selector with three options:
@@ -352,11 +415,20 @@ The Node-Based Production Canvas introduces a web-based visual editor using Svel
 - Output handle for connections
 - Support for both 2D and 3D environments
 - Integration with location asset library
+- Depth map generation toggle
+- Multi-angle variant selector
+- Time-of-day and weather variations
+- Reference image grid display
 
 **Script Node Requirements:**
 - Display script title prominently
 - Show scene and page count metrics
 - "Break Down to Shots" action button
+- Format detection (Fountain, FDX, plain text)
+- Character extraction preview
+- Location identification display
+- Automatic scene numbering
+- Output handles for scene/shot generation
 - Generate scene/shot hierarchy when activated
 - Reference script from project file structure
 - Visual indication of breakdown status
@@ -391,92 +463,127 @@ The Node-Based Production Canvas introduces a web-based visual editor using Svel
 - Compress large payloads
 - Handle reconnection gracefully
 
-#### 4. Execution Orchestration Requirements
+#### 4. WebSocket Protocol for Real-Time Canvas (Exact Draft4_Canvas.md Table 4)
 
-**Task Routing Requirements:**
-- Route different node types to appropriate handlers
-- Support extensible node type registration
-- Handle unknown node types gracefully
-- Maintain execution context throughout
+**Core WebSocket Events (Mandatory Implementation):**
 
-**Shot Generation Orchestration:**
-- Gather all connected asset references
-- Build generation context from high-level assets
-- Select pipeline based on quality tier:
-  - Low: Route to fast generation pipeline
-  - Standard: Use balanced quality pipeline
-  - High: Employ premium generation pipeline
-- Track progress with granular updates
-- Store results in project file structure
-- Update node state upon completion
+| Event Name | Direction | Payload Schema | Description |
+|------------|-----------|----------------|-------------|
+| `client:update_node_data` | C → S | `{"node_id": "...", "data": {...}}` | Sent when user modifies node properties |
+| `client:start_generation` | C → S | `{"node_id": "..."}` | Sent when user clicks "Generate" |
+| `client:sync_request` | C → S | `{}` | Sent by client upon reconnecting |
+| `server:node_state_updated` | S → C | `{"node_id": "...", "state": "generating"}` | Node state changes for UI updates |
+| `server:task_progress` | S → C | `{"task_id": "...", "node_id": "...", "progress": 50, "step": "..."}` | Granular progress updates |
+| `server:task_success` | S → C | `{"task_id": "...", "node_id": "...", "result": {...}}` | Task completion with results |
+| `server:task_failed` | S → C | `{"task_id": "...", "node_id": "...", "error": "..."}` | Task failure with error message |
+| `server:full_sync` | S → C | `{"graph": {...}}` | Complete project state synchronization |
 
-**Quality-Based Pipeline Selection:**
-- Map quality tiers to specific model pipelines
-- Consider available resources when routing
-- Queue management per quality tier
-- Different timeout values per tier
-- Cost tracking per quality level
+**Real-Time Synchronization Requirements:**
+- ConnectionManager class to manage per-project client lifecycle
+- Database as authoritative source, client stores as ephemeral cache
+- Optimistic updates for low-latency interactions (node positioning)
+- Version-based conflict resolution with integer incrementing
+- Automatic reconnection with client:sync_request/server:full_sync pattern
+- Sub-300ms latency for collaborative updates
 
-**Asset Context Building:**
-- Extract character IDs from connected nodes
-- Retrieve style parameters from style nodes
-- Gather environment settings
-- Combine into unified generation context
-- Never expose file paths to frontend
-- Use asset service for file resolution
+**State Management Strategy (Draft4_Canvas.md Compliance):**
+- Svelte stores for reactive UI state management
+- projectStore.js as single source of truth for client-side graph state
+- assetLibraryStore.js for shared asset management
+- userSessionStore.js for authenticated user information
+- Derived stores for computed state (e.g., dirtyNodesStore)
+- Context API for dependency injection (WebSocket client, API services)
 
-### Database Schema Extensions
+### Hierarchical Graph Architecture
+
+#### Multi-Level Structure
+**Project Level (Root):**
+- Overview of entire film structure
+- Scene group nodes representing major sections
+- Global asset nodes (main characters, overall style)
+- Project settings and metadata
+
+**Scene Level (Subflow):**
+- Expanded view of individual scenes
+- Shot nodes within the scene
+- Scene-specific assets and variations
+- Transition nodes between shots
+
+**Shot Level (Detail):**
+- Individual shot configuration
+- Connected character, style, environment assets
+- Generation parameters and quality settings
+- Take management and version history
+
+#### Navigation Features
+- Double-click to enter subflows
+- Breadcrumb navigation showing current level
+- Minimap for large graph overview
+- Search functionality across all levels
+- Collapsible node groups
+
+#### Advanced Node Features
+
+**Media Import Nodes (Updated from Blender to Web):**
+- Image Import Node: Upload and manage reference images via web interface
+- Video Import Node: Handle video file uploads with web-based processing
+- Camera Control Node: Define camera movements and positions for web rendering
+- Metadata Node: Store and manage project information in PostgreSQL database
+
+**Pipeline Configuration:**
+- Visual workflow builder interface
+- Backend selection (ComfyUI, Wan2GP, Function Runner)
+- Model selection per quality tier
+- Resource requirement display
+- Custom parameter exposure
+
+**Smart Connections:**
+- Type validation on connection
+- Auto-conversion where possible
+- Multi-input support for certain nodes
+- Connection strength visualization
+- Dependency highlighting
+
+### Database Schema Requirements
 
 #### PostgreSQL Tables for Graph Management
-```sql
--- Graph state and versioning
-CREATE TABLE graph_states (
-    id UUID PRIMARY KEY,
-    project_id UUID REFERENCES projects(id),
-    nodes JSONB,
-    edges JSONB,
-    viewport JSONB,
-    version INTEGER,
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP
-);
 
--- Node execution history
-CREATE TABLE node_executions (
-    id UUID PRIMARY KEY,
-    node_id VARCHAR(255),
-    project_id UUID REFERENCES projects(id),
-    status VARCHAR(50),
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    initiated_by UUID REFERENCES users(id),
-    parameters JSONB,
-    result JSONB
-);
+**Graph States Table (extending PRD-001 projects table):**
+- UUID primary key for graph state identification
+- Project ID foreign key following PRD-008 structure
+- Nodes and edges stored as JSONB per draft4_canvas.md specifications
+- Viewport state for user session persistence
+- Version field for conflict resolution (integer increment)
+- User attribution and collaboration tracking
+- Created timestamp for history tracking
+- Complete graph regeneration capability
 
--- Graph templates
-CREATE TABLE graph_templates (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255),
-    description TEXT,
-    category VARCHAR(100),
-    graph_data JSONB,
-    created_by UUID REFERENCES users(id),
-    is_public BOOLEAN DEFAULT false,
-    usage_count INTEGER DEFAULT 0
-);
+**Node Executions Table:**
+- Node execution lifecycle management
+- Project and node ID references for tracking
+- Status tracking (idle, generating, success, error)
+- Execution timestamps for performance monitoring
+- User attribution for initiated executions
+- Parameters storage for regeneration capability
+- Results storage with file references (no direct paths)
+- Integration with Celery task system
 
--- User graph sessions
-CREATE TABLE graph_sessions (
-    id UUID PRIMARY KEY,
-    project_id UUID REFERENCES projects(id),
-    user_id UUID REFERENCES users(id),
-    viewport JSONB,
-    selected_nodes JSONB,
-    active_subflow VARCHAR(255),
-    last_activity TIMESTAMP
-);
-```
+**Graph Templates Table:**
+- Cross-project graph template sharing
+- Template metadata (name, description, category)
+- Complete graph structure storage as JSONB
+- Usage tracking and analytics
+- Public/private sharing permissions
+- Template evolution versioning
+- User attribution and ownership tracking
+
+**Graph Sessions Table:**
+- Real-time collaboration session management
+- User presence and viewport tracking
+- Selected nodes and active subflow state
+- Activity timestamps for session cleanup
+- WebSocket connection lifecycle management
+- Multi-user cursor and selection tracking
 
 ### Performance Optimizations
 
@@ -629,6 +736,163 @@ CREATE TABLE graph_sessions (
 - Performance targets met
 - Features complete
 - Docs comprehensive
+
+---
+
+## Architectural Compliance Requirements
+
+### Draft4_Canvas.md Integration
+**SvelteKit Architecture Compliance:**
+- Implement exact filesystem-based routing structure: `/src/routes/project/[id]/+page.svelte`
+- Use server-side load functions in `+page.server.js` for initial data loading
+- Integrate Svelte Flow component as specified in architectural blueprint
+- Follow reactive state management with Svelte stores for nodes and edges
+- Implement hierarchical granularity with subflows for scene/shot navigation
+
+**Custom Node Component Implementation (Table 1 Compliance):**
+- ShotNode.svelte: Primary execution node with prompt textarea, "Generate" button, progress indicator
+- AssetNode.svelte: Visual asset representation with preview and name label
+- PipelineNode.svelte: Pipeline selector with version dropdown
+- SceneGroupNode.svelte: Hierarchical container with expand/collapse functionality
+- All nodes must follow exact props and UI element specifications from Table 1
+
+**WebSocket Protocol Implementation (Table 4 Compliance):**
+- Implement ConnectionManager class for per-project client lifecycle management
+- Support exact event schema with mandatory events: client:update_node_data, client:start_generation, client:sync_request
+- Handle server events: server:node_state_updated, server:task_progress, server:task_success, server:task_failed, server:full_sync
+- Maintain database as authoritative source with optimistic client updates
+- Implement version-based conflict resolution with integer versioning
+
+### Draft4_Filestructure.md Compliance
+**File Storage Integration:**
+- Store graph definitions in `02_Source_Creative/Canvases/` directory
+- Reference main graph as `main_canvas.json` in project.json manifest
+- Never expose file paths to frontend - use asset IDs only
+- Integrate with Git LFS for version control of graph files
+- Support VRAM-tier routing for node execution
+
+### Cross-PRD Dependencies
+**Backend Integration (PRD-001):**
+- FastAPI endpoints for graph CRUD operations per REST API specification
+- Celery task integration for node execution orchestration
+- WebSocket endpoint `/ws/{project_id}` for real-time communication
+- Connection authentication via JWT tokens
+
+**Script Integration (PRD-002):**
+- Automatic node graph generation from script breakdown
+- Script Node component for breakdown trigger
+- Integration with intelligent analysis pipeline
+- Scene/shot hierarchy creation from script structure
+
+**Asset Integration (PRD-003, PRD-004, PRD-005):**
+- Character Node drag-and-drop from asset library
+- Style Node visual representation with preview grid
+- Environment Node integration with location assets
+- Real-time asset updates across connected nodes
+
+**Regenerative Model Compliance (PRD-007):**
+- Store complete node graph parameters for recreation
+- Support graph versioning and history
+- Enable template sharing across projects
+- Maintain execution context for reproducibility
+
+---
+
+## Implementation Validation
+
+### Core Architecture Validation
+**Svelte Flow Implementation:**
+- Validate exact compliance with draft4_canvas.md architectural blueprint
+- Test hierarchical subflow navigation (project → scene → shot)
+- Ensure custom node components match Table 1 specifications exactly
+- Verify WebSocket events follow Table 4 schema precisely
+- Test optimistic updates with server confirmation patterns
+
+**Real-Time Collaboration:**
+- Multi-user canvas editing with conflict resolution
+- Node position synchronization within 300ms
+- State management following database-as-source pattern
+- Connection resilience with automatic reconnection
+- Version-based conflict detection and resolution
+
+**Node Component Compliance:**
+- ShotNode: prompt input, generate button, progress indicator, takes gallery
+- AssetNode: preview image, name label, drag-and-drop functionality
+- PipelineNode: pipeline name, version selector, backend compatibility
+- SceneGroupNode: subflow container with navigation controls
+- All components follow exact UI element specifications
+
+### Cross-System Integration Testing
+**Graph-to-Execution Pipeline:**
+- Node graph compilation to execution tasks
+- Quality-tier routing for generation nodes
+- Progress streaming via WebSocket events
+- Result integration with file storage system
+- EDL compilation for final video assembly
+
+**Asset System Integration:**
+- Character assets from PRD-003 appear as draggable nodes
+- Style assets from PRD-004 integrate with style nodes
+- Environment assets from PRD-005 connect to environment nodes
+- Real-time asset updates propagate to connected graphs
+
+**Script-to-Graph Automation:**
+- Script breakdown creates node hierarchy automatically
+- Scene/shot structure matches script analysis
+- Character/location extraction populates asset nodes
+- Style suggestions appear as connected style nodes
+
+### Performance and Scalability Testing
+**Canvas Performance:**
+- Large graph rendering (1000+ nodes) with smooth interaction
+- Real-time synchronization under concurrent user load
+- WebSocket connection stability and recovery
+- Memory usage optimization for complex hierarchies
+- Database query performance for graph operations
+
+**Collaboration Features:**
+- Multi-user editing without conflicts
+- Presence indicators and cursor tracking
+- Change attribution and activity history
+- Graph template sharing and discovery
+- Cross-project template reuse workflows
+
+---
+
+## Architecture Alignment Summary
+
+### Draft4_Canvas.md Compliance
+✅ **SvelteKit Architecture**: Exact filesystem routing and server-side loading patterns  
+✅ **Svelte Flow Integration**: Custom node components per Table 1 specifications  
+✅ **WebSocket Protocol**: Complete Table 4 event schema implementation  
+✅ **State Management**: Database authoritative with Svelte store caching  
+✅ **Hierarchical Navigation**: Subflow support for scene/shot organization  
+
+### Draft4_Filestructure.md Integration
+✅ **Graph Storage**: Canvas files in `02_Source_Creative/Canvases/` directory  
+✅ **Path Resolution**: ID-based references with no exposed file paths  
+✅ **Git Integration**: Version control with proper file attribution  
+✅ **Quality Routing**: VRAM-aware task distribution for node execution  
+✅ **Project Structure**: Complete project organization compliance  
+
+### Cross-System Canvas Integration
+✅ **Asset Management** (PRD-003, 004, 005): Visual asset nodes with real-time updates  
+✅ **Script Integration** (PRD-002): Automatic graph generation from script breakdown  
+✅ **Backend Services** (PRD-001): FastAPI endpoints and Celery task orchestration  
+✅ **Regenerative Model** (PRD-007): Complete graph parameters for recreation  
+✅ **File Structure** (PRD-008): Project organization and path management compliance  
+
+### Professional Canvas Standards
+✅ **Real-Time Collaboration**: Multi-user editing with sub-300ms synchronization  
+✅ **Visual Production**: Hierarchical scene/shot organization with subflows  
+✅ **Template System**: Cross-project graph sharing and reuse  
+✅ **Quality Assurance**: Version control with conflict resolution  
+✅ **Professional Integration**: EDL compilation and external tool compatibility  
+
+---
+
+**Production Canvas Foundation:**
+This PRD successfully establishes the Node-Based Production Canvas as a professional-grade, web-native visual interface that integrates seamlessly with the Movie Director platform architecture while providing real-time collaborative editing capabilities through modern web technologies and distributed processing.
 
 ---
 

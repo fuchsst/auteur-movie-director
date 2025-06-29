@@ -305,75 +305,106 @@ The Regenerative Content Model implements a comprehensive cloud-based asset mana
 
 ### Web Application Architecture
 
-#### 1. Frontend Parameter Management Requirements
+#### 1. SvelteKit State Management Requirements (Draft4_Canvas.md Compliance)
+
+**Svelte Stores for Regenerative Model:**
+- **projectStore.js**: Single source of truth for client-side project state including regenerative parameters
+- **assetLibraryStore.js**: Regenerative asset library with parameter tracking
+- **regenerationJobsStore.js**: Real-time job status and progress tracking
+- **storageAnalyticsStore.js**: Storage usage and optimization metrics
+- **parameterHistoryStore.js**: Version history for parameter evolution
+
+**Derived Stores for Computed State:**
+- **regeneratableAssetsStore**: Derived from projectStore, lists assets that can be regenerated
+- **activeJobsStore**: Derived from regenerationJobsStore, shows currently running regenerations
+- **storageUsageStore**: Derived from assetLibraryStore, calculates storage optimization potential
+- **outdatedAssetsStore**: Derived store identifying assets needing model migration
+
+**State Management Strategy Compliance:**
+- Database as authoritative source for all regenerative parameters
+- Client stores as ephemeral cache with optimistic updates
+- Version-based conflict resolution with integer versioning
+- WebSocket synchronization for real-time regeneration progress
+- Automatic reconnection with full state sync via server:full_sync
 
 **Regenerative Asset Component Requirements:**
+- Follow draft4_canvas.md state machine patterns for component lifecycle
+- Integrate with Context API for WebSocket and API service access
 - Capture all generation parameters including quality tier
 - Store parameters separate from generated content
-- Track regeneration status and progress
+- Track regeneration status with real-time updates
 - Support quality tier selection during regeneration
-- Display storage usage information
+- Display storage usage information from derived stores
 
-**Parameter Capture Requirements:**
-- Timestamp of generation
-- Model version used
-- All input parameters
-- Workflow/pipeline configuration
-- Random seed for reproducibility
-- Quality tier (low/standard/high)
-- Backend-specific settings
+#### 2. FastAPI Endpoint Requirements (Draft4_Canvas.md Integration)
 
-**Regeneration Interface Requirements:**
-- Quality tier selector with current tier highlighted
-- Estimated time/cost per quality tier
-- Progress indicator during regeneration
-- Cancel/pause functionality
-- Comparison view (old vs new)
-- Batch selection for multiple assets
-
-#### 2. API Endpoint Requirements
+**RESTful API for Regenerative Operations:**
+- `GET /api/v1/projects/{id}/regenerative` - Retrieve complete regenerative state
+- `PUT /api/v1/projects/{id}/regenerative` - Save regenerative parameters with version conflict handling
+- `POST /api/v1/regeneration/jobs` - Submit regeneration jobs with quality tier selection
+- `GET /api/v1/storage/analytics` - Storage usage and optimization analytics
+- `POST /api/v1/migration/parameters` - Migrate parameters to new model versions
 
 **Parameter Storage Endpoint Requirements:**
-- Store complete generation parameters with version tracking
-- Include quality tier in parameter record
-- Link to S3/file references
-- Track user who created the asset
-- Update storage analytics
-- Trigger Git LFS tracking for media files
-- Support parameter migration between versions
+- Store complete generation parameters with integer version tracking
+- Include quality tier in parameter record following draft4_canvas.md specifications
+- Link to file references via PRD-008 path resolution service
+- Track user attribution for collaborative workflows
+- Update storage analytics in real-time
+- Trigger Git LFS tracking for media files automatically
+- Support parameter migration between model versions
+- Implement version conflict detection and resolution
+
+**WebSocket Protocol Extensions for Regeneration:**
+- Extend draft4_canvas.md Table 4 with regeneration-specific events
+- `client:regenerate_asset` - Initiate asset regeneration with quality selection
+- `server:regeneration_progress` - Real-time progress updates with granular status
+- `server:regeneration_complete` - Completion notification with result references
+- `server:storage_updated` - Storage analytics updates for all connected clients
+- `server:parameter_migrated` - Parameter migration completion notifications
 
 **Regeneration Queue Endpoint Requirements:**
-- Accept quality tier selection (may differ from original)
-- Implement deduplication logic
-- Calculate priority based on user tier and quality
-- Route to appropriate worker queue by quality:
-  - Low → fast_regeneration queue
-  - Standard → balanced_regeneration queue
-  - High → premium_regeneration queue
-- Create job tracking record
-- Notify team via WebSocket
-- Estimate completion time based on quality
+- Accept quality tier selection with validation
+- Implement deduplication logic for efficiency
+- Calculate priority based on user tier and resource availability
+- Route to appropriate quality-based worker queues
+- Create job tracking records in PostgreSQL
+- Notify team via WebSocket following exact protocol
+- Provide accurate completion time estimates
 
-**Git Integration Requirements:**
-- Auto-commit regenerated files to Git LFS
-- Meaningful commit messages with quality tier
-- Track parameter changes in Git history
-- Support rollback to previous versions
+**Git Integration Requirements (Draft4_Filestructure.md Compliance):**
+- Auto-commit regenerated files to Git LFS following exact .gitattributes specification
+- Meaningful commit messages with quality tier and parameter changes
+- Track parameter changes in standard Git history (text-based)
+- Support rollback to previous versions with state synchronization
+- Immutable file naming per atomic versioning requirements
+- Automatic LFS configuration for media files (*.mp4, *.png, *.safetensors)
+- Integration with database version tracking for complete audit trail
 
-#### 3. Regeneration Processing Requirements
+#### 3. Celery Task Processing for Regeneration (Draft4_Canvas.md Integration)
 
-**Quality-Based Regeneration Flow:**
-1. Extract quality tier from options (default to original)
-2. Check if model migration needed for parameters
-3. Select appropriate pipeline based on quality:
-   - Low → Fast pipeline with reduced settings
-   - Standard → Balanced pipeline
-   - High → Premium pipeline with maximum quality
-4. Route to appropriate worker based on region and resources
-5. Execute generation with progress tracking
-6. Store output following file structure conventions
-7. Update Git LFS tracking
-8. Manage storage lifecycle
+**Quality-Based Regeneration Architecture:**
+- **Regeneration Tasks**: Specialized Celery tasks following the Agent-to-Service mapping
+- **Queue Routing**: Quality-tier routing per draft4_filestructure.md VRAM specifications
+- **Progress Streaming**: Real-time updates via WebSocket events from Table 4
+- **State Synchronization**: Database authoritative source with client cache invalidation
+
+**Regeneration Processing Flow:**
+1. **Parameter Validation**: Extract quality tier and validate against stored parameters
+2. **Model Migration Check**: Determine if parameter migration needed for model compatibility
+3. **Pipeline Selection**: Route to appropriate quality-based processing pipeline
+4. **Worker Assignment**: Assign to regional workers based on resource availability
+5. **Execution Tracking**: Monitor progress with WebSocket event streaming
+6. **File Storage**: Store outputs following PRD-008 file structure conventions
+7. **Version Control**: Update Git LFS tracking automatically
+8. **State Updates**: Update all connected clients via WebSocket synchronization
+
+**Celery Task Specifications:**
+- `regeneration.execute_asset` - Main regeneration task with quality routing
+- `regeneration.migrate_parameters` - Parameter migration between model versions
+- `regeneration.cleanup_storage` - Automated storage lifecycle management
+- `regeneration.batch_regenerate` - Parallel processing for multiple assets
+- `regeneration.validate_consistency` - Cross-asset consistency validation
 
 **File Storage Integration:**
 - Use project file structure paths (PRD-008)
@@ -439,59 +470,62 @@ The Regenerative Content Model implements a comprehensive cloud-based asset mana
 - Maintain Git LFS pointers
 - Team notification before bulk cleanup
 
-### Database Schema Extensions
+### Database Schema Requirements
 
-#### PostgreSQL Schema Requirements for Regenerative Model
+#### PostgreSQL Schema for Regenerative Model
 
-**Asset Parameters Table Requirements:**
-- Store complete generation parameters as JSONB
-- Track model version and quality tier
-- Reference to S3/file storage URL
-- File size for analytics
-- Regeneration capability flag
+**Asset Parameters Table (extending PRD-001 assets table):**
+- UUID primary key for asset identification
+- Project ID foreign key following PRD-008 structure
+- Complete generation parameters stored as JSONB
+- Model version and quality tier tracking
+- File references (no direct paths exposed)
+- Regeneration capability flags
 - Creation and access timestamps
-- User attribution
-- Git commit hash reference
+- User attribution and collaboration tracking
+- Git commit hash references for version control
+- Integration with draft4_canvas.md state management
 
-**Parameter Version History Requirements:**
-- Track all parameter versions for an asset
-- Version numbering system
-- Complete parameter snapshots
+**Parameter Version History Table:**
+- Version tracking with integer increment per draft4_canvas.md
+- Complete parameter snapshots for state consistency
 - Model version at time of generation
-- Migration tracking (from/to versions)
+- Migration tracking between versions
 - Quality tier for each version
-- User and timestamp tracking
+- User attribution and timestamp tracking
+- Conflict resolution for simultaneous edits
+- Database as authoritative source compliance
 
-**Regeneration Jobs Table Requirements:**
-- Unique job identifier
-- Asset reference
+**Regeneration Jobs Table:**
+- Unique job identifier for Celery task tracking
+- Asset reference with ID-based relationships
 - Job status (queued, processing, completed, failed)
-- Priority based on quality tier
-- Worker assignment
-- Time tracking (start, complete)
-- Error capture
-- Result storage location
-- Quality tier selection
+- Priority based on quality tier and user permissions
+- Worker assignment and resource allocation
+- Time tracking for performance monitoring
+- Error capture and recovery mechanisms
+- Result storage location references
+- WebSocket event correlation for real-time updates
 
-**Storage Analytics Table Requirements:**
-- Organization-level metrics
-- Total storage size tracking
-- Breakdown by regeneratable vs permanent
-- Regional distribution
-- Asset type distribution
-- Quality tier distribution
-- Cost estimates
-- Git LFS vs S3 breakdown
+**Storage Analytics Table:**
+- Organization-level storage metrics
+- Regeneratable vs permanent content tracking
+- Regional distribution for optimization
+- Asset type and quality tier distribution
+- Cost estimates and optimization recommendations
+- Git LFS vs S3 storage breakdown
+- Usage patterns for lifecycle management
+- Cross-project storage analytics
 
-**Cleanup History Table Requirements:**
-- Track all cleanup operations
-- Organization scope
-- User who initiated
-- Strategy used (aggressive/balanced/conservative)
-- Number of assets affected
-- Space recovered
-- Execution timestamp
-- Quality tier breakdown
+**Cleanup History Table:**
+- Complete cleanup operation audit trail
+- Organization and project scope tracking
+- User attribution for initiated operations
+- Strategy classification and parameters
+- Asset count and space recovery metrics
+- Execution timestamps and duration
+- Quality tier impact analysis
+- Integration with Git LFS cleanup operations
 
 ### Performance Optimizations
 
@@ -646,6 +680,156 @@ The Regenerative Content Model implements a comprehensive cloud-based asset mana
 - Batch efficiency proven
 - Analytics driving decisions
 - API fully documented
+
+---
+
+## Architectural Compliance Requirements
+
+### Draft4_Canvas.md State Management Integration
+**Svelte Store Architecture Compliance:**
+- Implement exact state management strategy from draft4_canvas.md Section "Complex State Management Strategy"
+- **projectStore.js**: Single source of truth for regenerative parameters on client side
+- **assetLibraryStore.js**: Regenerative asset library with real-time synchronization
+- **Derived Stores**: Implement computed state for regeneratable assets, active jobs, storage usage
+- **Context API**: Use setContext/getContext for WebSocket and API service dependency injection
+
+**State Synchronization and Resilience (Exact Draft4_Canvas.md Compliance):**
+- Database as ultimate single source of truth for all regenerative parameters
+- Client stores as local, ephemeral cache with optimistic updates
+- Version-based conflict resolution with integer versioning system
+- WebSocket resilience with automatic reconnection and client:sync_request/server:full_sync pattern
+- Optimistic updates for low-latency interactions (regeneration triggers)
+
+**Component-Level State Machines:**
+- Implement state machines for regeneration components (idle, pending_request, generating, success, error)
+- Follow exact lifecycle patterns specified in architectural blueprint
+- Encapsulate regeneration logic within component boundaries
+- Handle WebSocket events for progress and completion updates
+
+### Draft4_Filestructure.md Compliance
+**File Storage Integration:**
+- Store regenerative parameters in PostgreSQL database, media files in Git LFS
+- Follow exact .gitattributes configuration for automatic LFS tracking
+- Implement immutable file naming: ASSET-NAME_vXX_takeYY.ext
+- Store assets in correct directory structure per PRD-008 specifications
+- Never expose file paths to frontend - use asset ID resolution only
+
+**Git LFS Integration:**
+- Automatic tracking of media files (*.mp4, *.mov, *.png, *.safetensors, *.ckpt)
+- Parameter files (JSON) in standard Git for versioning and collaboration
+- Atomic versioning with complete audit trail
+- Integration with cleanup operations and lifecycle policies
+- Cross-region LFS backend configuration for global teams
+
+### Cross-PRD Dependencies
+**Backend Integration (PRD-001):**
+- FastAPI endpoints for regenerative operations following exact REST API patterns
+- WebSocket protocol extensions for real-time regeneration progress
+- Celery task integration for distributed regeneration processing
+- Database schema extensions for regenerative model support
+
+**Asset System Integration (PRD-003, PRD-004, PRD-005):**
+- Character asset regeneration with identity preservation
+- Style asset regeneration with consistency validation
+- Environment asset regeneration with spatial coherence
+- Cross-asset dependency tracking and batch regeneration
+
+**Canvas Integration (PRD-006):**
+- Node-based regeneration triggers from production canvas
+- Real-time progress updates in node UI components
+- Batch selection and regeneration from canvas interface
+- Quality tier selection integrated with node execution
+
+**File Structure Compliance (PRD-008):**
+- Complete project organization compliance
+- Path resolution service integration
+- Git integration with proper attribution
+- Cross-project template sharing capabilities
+
+---
+
+## Implementation Validation
+
+### Core Architecture Validation
+**State Management Compliance:**
+- Validate exact implementation of draft4_canvas.md state management strategy
+- Test Svelte store reactivity and synchronization patterns
+- Ensure database-as-source architecture with client caching
+- Verify version-based conflict resolution mechanisms
+- Test WebSocket resilience and automatic reconnection
+
+**Regenerative Model Implementation:**
+- Parameter storage and retrieval with complete fidelity
+- Quality-tier regeneration with appropriate resource allocation
+- Cross-asset dependency tracking and validation
+- Git LFS integration with automatic file tracking
+- Storage lifecycle management and optimization
+
+**Real-Time Collaboration:**
+- Multi-user regeneration coordination without conflicts
+- Progress streaming via WebSocket events
+- State synchronization within 500ms across clients
+- Presence indicators for active regeneration operations
+- Conflict resolution for simultaneous regeneration requests
+
+### Cross-System Integration Testing
+**Asset Regeneration Pipeline:**
+- Character assets regenerate with identity preservation (PRD-003)
+- Style assets maintain consistency across regenerations (PRD-004)
+- Environment assets preserve spatial relationships (PRD-005)
+- Canvas nodes trigger regeneration with progress updates (PRD-006)
+- File structure compliance maintained throughout (PRD-008)
+
+**Storage and Version Control:**
+- Git LFS tracking follows exact draft4_filestructure.md specifications
+- Parameter versioning integrates with database conflict resolution
+- Storage analytics provide actionable optimization insights
+- Cleanup operations maintain regenerative capability
+- Cross-project parameter migration and template sharing
+
+**Performance and Scalability:**
+- Large-scale regeneration operations (1000+ assets) perform efficiently
+- Quality-tier routing optimizes resource utilization
+- Storage optimization reduces costs while maintaining accessibility
+- Global team collaboration with region-aware regeneration
+- Database performance under high regeneration load
+
+---
+
+## Architecture Alignment Summary
+
+### Draft4_Canvas.md Compliance
+✅ **State Management**: Exact implementation of Complex State Management Strategy  
+✅ **Svelte Stores**: projectStore, assetLibraryStore with derived computed state  
+✅ **State Synchronization**: Database authoritative with optimistic client updates  
+✅ **WebSocket Resilience**: Automatic reconnection with full sync capability  
+✅ **Component State Machines**: Regeneration lifecycle with proper event handling  
+
+### Draft4_Filestructure.md Integration
+✅ **Git LFS**: Automatic tracking per .gitattributes specification  
+✅ **File Storage**: Media in LFS, parameters in standard Git  
+✅ **Atomic Versioning**: Immutable naming with complete audit trail  
+✅ **Path Resolution**: ID-based references with no exposed file paths  
+✅ **Project Structure**: Complete compliance with directory organization  
+
+### Cross-System Regenerative Integration
+✅ **Asset Management** (PRD-003, 004, 005): Regeneration with preservation of key properties  
+✅ **Canvas Integration** (PRD-006): Node-based triggers with real-time progress  
+✅ **Backend Services** (PRD-001): FastAPI endpoints and Celery task orchestration  
+✅ **File Structure** (PRD-008): Complete project organization and path management  
+✅ **Quality System**: Three-tier regeneration with appropriate resource allocation  
+
+### Professional Regenerative Standards
+✅ **Storage Optimization**: 95%+ cost reduction through intelligent lifecycle management  
+✅ **Collaboration**: Multi-user regeneration coordination with conflict resolution  
+✅ **Version Control**: Complete parameter history with Git integration  
+✅ **Performance**: Sub-500ms state synchronization for real-time collaboration  
+✅ **Scalability**: Distributed processing with quality-based resource allocation  
+
+---
+
+**Regenerative Model Foundation:**
+This PRD successfully establishes the Regenerative Content Model as a cloud-native, collaborative system that integrates seamlessly with the Movie Director platform architecture while providing unprecedented storage efficiency and creative flexibility through distributed processing and intelligent state management.
 
 ---
 

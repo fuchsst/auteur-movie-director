@@ -348,35 +348,11 @@ The Character Consistency Engine leverages the distributed web architecture to p
   - Standard: Fine-tuned LoRA or InstantID
   - High: InfiniteYou or DreamO
 - Handle fallback when models unavailable
-- Stream progress updates via WebSocket
-    current_user: User = Depends(get_current_user)
-):
-    """Generate using InfiniteYou, DreamO, or OmniGen2"""
-    # Select best available model
-    model = await select_advanced_model(
-        generation_params.preferred_model,
-        check_availability=True
-    )
-    
-    if model in ['infiniteyou', 'dreamo', 'omnigen2']:
-        # Use Function Runner for advanced models
-        task = celery_app.send_task(
-            'function_runner.execute',
-            args=[{
-                'model': model,
-                'character_id': character_id,
-                'params': generation_params.dict()
-            }],
-            queue='function_runner'
-        )
-    else:
-        # Fallback to traditional models
-        task = celery_app.send_task(
-            'character.generate_traditional',
-            args=[character_id, generation_params.dict()],
-            queue='gpu_standard'
-        )
-    
+- Stream progress updates via WebSocket following draft4_canvas.md protocol
+- Route tasks to appropriate quality-based worker pools
+- Handle model fallback automatically
+- Support batch character generation
+
 #### 3. Function Runner Integration Requirements
 
 **Advanced Model Execution:**
@@ -414,279 +390,297 @@ The Character Consistency Engine leverages the distributed web architecture to p
 - Model optimization per quality tier
 - Automatic deployment to storage
 
-#### 4. Real-time Character Synchronization
-**Real-time Character Synchronization Requirements:**
-        
-        # Update database
-        async with get_db() as db:
-            character = await update_character(db, update['characterId'], update['data'])
-            
-            # Generate preview if visual change
-            if update['type'] in ['reference_added', 'variation_selected']:
-                preview_task = generate_character_preview.delay(update['characterId'])
-                update['preview_task_id'] = preview_task.id
-        
-        # Broadcast to all clients
-        await self.broadcast(project_id, {
-            'type': 'character.update',
-            'update': update,
-            'userId': user_id,
-            'timestamp': datetime.utcnow(),
-            'character': character.to_dict()
-        })
-        
-        # Trigger dependent updates
-        if update['type'] == 'model_trained':
-            await self.notify_dependent_systems(character)
-```
+#### 4. WebSocket Protocol for Character Collaboration
 
-### Database Schema Extensions
+**Character-Specific Events (extending draft4_canvas.md):**
+
+| Event Name | Direction | Payload Schema | Description |
+|------------|-----------|----------------|-------------|
+| `client:character.update` | C → S | `{"character_id": "...", "data": {...}}` | Character property updates |
+| `client:character.train` | C → S | `{"character_id": "...", "quality": "standard"}` | Initiate training job |
+| `client:character.generate` | C → S | `{"character_id": "...", "params": {...}}` | Generate character variation |
+| `server:character.updated` | S → C | `{"character_id": "...", "data": {...}}` | Character state changes |
+| `server:training.progress` | S → C | `{"job_id": "...", "progress": 45, "step": "..."}` | Training progress updates |
+| `server:training.complete` | S → C | `{"job_id": "...", "character_id": "...", "model_url": "..."}` | Training completion |
+| `server:generation.result` | S → C | `{"character_id": "...", "variation_id": "...", "image_url": "..."}` | Generation results |
+
+**Real-time Collaboration Requirements:**
+- Database as authoritative source following draft4_canvas.md
+- Optimistic updates with server confirmation
+- Conflict resolution for simultaneous character edits
+- Automatic preview generation on character updates
+- Team notification for training job status changes
+
+### Database Schema Requirements
 
 #### PostgreSQL Tables for Character Management
-```sql
--- Character assets with collaboration features
-CREATE TABLE characters (
-    id UUID PRIMARY KEY,
-    project_id UUID REFERENCES projects(id),
-    name VARCHAR(255),
-    description TEXT,
-    importance_score FLOAT,
-    consistency_tier VARCHAR(50),
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
-    script_character_id VARCHAR(255),
-    metadata JSONB
-);
 
--- Character training jobs
-CREATE TABLE character_training_jobs (
-    id UUID PRIMARY KEY,
-    character_id UUID REFERENCES characters(id),
-    job_type VARCHAR(50), -- lora, voice, etc
-    status VARCHAR(50),
-    priority INTEGER,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    initiated_by UUID REFERENCES users(id),
-    parameters JSONB,
-    results JSONB
-);
+**Characters Table (extending PRD-001 assets table):**
+- UUID primary key for character identification
+- Project ID foreign key following PRD-008 structure
+- Character metadata (name, description, importance score)
+- Consistency tier (low/standard/high)
+- Script character linkage for PRD-002 integration
+- Quality tier parameters for regeneration
+- User attribution and collaboration tracking
+- File path references (no direct paths exposed)
 
--- Character variations and gallery
-CREATE TABLE character_variations (
-    id UUID PRIMARY KEY,
-    character_id UUID REFERENCES characters(id),
-    variation_type VARCHAR(50), -- pose, expression, outfit
-    prompt_used TEXT,
-    model_used VARCHAR(100),
-    file_reference JSONB, -- S3 URLs
-    votes INTEGER DEFAULT 0,
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP
-);
+**Character Training Jobs Table:**
+- Training job lifecycle management
+- Queue priority and status tracking
+- Quality tier and resource requirements
+- Progress tracking for WebSocket updates
+- User attribution and team notifications
+- Parameters storage for regeneration capability
+- Results and model artifact references
 
--- Team collaboration on characters
-CREATE TABLE character_annotations (
-    id UUID PRIMARY KEY,
-    character_id UUID REFERENCES characters(id),
-    user_id UUID REFERENCES users(id),
-    annotation_type VARCHAR(50), -- note, suggestion, approval
-    content TEXT,
-    coordinates JSONB, -- for image annotations
-    created_at TIMESTAMP
-);
+**Character Variations Table:**
+- Generated character variations and expressions
+- Quality tier used for generation
+- Model and parameters for regeneration
+- Team voting and approval tracking
+- File references via S3/storage service
+- Integration with node graph system
 
--- Cross-project character templates
-CREATE TABLE character_templates (
-    id UUID PRIMARY KEY,
-    source_character_id UUID REFERENCES characters(id),
-    template_name VARCHAR(255),
-    description TEXT,
-    parameters JSONB, -- All consistency parameters
-    usage_count INTEGER DEFAULT 0,
-    is_public BOOLEAN DEFAULT false,
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP
-);
-```
+**Character Collaboration Table:**
+- Team annotations and feedback
+- Real-time cursor and selection tracking
+- Change attribution and version history
+- Conflict resolution state management
+- Activity timestamps for presence
 
-### Performance Optimizations
+**Character Templates Table:**
+- Cross-project character sharing
+- Complete regeneration parameters
+- Usage tracking and analytics
+- Public/private sharing permissions
+- Version control for template evolution
 
-#### 1. Distributed Training Strategy
-- GPU worker pools with automatic scaling
-- Training job prioritization based on user tier
-- Checkpoint resumption for interrupted training
-- Model compression and optimization post-training
+### Celery Task System Integration
 
-#### 2. Caching and CDN
-- Character preview caching at edge locations
-- Trained model distribution via CDN
+#### 1. Quality-Tiered Task Processing
+**Task Queue Configuration (following draft4_filestructure.md VRAM tiers):**
+- **Low Quality Queue** (`character_low`): Basic consistency models
+- **Standard Quality Queue** (`character_standard`): LoRA training and InstantID
+- **High Quality Queue** (`character_high`): InfiniteYou, DreamO, OmniGen2
+
+**Character-Specific Celery Tasks:**
+- `character.train_lora` - Distributed LoRA training on GPU workers
+- `character.generate_variation` - Create character variations with consistency
+- `character.validate_consistency` - Quality validation across shots
+- `character.optimize_model` - Post-training optimization and compression
+- `character.deploy_model` - Deploy trained models to storage
+
+#### 2. Function Runner Integration
+**Advanced Model Execution:**
+- InfiniteYou for zero-shot character consistency
+- DreamO for unified identity and style transfer
+- OmniGen2 for multi-modal character generation
+- Automatic model selection based on quality tier
+- Graceful fallback to traditional models
+
+**Container Architecture per Quality Tier:**
+- Isolated Docker environments for each model
+- Quality-specific resource allocation
+- Automatic dependency management
+- Progress streaming via WebSocket events
+
+#### 3. Performance and Scalability
+**Training Optimization:**
+- Multi-GPU distributed training for high quality
+- Checkpoint-based resumption for reliability
+- Priority queue management for team coordination
+- Automatic scaling based on demand
+
+**Real-time Synchronization:**
+- WebSocket connection pooling and load balancing
+- Differential updates for character changes
+- Optimistic UI updates with server confirmation
+- Conflict resolution for simultaneous edits
+
+**Caching Strategy:**
+- Character preview caching with CDN delivery
+- Model artifact caching for faster deployment
 - Reference image optimization and compression
 - Lazy loading for large character galleries
-
-#### 3. Real-time Optimization
-- WebSocket connection pooling
-- Debounced updates for rapid changes
-- Differential synchronization
-- Progressive image loading
 
 ---
 
 ## Success Metrics
 
-### Collaboration Effectiveness
-**Primary KPIs:**
-- **Team Participation**: Average 4+ team members per character
-- **Iteration Speed**: 70% faster character development cycles
-- **Cross-Team Usage**: 30% of characters shared across projects
-- **Global Collaboration**: Teams spanning 3+ time zones
+### Celery Task System Performance
+**Task Processing Metrics:**
+- **Training Queue Throughput**: 100+ concurrent LoRA training jobs
+- **Generation Speed**: <3 minutes per character variation
+- **Queue Latency**: <30 seconds from submission to start
+- **Success Rate**: >98% successful task completion
+- **Resource Utilization**: >80% GPU efficiency across quality tiers
 
-**Measurement Methods:**
-- Collaboration analytics dashboard
-- Time-to-completion tracking
-- Character reuse statistics
-- Geographic distribution analysis
+**Quality Tier Performance:**
+- **Low Quality**: <15 minutes LoRA training, 95% success rate
+- **Standard Quality**: <60 minutes LoRA training, 92% success rate
+- **High Quality**: <120 minutes advanced model training, 88% success rate
+- **Fallback Rate**: <15% quality degradation when resources constrained
 
-### Model Performance and Quality
-**Technical Metrics:**
-- **InfiniteYou Success Rate**: >85% identity preservation
-- **Training Time**: <90 minutes for LoRA on cloud
-- **Model Selection Accuracy**: >90% optimal model choice
-- **Fallback Rate**: <10% degradation to simpler models
+### Real-time Collaboration Metrics
+**WebSocket Protocol Compliance:**
+- **Event Latency**: <200ms for character updates (draft4_canvas.md requirement)
+- **Synchronization Success**: >99.5% successful character state sync
+- **Connection Resilience**: <5 second recovery from disconnections
+- **Concurrent Users**: Support 100+ users per character gallery
 
-**Quality Metrics:**
-- **Character Consistency**: >90% visual similarity score
-- **User Satisfaction**: >4.5/5.0 rating
-- **Professional Approval**: Meets broadcast standards
-- **Variation Quality**: >80% approval rate
+**Character Consistency Quality:**
+- **Visual Similarity**: >90% consistency score across shots
+- **Identity Preservation**: >85% with InfiniteYou integration
+- **Cross-Shot Coherence**: >92% character recognition accuracy
+- **Professional Standards**: Meet broadcast quality requirements
 
-### System Performance
-**Infrastructure Metrics:**
-- **Training Throughput**: 100+ concurrent training jobs
-- **Generation Speed**: <3 minutes per variation
-- **Availability**: 99.9% uptime for character services
-- **Sync Latency**: <300ms global average
+### Integration Architecture Performance
+**Cross-System Integration:**
+- **Script Integration** (PRD-002): Automatic character creation from analysis
+- **Canvas Integration** (PRD-006): Character nodes appear within 2 seconds
+- **Style Integration** (PRD-004): Consistent style application across characters
+- **Storage Integration** (PRD-008): 100% path resolution compliance
 
-**Scalability Metrics:**
-- **Character Capacity**: 10,000+ characters per instance
-- **Concurrent Users**: 500+ per character gallery
-- **Storage Efficiency**: <50MB per character average
-- **CDN Performance**: <2s global load time
-
----
-
-## Risk Assessment & Mitigation
-
-### Technical Risks
-
-#### High Risk: Advanced Model Complexity
-- **Risk**: InfiniteYou/DreamO integration failures
-- **Impact**: Limited to fallback models only
-- **Mitigation**: 
-  - Comprehensive Function Runner testing
-  - Graceful degradation paths
-  - Multiple model options
-  - Clear user communication
-
-#### Medium Risk: Training Job Failures
-- **Risk**: Distributed training interruptions
-- **Impact**: Delayed character development
-- **Mitigation**:
-  - Checkpoint-based resumption
-  - Redundant worker pools
-  - Priority queue management
-  - Progress persistence
-
-### Business Risks
-
-#### High Risk: Cloud Infrastructure Costs
-- **Risk**: GPU training costs exceed budget
-- **Impact**: Service limitations
-- **Mitigation**:
-  - Tiered pricing model
-  - Training quotas
-  - Spot instance usage
-  - Model caching
+**Advanced Model Integration:**
+- **Function Runner Success**: >90% successful advanced model execution
+- **Model Selection Accuracy**: >95% optimal model choice for quality tier
+- **Container Performance**: <30 second startup for advanced models
+- **Resource Management**: Proper VRAM allocation per draft4_filestructure.md
 
 ---
 
-## Implementation Roadmap
+## Architectural Compliance Requirements
 
-### Phase 1: Core Character Infrastructure (Weeks 1-4)
-**Deliverables:**
-- Basic character CRUD with real-time sync
-- Character gallery with WebSocket updates
-- Simple variation generation
-- Team collaboration features
+### Draft4_Canvas.md Integration
+**WebSocket Protocol Implementation:**
+- Extend core event schema with character-specific events
+- Implement ConnectionManager for character gallery sessions
+- Support real-time character updates with optimistic UI
+- Handle training progress streaming to all connected clients
+- Maintain database as authoritative source of truth
 
-**Success Criteria:**
-- Multi-user character editing functional
-- Real-time updates working globally
-- Basic variation generation operational
+### Draft4_Filestructure.md Compliance
+**File Storage Integration:**
+- Store characters in `01_Assets/Generative_Assets/Characters/` directory
+- Follow atomic versioning for character model files
+- Never expose file paths to frontend - use character IDs only
+- Integrate with Git LFS for large model files
+- Support VRAM-tier routing for training tasks
 
-### Phase 2: Advanced Model Integration (Weeks 5-8)
-**Deliverables:**
-- Function Runner setup for InfiniteYou/DreamO
-- Model selection algorithm
-- Fallback mechanisms
-- Performance monitoring
+### Celery Task System Architecture
+**Quality-Based Queue Management:**
+- Route training tasks to appropriate VRAM-tier workers
+- Implement Producer agent intelligence for resource allocation
+- Support automatic fallback when premium workers unavailable
+- Provide transparent quality adjustment notifications
+- Handle distributed training across multiple GPU workers
 
-**Success Criteria:**
-- Advanced models executing successfully
-- Automatic model selection working
-- Graceful degradation functional
-
-### Phase 3: Distributed Training (Weeks 9-12)
-**Deliverables:**
-- Cloud LoRA training pipeline
-- Training queue management
-- Progress monitoring
-- Model deployment automation
-
-**Success Criteria:**
-- Distributed training operational
-- <2 hour training completion
-- Automatic model deployment
-
-### Phase 4: Enterprise Features (Weeks 13-16)
-**Deliverables:**
-- Cross-project templates
-- Studio character library
-- Advanced analytics
-- API documentation
-
-**Success Criteria:**
-- Template system functional
-- Library search/filter working
-- Analytics dashboard complete
-- API fully documented
+### Cross-PRD Dependencies
+**Integration Requirements:**
+- **PRD-001**: Backend service layer and WebSocket protocol
+- **PRD-002**: Character creation from script analysis
+- **PRD-004**: Style consistency application to characters
+- **PRD-005**: Environment integration for character contexts
+- **PRD-006**: Character node representation in production canvas
+- **PRD-007**: Regenerative parameters for character recreation
+- **PRD-008**: File structure and path management compliance
 
 ---
 
-## Stakeholder Sign-Off
+## Implementation Validation
 
-### Development Team Approval
-- [ ] **Frontend Lead** - Real-time sync architecture approved
-- [ ] **Backend Lead** - Distributed training design validated
-- [ ] **ML Engineer** - Advanced model integration confirmed
-- [ ] **DevOps Lead** - Infrastructure scaling plan approved
+### Core Architecture Validation
+**Celery Task Integration:**
+- Validate quality-tier queue routing works correctly
+- Test distributed LoRA training across multiple GPU workers
+- Ensure training progress streams properly via WebSocket
+- Verify automatic model deployment to storage service
+- Test graceful fallback when advanced models unavailable
 
-### Business Stakeholder Approval
-- [ ] **Product Owner** - Collaboration features meet needs
-- [ ] **Customer Success** - User workflow validated
-- [ ] **Finance** - Cloud costs acceptable
-- [ ] **Legal** - Character licensing handled
+**WebSocket Protocol Compliance:**
+- Implement character-specific events extending draft4_canvas.md Table 4
+- Test real-time character gallery synchronization
+- Validate training progress streaming to all connected clients
+- Ensure conflict resolution for simultaneous character edits
+- Test automatic reconnection with state synchronization
+
+**Function Runner Integration:**
+- Validate InfiniteYou, DreamO, OmniGen2 execution via containers
+- Test automatic model selection based on quality tier
+- Ensure proper resource allocation per VRAM requirements
+- Validate progress tracking across heterogeneous models
+- Test error handling and fallback mechanisms
+
+### Cross-System Integration Testing
+**Character Creation Pipeline:**
+- Script analysis triggers character asset creation (PRD-002)
+- Characters appear correctly in production canvas (PRD-006)
+- Style frameworks apply consistently to characters (PRD-004)
+- Environment contexts integrate properly (PRD-005)
+- All data follows regenerative content model (PRD-007)
+- File operations respect project structure (PRD-008)
+
+**Real-time Collaboration:**
+- Multi-user character editing without conflicts
+- Training job coordination across team members
+- Character variations shared instantly
+- Team annotations and feedback systems
+- Cross-project character template sharing
+
+### Performance Validation
+**Training Performance:**
+- Load testing with 100+ concurrent training jobs
+- VRAM allocation efficiency across quality tiers
+- Training time benchmarks per quality level
+- Resource utilization monitoring
+- Queue management under high load
+
+**Character Generation:**
+- Batch variation generation performance
+- Real-time preview updates across clients
+- Character consistency validation
+- Model selection accuracy testing
+- Storage and CDN performance optimization
 
 ---
 
-**Next Steps:**
-1. Set up Function Runner test environment
-2. Design character gallery UI mockups
-3. Plan distributed training architecture
-4. Create model selection algorithm
-5. Design template sharing system
+## Architecture Alignment Summary
+
+### Draft4_Canvas.md Compliance
+✅ **WebSocket Protocol**: Extended event schema with character-specific events  
+✅ **State Management**: Database authoritative with optimistic character updates  
+✅ **Connection Management**: Per-project character gallery sessions  
+✅ **Real-time Sync**: Training progress and character updates <200ms  
+✅ **Conflict Resolution**: Simultaneous character editing with operational transformation  
+
+### Draft4_Filestructure.md Integration
+✅ **VRAM Management**: Quality-tier routing for training tasks  
+✅ **File Storage**: Characters in `01_Assets/Generative_Assets/Characters/`  
+✅ **Path Resolution**: ID-based references with no exposed file paths  
+✅ **Git LFS**: Large model files tracked automatically  
+✅ **Atomic Versioning**: Character model files with proper naming  
+
+### Celery Task System Architecture
+✅ **Quality-Based Queues**: character_low, character_standard, character_high  
+✅ **Distributed Training**: Multi-GPU LoRA training with progress streaming  
+✅ **Function Runner**: Advanced models (InfiniteYou, DreamO, OmniGen2)  
+✅ **Producer Intelligence**: Automatic resource allocation and fallback  
+✅ **Progress Tracking**: Real-time updates via WebSocket events  
+
+### Cross-PRD Integration Points
+✅ **Script Analysis** (PRD-002): Automatic character creation from analysis  
+✅ **Style Framework** (PRD-004): Consistent style application to characters  
+✅ **Environment Integration** (PRD-005): Character-environment context handling  
+✅ **Production Canvas** (PRD-006): Character nodes in visual workflow  
+✅ **Regenerative Model** (PRD-007): Character parameters for recreation  
+✅ **File Structure** (PRD-008): Complete project organization compliance  
 
 ---
 
-*This PRD represents the evolution of character consistency from a single-user desktop feature to a collaborative cloud-based system, enabling global teams to create and maintain professional-quality digital actors through the power of advanced AI models and distributed computing.*
+**Character Engine Foundation:**
+This PRD successfully establishes the Character Consistency Engine as a distributed, collaborative system that integrates seamlessly with the Movie Director platform architecture while providing professional-grade character development capabilities through advanced AI models and real-time team coordination.
+
+---
+
+*Character consistency evolves from desktop limitation to cloud-powered collaboration, enabling global teams to create and maintain professional digital actors through distributed AI processing and real-time synchronization.*

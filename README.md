@@ -1,8 +1,8 @@
-# Blender Movie Director (BMAD)
+# Movie Director (BMAD)
 
 ## Overview
 
-**Blender Movie Director** is a revolutionary web-based generative film studio that transforms narrative concepts into cinematic sequences using AI agents and distributed processing. Built on modern web technologies and the regenerative content model, BMAD enables global teams to collaborate in real-time on professional film production without hardware limitations.
+**Movie Director (BMAD)** is a revolutionary web-based generative film studio that transforms narrative concepts into cinematic sequences using AI agents and distributed processing. Built on modern web technologies and the regenerative content model, BMAD enables global teams to collaborate in real-time on professional film production without hardware limitations.
 
 ### Key Features
 
@@ -312,5 +312,3 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 - Issues: [GitHub Issues](https://github.com/your-org/blender-movie-director/issues)
 
 ---
-
-Built with ❤️ by the BMAD Team
