@@ -1,9 +1,9 @@
 # Product Requirements Document: Regenerative Content Model & Asset Management
 
-**Version:** 1.0  
-**Date:** 2025-01-27  
+**Version:** 2.0  
+**Date:** 2025-01-29  
 **Owner:** BMAD Business Analyst  
-**Status:** Draft - Stakeholder Review  
+**Status:** Web Architecture Pivot  
 **PRD ID:** PRD-007  
 **Dependencies:** Backend Integration Service Layer (PRD-001), Node-Based Production Canvas (PRD-006)
 
@@ -12,559 +12,549 @@
 ## Executive Summary
 
 ### Business Justification
-The Regenerative Content Model represents a paradigm shift in how generative AI content is managed within creative production workflows. Instead of storing large generated files that consume disk space and complicate version control, this system stores only the creative intent and generation parameters within the .blend file, while generated content exists as lightweight file references that can be recreated on demand.
+The Regenerative Content Model represents a paradigm shift in how generative AI content is managed within collaborative web-based production workflows. Instead of storing large generated files that consume cloud storage and complicate synchronization, this system stores only the creative intent and generation parameters in the PostgreSQL database, while generated content exists as S3 file references that can be recreated on demand by any team member.
 
-This architectural approach solves critical pain points in AI-assisted filmmaking: project files remain small and portable, version control becomes manageable, creative iterations are unlimited, and projects can evolve with improving AI models. By separating creative decisions from generated outputs, filmmakers gain unprecedented flexibility to iterate, experiment, and refine their vision without the traditional constraints of file management.
+This architectural approach solves critical pain points in distributed AI-assisted filmmaking: project databases remain lightweight and responsive, collaboration becomes seamless, creative iterations are unlimited, and projects can evolve with improving AI models. By separating creative decisions from generated outputs, distributed teams gain unprecedented flexibility to iterate, experiment, and refine their vision without the traditional constraints of file management or storage costs.
 
-The regenerative model transforms the .blend file into a "digital DNA" of the film - a complete blueprint that can regenerate all content while remaining small enough to email, version control with Git, and share across teams.
+The regenerative model transforms the project database into a "digital DNA" of the film - a complete blueprint that can regenerate all content while remaining efficient enough for real-time synchronization, instant sharing, and continuous evolution across global teams.
 
 ### Target User Personas
-- **Version Control Users** - Developers and technical artists using Git for project management
-- **Collaborative Teams** - Multiple artists working on the same project across locations
-- **Iterative Creators** - Filmmakers who constantly refine and experiment with variations
-- **Storage-Conscious Users** - Artists working with limited disk space or cloud storage
-- **Archive-Focused Users** - Studios needing long-term project preservation
-- **Model Evolution Adopters** - Users wanting to leverage improving AI models over time
+- **Distributed Production Teams** - Artists working across time zones needing efficient sync
+- **Cloud-Native Studios** - Organizations optimizing cloud storage costs
+- **Iterative Creators** - Filmmakers constantly refining with unlimited variations
+- **Educational Institutions** - Schools sharing projects without massive transfers
+- **Archive-Focused Organizations** - Long-term preservation with minimal storage
+- **Model Evolution Adopters** - Teams leveraging improving AI models over time
 
 ### Expected Impact on Film Production Workflow
-- **Storage Efficiency**: Reduce project storage requirements by 95%+ (GB to MB)
-- **Version Control**: Enable Git-based workflows for complete film projects
+- **Storage Efficiency**: Reduce cloud storage costs by 95%+ through regeneration
+- **Collaboration Speed**: Instant project sharing without large file transfers
 - **Iteration Freedom**: Unlimited creative variations without storage penalties
-- **Collaboration Enhancement**: Share complete projects via simple file transfer
-- **Future-Proofing**: Projects can improve as AI models evolve
+- **Global Accessibility**: Work from anywhere without downloading massive assets
+- **Future-Proofing**: Projects automatically improve as AI models evolve
 
 ---
 
 ## Problem Statement
 
-### Current Limitations in Generative Film Production
-1. **Storage Explosion**: Generated videos, images, and audio quickly consume terabytes
-2. **Version Control Impossibility**: Large binary files make Git workflows impractical
-3. **Iteration Penalties**: Each variation multiplies storage requirements
-4. **Sharing Difficulties**: Project files too large for easy collaboration
-5. **Model Lock-In**: Content tied to specific model versions becomes outdated
+### Current Limitations in Cloud-Based Production
+1. **Storage Cost Explosion**: Generated content quickly consumes expensive cloud storage
+2. **Synchronization Bottlenecks**: Large files slow down team collaboration
+3. **Transfer Limitations**: Sharing projects requires massive bandwidth
+4. **Version Proliferation**: Each iteration multiplies storage requirements
+5. **Model Lock-In**: Content tied to outdated models becomes stale
 
-### Pain Points in Existing Blender Workflows
-- **File Management Complexity**: Manual tracking of hundreds of generated files
-- **Broken References**: Moving projects breaks links to external media
-- **Duplication Waste**: Similar variations store redundant data
+### Pain Points in Web-Based Workflows
+- **Slow Asset Loading**: Large files create poor user experience
+- **Sync Conflicts**: Binary files create irreconcilable merge conflicts
+- **Collaboration Delays**: Waiting for large uploads/downloads
+- **Storage Quotas**: Teams hit limits with generated content
 - **No Regeneration**: Lost files cannot be recreated from project data
-- **Collaboration Barriers**: Large files prevent efficient team workflows
 
-### Gaps in Agent-Based Film Creation Pipeline
-- **No Generation Memory**: Agents don't remember how content was created
+### Gaps in Current Web Pipeline
+- **No Generation Memory**: Systems don't remember how content was created
 - **Missing Parameter Storage**: Generation settings lost after creation
-- **No Regeneration Logic**: Can't recreate content from stored parameters
-- **Asset Lifecycle Gaps**: No system for managing generative vs. static assets
-- **Version Evolution**: No mechanism to upgrade content with new models
+- **No Distributed Regeneration**: Can't leverage team's collective compute
+- **Asset Lifecycle Gaps**: No intelligent management of cloud storage
+- **Version Evolution**: No mechanism to upgrade content collaboratively
 
 ---
 
 ## Solution Overview
 
-### Feature Description within BMAD Agent Framework
-The Regenerative Content Model implements a comprehensive asset management system where all creative decisions, parameters, and relationships are stored within the .blend file, while generated content exists as external files that can be regenerated at any time. This system treats generated content as a "cache" that can be cleared, moved, or recreated without losing the creative intent.
+### Feature Description within Web Architecture
+The Regenerative Content Model implements a comprehensive cloud-based asset management system where all creative decisions, parameters, and relationships are stored in PostgreSQL, while generated content exists as S3 references that can be regenerated by any team member at any time. This system treats generated content as a distributed "cache" that can be cleared, moved, or recreated without losing creative intent.
 
 **Core Capabilities:**
-1. **Parameter Persistence** - All generation parameters stored with assets in .blend file
-2. **Reference Management** - Lightweight file references instead of embedded media
-3. **Regeneration Engine** - One-click regeneration of any or all content
-4. **Version Migration** - Upgrade content using newer models while preserving intent
+1. **Cloud Parameter Storage** - All generation parameters in PostgreSQL with version tracking
+2. **S3 Reference Management** - Lightweight URLs instead of embedded media
+3. **Distributed Regeneration** - Any team member can regenerate any content
+4. **Collaborative Migration** - Teams upgrade content together with new models
 5. **Selective Generation** - Generate only what's needed for current work
-6. **Dependency Tracking** - Understand regeneration impact across assets
-7. **Storage Optimization** - Automatic cleanup and space management
+6. **Smart Caching** - Intelligent distribution of generated content
+7. **Storage Analytics** - Track and optimize cloud storage usage
+8. **Cross-Region Support** - Regenerate locally for best performance
+9. **Batch Operations** - Efficient bulk regeneration capabilities
+10. **API Access** - External tools can trigger regeneration
+11. **Git LFS Integration** - Binary media tracked in LFS, parameters in Git
+12. **Quality Tier Tracking** - Store and regenerate at different quality levels
 
-### Integration with Existing Film Crew Agents
+### Integration with Cloud Architecture
+**Database-Driven Parameters:**
+- All generation parameters stored in PostgreSQL
+- Version tracking for parameter evolution
+- Relational links between parameters and outputs
+- Query-based regeneration selection
+- Quality tier stored with parameters
 
-**Agent Parameter Memory:**
-- Each agent stores complete parameters for content it generates
-- Parameters include model versions, seeds, prompts, and settings
-- Agents can reconstruct exact workflows from stored parameters
-- Version compatibility tracked for model evolution
+**Git LFS Integration (from File Structure):**
+- Project-as-Repository model with Git + LFS
+- Text-based parameters in standard Git
+- Generated media files in Git LFS
+- Automatic .gitattributes configuration:
+  - Images: *.png, *.jpg, *.jpeg → LFS
+  - Video: *.mp4, *.mov, *.mkv → LFS
+  - Audio: *.wav, *.mp3, *.flac → LFS
+  - Models: *.safetensors, *.ckpt → LFS
+- Immutable file naming: SHOT-XXX_vYY_takeZZ.mp4
+- Selective LFS pull for bandwidth optimization
 
-**Regeneration Orchestration:**
-- Producer agent manages regeneration workflows
-- Maintains regeneration queue with dependency ordering
-- Optimizes regeneration based on available resources
-- Provides progress tracking and error recovery
+**S3 Lifecycle Management:**
+- Automatic lifecycle policies for generated content
+- Tiered storage for frequently/rarely accessed assets
+- Cross-region replication for global teams
+- Signed URLs for secure access
+- LFS backend can use S3 for cloud deployments
 
-**Asset Lifecycle Management:**
-- Agents understand difference between source and generated assets
-- Automatic marking of regeneratable vs. non-regeneratable content
-- Cleanup policies for temporary and outdated generations
-- Migration workflows for model version updates
+**Distributed Processing:**
+- Celery tasks for regeneration jobs
+- Load balancing across available workers
+- Progress tracking via WebSocket
+- Collaborative queue management
+- Quality-based queue routing
 
-### Backend Service Requirements
+### Backend Service Architecture
+**FastAPI Endpoints:**
+- Parameter CRUD operations
+- Regeneration job submission
+- Storage analytics and reporting
+- Migration management
 
-**Parameter Storage System:**
-- JSON-based parameter serialization within .blend file
-- Versioned parameter schemas for backward compatibility
-- Compression for efficient storage of complex parameters
-- Validation system for parameter integrity
+**Celery Task Processing:**
+- Distributed regeneration tasks
+- Batch optimization algorithms
+- Progress streaming
+- Error recovery
 
-**Regeneration API:**
-- Batch regeneration endpoints for efficiency
-- Priority queue system for selective regeneration
-- Progress tracking with cancellation support
-- Error recovery with partial regeneration
-
-**File Reference System:**
-- Relative path management for portability
-- Missing file detection and reporting
-- Automatic path resolution across platforms
-- Reference validation and repair tools
+**WebSocket Events:**
+- Real-time regeneration progress
+- Storage updates
+- Migration notifications
+- Team activity
 
 ---
 
 ## User Stories & Acceptance Criteria
 
-### Epic 1: Regenerative Asset Foundation
-**As a filmmaker, I want my project to store creative parameters instead of large files, so I can manage projects efficiently and iterate freely.**
+### Epic 1: Cloud-Native Regenerative Foundation
+**As a distributed team, we want our project to store parameters instead of large files, so we can collaborate efficiently without storage constraints.**
 
 #### User Story 1.1: Parameter-Based Asset Creation
-- **Given** I generate any content (image, video, audio) using the addon
-- **When** the generation completes
-- **Then** all generation parameters are stored in the asset's properties
-- **And** only a file reference is saved, not the actual content
-- **And** the .blend file size remains small
-- **And** I can see regeneration options for the asset
+- **Given** team members generate content from anywhere
+- **When** generation completes
+- **Then** parameters are stored in the shared database
+- **And** only S3 references are saved
+- **And** database remains performant
+- **And** all team members can regenerate
+- **And** Git LFS tracks the media files
+- **And** quality tier is preserved
 
 **Acceptance Criteria:**
-- Generation parameters completely captured and stored
-- File references use relative paths for portability
-- .blend file growth <1KB per generated asset
-- Regenerate button visible on all generated assets
+- Complete parameter capture in PostgreSQL
+- S3 URLs stored as references
+- <100ms database query performance
+- Regeneration available to all users
+- Git LFS pointers created automatically
+- Quality tier stored and retrievable
 
-#### User Story 1.2: Project Portability
-- **Given** I have a project with hundreds of generated assets
-- **When** I save and share the .blend file
-- **Then** the file remains small enough for email (<25MB)
-- **And** recipients can regenerate all content locally
-- **And** creative intent is perfectly preserved
-- **And** no large media files need to be transferred
-
-**Acceptance Criteria:**
-- .blend file size scales with creative complexity, not output size
-- Complete project restoration from .blend file alone
-- Cross-platform path resolution works correctly
-- Clear indication of what needs regeneration
-
-### Epic 2: Selective Regeneration
-**As a director, I want to regenerate specific content on demand, so I can work efficiently and update only what I need.**
-
-#### User Story 2.1: Individual Asset Regeneration
-- **Given** I have a generated asset that I want to update
-- **When** I click "Regenerate" on that asset
-- **Then** only that asset is regenerated using stored parameters
-- **And** the process uses the currently configured models
-- **And** dependent assets are marked as potentially affected
-- **And** I can choose to update dependencies or keep them
+#### User Story 1.2: Global Project Portability
+- **Given** teams working across continents
+- **When** sharing projects
+- **Then** only database records transfer
+- **And** team members regenerate locally
+- **And** creative intent perfectly preserved
+- **And** no large file transfers needed
 
 **Acceptance Criteria:**
-- Single-asset regeneration completes without affecting others
-- Model version changes are detected and reported
-- Dependency impact analysis is accurate
-- User has full control over cascade updates
+- Instant project sharing via database
+- Local regeneration from any region
+- Consistent results across locations
+- Zero large file transfers
 
-#### User Story 2.2: Batch Regeneration Management
-- **Given** I want to regenerate multiple assets (scene, character set, etc.)
-- **When** I select multiple assets or use batch regeneration
-- **Then** the system optimizes the regeneration order
-- **And** shared resources (models, LoRAs) are loaded efficiently
-- **And** progress is shown for the entire batch
-- **And** failures don't stop other regenerations
+### Epic 2: Collaborative Regeneration
+**As a production team, we want to regenerate content collaboratively, so we can optimize resources and share the workload.**
 
-**Acceptance Criteria:**
-- Intelligent batching based on resource requirements
-- Overall and per-asset progress tracking
-- Graceful handling of individual failures
-- Efficient resource utilization
-
-### Epic 3: Version Evolution
-**As a studio, I want projects to improve over time as AI models advance, while maintaining creative consistency.**
-
-#### User Story 3.1: Model Version Migration
-- **Given** new improved models are available
-- **When** I open an older project
-- **Then** I'm notified about available model updates
-- **And** I can preview how updates would affect my content
-- **And** I can selectively update specific asset types
-- **And** original parameters are preserved for rollback
+#### User Story 2.1: Distributed Regeneration Queue
+- **Given** multiple assets need regeneration
+- **When** team members are available
+- **Then** work is distributed intelligently
+- **And** progress visible to all
+- **And** results automatically shared
+- **And** no duplicate work occurs
 
 **Acceptance Criteria:**
-- Clear notification of available improvements
-- Non-destructive preview system
-- Selective update capabilities
-- Complete rollback functionality
+- Intelligent work distribution
+- Real-time progress visibility
+- Automatic result sharing
+- Deduplication logic
 
-#### User Story 3.2: Creative Intent Preservation
-- **Given** I regenerate content with newer models
-- **When** the regeneration completes
-- **Then** the creative intent (composition, style, mood) is maintained
-- **And** technical quality improves (resolution, coherence)
-- **And** character/style consistency is preserved
-- **And** I can compare old vs. new versions
-
-**Acceptance Criteria:**
-- Consistency scoring between versions
-- Side-by-side comparison tools
-- Automatic style/character reference updating
-- Creative parameter translation between model versions
-
-### Epic 4: Storage Management
-**As a user with limited disk space, I want intelligent storage management, so I can work on large projects without running out of space.**
-
-#### User Story 4.1: Automatic Cleanup
-- **Given** I'm working on a project with many iterations
-- **When** disk space becomes limited
-- **Then** the system identifies safe-to-delete content
-- **And** suggests cleanup options preserving recent work
-- **And** ensures all cleaned content can be regenerated
-- **And** provides clear space savings estimates
+#### User Story 2.2: Selective Team Regeneration
+- **Given** specific scenes need updating
+- **When** team decides what to regenerate
+- **Then** members can claim tasks
+- **And** collaborate on priorities
+- **And** share computational load
+- **And** coordinate efficiently
 
 **Acceptance Criteria:**
-- Intelligent identification of cleanup candidates
-- Never deletes non-regeneratable content
-- Clear communication of space savings
-- One-click cleanup execution
+- Task claiming system
+- Priority voting mechanism
+- Load balancing algorithms
+- Coordination tools
 
-#### User Story 4.2: Working Set Management
-- **Given** I'm focusing on specific scenes
-- **When** I mark my working set
-- **Then** the system generates only required content
-- **And** other content remains as parameters only
-- **And** I can expand the working set as needed
-- **And** background generation fills in as I work
+### Epic 3: Model Evolution Management
+**As a studio, we want to upgrade content collaboratively as models improve, while maintaining creative consistency.**
+
+#### User Story 3.1: Collaborative Migration Planning
+- **Given** new models available
+- **When** team evaluates upgrades
+- **Then** preview impacts together
+- **And** vote on migrations
+- **And** plan resource allocation
+- **And** execute coordinatedly
 
 **Acceptance Criteria:**
-- Clear working set definition tools
-- Lazy generation based on viewport/timeline
-- Background generation during idle time
-- Smooth transition as working set expands
+- Shared preview system
+- Team voting mechanism
+- Resource planning tools
+- Coordinated execution
+
+#### User Story 3.2: Distributed Migration Execution
+- **Given** team approves migration
+- **When** executing upgrade
+- **Then** work distributed across team
+- **And** progress tracked centrally
+- **And** results validated together
+- **And** rollback available if needed
+- **And** Git history preserved
+- **And** quality tiers maintained
+
+**Acceptance Criteria:**
+- Distributed execution system
+- Central progress tracking
+- Collaborative validation
+- Team rollback capability
+- Git commit for each migration
+- Quality tier upgrade options
+
+### Epic 4: Intelligent Storage Management
+**As a cloud-conscious team, we want smart storage management, so we can minimize costs while maximizing availability.**
+
+#### User Story 4.1: Usage Analytics Dashboard
+- **Given** ongoing productions
+- **When** monitoring storage
+- **Then** see team usage patterns
+- **And** identify optimization opportunities
+- **And** track cost trends
+- **And** make informed decisions
+
+**Acceptance Criteria:**
+- Real-time usage dashboard
+- Cost projection tools
+- Optimization recommendations
+- Historical trending
+
+#### User Story 4.2: Collaborative Cleanup
+- **Given** storage optimization needed
+- **When** team reviews content
+- **Then** vote on cleanup candidates
+- **And** ensure safe deletion
+- **And** coordinate regeneration
+- **And** track savings achieved
+
+**Acceptance Criteria:**
+- Voting system for cleanup
+- Safety validation
+- Regeneration coordination
+- Savings tracking
+
+### Epic 5: Cross-Region Performance
+**As a global team, we want region-optimized regeneration, so everyone has fast access regardless of location.**
+
+#### User Story 5.1: Regional Caching Strategy
+- **Given** team members worldwide
+- **When** accessing content
+- **Then** regenerate in nearest region
+- **And** cache intelligently
+- **And** share when beneficial
+- **And** minimize latency
+
+**Acceptance Criteria:**
+- Region detection
+- Smart routing logic
+- Selective caching
+- Latency optimization
+
+#### User Story 5.2: Bandwidth Optimization
+- **Given** varying connection speeds
+- **When** team members work
+- **Then** prioritize essential content
+- **And** use progressive loading
+- **And** optimize transfers
+- **And** ensure smooth experience
+
+**Acceptance Criteria:**
+- Bandwidth detection
+- Progressive loading
+- Transfer optimization
+- Experience metrics
 
 ---
 
 ## Technical Requirements
 
-### Blender Addon Architecture Constraints
+### Web Application Architecture
 
-#### 1. Parameter Storage Schema
-```python
-class RegenerativeAssetProperties(PropertyGroup):
-    """Base properties for all regenerative assets"""
-    
-    # Generation Metadata
-    generation_timestamp: StringProperty(name="Generation Timestamp")
-    generation_version: StringProperty(name="Model Version Used")
-    can_regenerate: BoolProperty(name="Can Regenerate", default=True)
-    
-    # Parameter Storage
-    generation_params_json: StringProperty(
-        name="Generation Parameters",
-        description="Complete parameters for regeneration",
-        subtype='NONE',  # Store as raw JSON
-        maxlen=0  # Unlimited length
-    )
-    
-    # File Reference
-    output_path: StringProperty(
-        name="Output Path",
-        description="Relative path to generated file",
-        subtype='FILE_PATH'
-    )
-    file_exists: BoolProperty(name="File Exists", default=False)
-    file_hash: StringProperty(name="File Hash", description="For change detection")
-    
-    # Dependency Tracking
-    depends_on: CollectionProperty(
-        name="Dependencies",
-        type=PropertyGroup,
-        description="Other assets this depends on"
-    )
-    
-    def get_generation_params(self):
-        """Deserialize generation parameters"""
-        if self.generation_params_json:
-            return json.loads(self.generation_params_json)
-        return {}
-    
-    def set_generation_params(self, params):
-        """Serialize generation parameters"""
-        self.generation_params_json = json.dumps(params, indent=2)
-    
-    def check_file_exists(self):
-        """Verify output file exists"""
-        if self.output_path:
-            abs_path = bpy.path.abspath(self.output_path)
-            self.file_exists = os.path.exists(abs_path)
-        return self.file_exists
-```
+#### 1. Frontend Parameter Management Requirements
 
-#### 2. Regeneration Operators
-```python
-class MOVIE_DIRECTOR_OT_regenerate_asset(Operator):
-    """Regenerate asset from stored parameters"""
-    bl_idname = "movie_director.regenerate_asset"
-    bl_label = "Regenerate Asset"
-    bl_options = {'REGISTER', 'UNDO'}
-    
-    asset_id: StringProperty(name="Asset ID")
-    use_latest_model: BoolProperty(name="Use Latest Model", default=False)
-    
-    def execute(self, context):
-        asset = self.get_asset_by_id(self.asset_id)
-        if not asset or not asset.can_regenerate:
-            self.report({'ERROR'}, "Asset cannot be regenerated")
-            return {'CANCELLED'}
-        
-        # Get stored parameters
-        params = asset.get_generation_params()
-        
-        # Update model version if requested
-        if self.use_latest_model:
-            params = self.migrate_parameters(params, asset.generation_version)
-        
-        # Queue regeneration
-        regeneration_queue.add_task(
-            asset_id=self.asset_id,
-            params=params,
-            priority=RegenerationPriority.USER_REQUESTED
-        )
-        
-        self.report({'INFO'}, f"Regeneration queued for {asset.name}")
-        return {'FINISHED'}
+**Regenerative Asset Component Requirements:**
+- Capture all generation parameters including quality tier
+- Store parameters separate from generated content
+- Track regeneration status and progress
+- Support quality tier selection during regeneration
+- Display storage usage information
 
-class MOVIE_DIRECTOR_OT_regenerate_missing(Operator):
-    """Regenerate all missing files"""
-    bl_idname = "movie_director.regenerate_missing"
-    bl_label = "Regenerate Missing Files"
-    
-    def execute(self, context):
-        missing_assets = self.find_missing_assets(context)
-        
-        if not missing_assets:
-            self.report({'INFO'}, "No missing files found")
-            return {'FINISHED'}
-        
-        # Queue all missing assets for regeneration
-        for asset in missing_assets:
-            regeneration_queue.add_task(
-                asset_id=asset.id,
-                params=asset.get_generation_params(),
-                priority=RegenerationPriority.MISSING_FILE
-            )
-        
-        self.report({'INFO'}, f"Queued {len(missing_assets)} assets for regeneration")
-        return {'FINISHED'}
-```
+**Parameter Capture Requirements:**
+- Timestamp of generation
+- Model version used
+- All input parameters
+- Workflow/pipeline configuration
+- Random seed for reproducibility
+- Quality tier (low/standard/high)
+- Backend-specific settings
 
-#### 3. Path Management System
-```python
-class RegenerativePathManager:
-    """Manages file paths for regenerative content"""
-    
-    @staticmethod
-    def get_project_content_dir(blend_path):
-        """Get content directory relative to .blend file"""
-        blend_dir = os.path.dirname(blend_path)
-        blend_name = os.path.splitext(os.path.basename(blend_path))[0]
-        return os.path.join(blend_dir, f"{blend_name}_generated")
-    
-    @staticmethod
-    def make_relative_path(abs_path, blend_path):
-        """Convert absolute path to relative for portability"""
-        try:
-            return os.path.relpath(abs_path, os.path.dirname(blend_path))
-        except ValueError:
-            # Different drives on Windows
-            return abs_path
-    
-    @staticmethod
-    def resolve_path(relative_path, blend_path):
-        """Resolve relative path to absolute"""
-        if os.path.isabs(relative_path):
-            return relative_path
-        blend_dir = os.path.dirname(blend_path)
-        return os.path.abspath(os.path.join(blend_dir, relative_path))
-    
-    @staticmethod
-    def organize_by_type(content_dir, asset_type, asset_name):
-        """Create organized directory structure"""
-        type_dir = os.path.join(content_dir, asset_type.lower())
-        asset_dir = os.path.join(type_dir, sanitize_filename(asset_name))
-        os.makedirs(asset_dir, exist_ok=True)
-        return asset_dir
-```
+**Regeneration Interface Requirements:**
+- Quality tier selector with current tier highlighted
+- Estimated time/cost per quality tier
+- Progress indicator during regeneration
+- Cancel/pause functionality
+- Comparison view (old vs new)
+- Batch selection for multiple assets
 
-### CrewAI Framework Integration
+#### 2. API Endpoint Requirements
 
-#### 1. Agent Parameter Capture
-```python
-class RegenerativeAgentMixin:
-    """Mixin for agents to support regenerative content"""
-    
-    def capture_generation_params(self, task, result):
-        """Capture all parameters used in generation"""
-        params = {
-            'task': task.description,
-            'agent': self.__class__.__name__,
-            'timestamp': datetime.now().isoformat(),
-            'model_version': self.get_model_version(),
-            'random_seed': getattr(task, 'seed', None),
-            'backend_config': self.get_backend_config(),
-            'inputs': self.serialize_inputs(task),
-            'workflow_template': getattr(task, 'workflow_template', None),
-        }
-        
-        # Agent-specific parameters
-        params.update(self.get_agent_specific_params(task))
-        
-        return params
-    
-    def regenerate_from_params(self, params):
-        """Regenerate content from stored parameters"""
-        # Reconstruct task from parameters
-        task = self.reconstruct_task(params)
-        
-        # Check model compatibility
-        if not self.is_compatible_version(params['model_version']):
-            task = self.migrate_task(task, params['model_version'])
-        
-        # Execute regeneration
-        result = self.execute(task)
-        
-        # Update stored parameters if models changed
-        if self.get_model_version() != params['model_version']:
-            params['model_version'] = self.get_model_version()
-            params['migrated_from'] = params.get('model_version')
-        
-        return result, params
-```
+**Parameter Storage Endpoint Requirements:**
+- Store complete generation parameters with version tracking
+- Include quality tier in parameter record
+- Link to S3/file references
+- Track user who created the asset
+- Update storage analytics
+- Trigger Git LFS tracking for media files
+- Support parameter migration between versions
 
-#### 2. Regeneration Queue System
-```python
-class RegenerationQueue:
-    """Manages regeneration tasks with priority and optimization"""
-    
-    def __init__(self, backend_integration):
-        self.backend = backend_integration
-        self.queue = PriorityQueue()
-        self.active_tasks = {}
-        self.completed_tasks = {}
-        
-    def add_task(self, asset_id, params, priority):
-        """Add regeneration task to queue"""
-        task = RegenerationTask(
-            asset_id=asset_id,
-            params=params,
-            priority=priority,
-            dependencies=self.analyze_dependencies(asset_id)
-        )
-        self.queue.put((priority.value, task))
-        
-    def process_queue(self):
-        """Process regeneration queue with optimization"""
-        batch = self.build_optimal_batch()
-        
-        for task in batch:
-            self.active_tasks[task.asset_id] = task
-            
-            try:
-                # Regenerate using appropriate agent
-                agent = self.get_agent_for_params(task.params)
-                result, updated_params = agent.regenerate_from_params(task.params)
-                
-                # Update asset with new file reference
-                self.update_asset_reference(task.asset_id, result, updated_params)
-                
-                self.completed_tasks[task.asset_id] = task
-                
-            except RegenerationError as e:
-                self.handle_regeneration_error(task, e)
-            
-            finally:
-                del self.active_tasks[task.asset_id]
-    
-    def build_optimal_batch(self):
-        """Build batch optimizing for shared resources"""
-        batch = []
-        model_groups = defaultdict(list)
-        
-        # Group by model requirements
-        while not self.queue.empty() and len(batch) < MAX_BATCH_SIZE:
-            priority, task = self.queue.get()
-            model_key = self.get_model_key(task.params)
-            model_groups[model_key].append(task)
-        
-        # Order to minimize model loading/unloading
-        for model_key in sorted(model_groups.keys(), key=self.estimate_load_time):
-            batch.extend(model_groups[model_key])
-        
-        return batch
-```
+**Regeneration Queue Endpoint Requirements:**
+- Accept quality tier selection (may differ from original)
+- Implement deduplication logic
+- Calculate priority based on user tier and quality
+- Route to appropriate worker queue by quality:
+  - Low → fast_regeneration queue
+  - Standard → balanced_regeneration queue
+  - High → premium_regeneration queue
+- Create job tracking record
+- Notify team via WebSocket
+- Estimate completion time based on quality
 
-### Performance and Resource Considerations
+**Git Integration Requirements:**
+- Auto-commit regenerated files to Git LFS
+- Meaningful commit messages with quality tier
+- Track parameter changes in Git history
+- Support rollback to previous versions
 
-#### 1. Storage Optimization
-- **Lazy Generation**: Only generate content when actually needed
-- **Progressive Loading**: Generate low-res previews first, full quality on demand
-- **Cleanup Policies**: Automatic removal of old generations with safe regeneration
-- **Compression**: Use efficient formats for generated content storage
+#### 3. Regeneration Processing Requirements
 
-#### 2. Regeneration Performance
-- **Batch Processing**: Group regenerations by model/resource requirements
-- **Incremental Updates**: Only regenerate changed dependencies
-- **Parallel Execution**: Multiple regenerations when resources allow
-- **Cache Management**: Keep frequently used content readily available
+**Quality-Based Regeneration Flow:**
+1. Extract quality tier from options (default to original)
+2. Check if model migration needed for parameters
+3. Select appropriate pipeline based on quality:
+   - Low → Fast pipeline with reduced settings
+   - Standard → Balanced pipeline
+   - High → Premium pipeline with maximum quality
+4. Route to appropriate worker based on region and resources
+5. Execute generation with progress tracking
+6. Store output following file structure conventions
+7. Update Git LFS tracking
+8. Manage storage lifecycle
 
-#### 3. File Management
-- **Path Validation**: Continuous validation of file references
-- **Auto-Repair**: Automatic fixing of broken paths when possible
-- **Migration Tools**: Update paths when moving projects
-- **Cleanup Safety**: Never delete non-regeneratable content
+**File Storage Integration:**
+- Use project file structure paths (PRD-008)
+- Follow immutable naming: ASSET-NAME_vXX_takeYY.ext
+- Store in appropriate project directory:
+  - Characters → 01_Assets/Generative_Assets/Characters/
+  - Styles → 01_Assets/Generative_Assets/Styles/
+  - Shots → 03_Renders/SCENE/SHOT/
+- Automatic Git LFS tracking for media
+- Parameter JSON files in standard Git
+
+**Quality-Specific Processing:**
+- **Low Quality**: 
+  - Timeout: 2 minutes
+  - Priority: High (fast turnaround)
+  - Cleanup: Aggressive (7 days)
+- **Standard Quality**:
+  - Timeout: 5 minutes
+  - Priority: Normal
+  - Cleanup: Balanced (30 days)
+- **High Quality**:
+  - Timeout: 10 minutes
+  - Priority: Low (resource intensive)
+  - Cleanup: Conservative (90 days)
+
+#### 4. Storage Management System Requirements
+
+**Cloud Storage Manager Capabilities:**
+- Manage S3/file storage for regenerative content
+- Support multiple regions with client initialization
+- Apply lifecycle policies based on quality and age
+- Analyze usage patterns for optimization
+- Git LFS integration for version control
+
+**Usage Analytics Requirements:**
+- Track total storage size by organization
+- Breakdown by region, type, and age
+- Distinguish regeneratable vs permanent content
+- Calculate potential savings from cleanup
+- Track quality tier distribution
+- Monitor Git LFS storage separately
+
+**Storage Optimization Strategies:**
+- **Aggressive (Low Quality Default)**:
+  - Delete regeneratable content >7 days old
+  - Keep only latest version
+  - Minimal Git history
+  
+- **Balanced (Standard Quality Default)**:
+  - Delete regeneratable content >30 days old
+  - Keep 2 recent versions
+  - Standard Git history
+  
+- **Conservative (High Quality Default)**:
+  - Delete only explicitly marked content
+  - Keep all versions for 90 days
+  - Full Git history with LFS
+
+**Cleanup Safety Requirements:**
+- Verify content is regeneratable before deletion
+- Check for active references
+- Ensure parameters are preserved
+- Maintain Git LFS pointers
+- Team notification before bulk cleanup
+
+### Database Schema Extensions
+
+#### PostgreSQL Schema Requirements for Regenerative Model
+
+**Asset Parameters Table Requirements:**
+- Store complete generation parameters as JSONB
+- Track model version and quality tier
+- Reference to S3/file storage URL
+- File size for analytics
+- Regeneration capability flag
+- Creation and access timestamps
+- User attribution
+- Git commit hash reference
+
+**Parameter Version History Requirements:**
+- Track all parameter versions for an asset
+- Version numbering system
+- Complete parameter snapshots
+- Model version at time of generation
+- Migration tracking (from/to versions)
+- Quality tier for each version
+- User and timestamp tracking
+
+**Regeneration Jobs Table Requirements:**
+- Unique job identifier
+- Asset reference
+- Job status (queued, processing, completed, failed)
+- Priority based on quality tier
+- Worker assignment
+- Time tracking (start, complete)
+- Error capture
+- Result storage location
+- Quality tier selection
+
+**Storage Analytics Table Requirements:**
+- Organization-level metrics
+- Total storage size tracking
+- Breakdown by regeneratable vs permanent
+- Regional distribution
+- Asset type distribution
+- Quality tier distribution
+- Cost estimates
+- Git LFS vs S3 breakdown
+
+**Cleanup History Table Requirements:**
+- Track all cleanup operations
+- Organization scope
+- User who initiated
+- Strategy used (aggressive/balanced/conservative)
+- Number of assets affected
+- Space recovered
+- Execution timestamp
+- Quality tier breakdown
+
+### Performance Optimizations
+
+#### 1. Smart Caching Strategy
+- Regional edge caching for frequently accessed content
+- Predictive pre-generation based on usage patterns
+- Collaborative cache sharing between team members
+- Automatic cache invalidation on parameter updates
+
+#### 2. Distributed Processing
+- Load balancing across global GPU workers
+- Regional affinity for optimal performance
+- Batch optimization for related assets
+- Priority queuing based on user tier
+
+#### 3. Storage Optimization
+- Automatic compression for archived content
+- Tiered storage with lifecycle transitions
+- Deduplication across similar generations
+- Smart cleanup recommendations
 
 ---
 
 ## Success Metrics
 
-### Storage and Efficiency
+### Storage Efficiency
 **Primary KPIs:**
-- **Storage Reduction**: >90% reduction in project storage requirements
-- **Transfer Efficiency**: Average .blend file <50MB for feature-length projects
-- **Regeneration Speed**: <5 minutes to regenerate typical scene assets
-- **Cache Hit Rate**: >80% of content available without regeneration
+- **Cost Reduction**: >90% reduction in storage costs
+- **Transfer Efficiency**: <1GB average project transfer
+- **Regeneration Speed**: <3 minutes average per asset
+- **Cache Hit Rate**: >70% content available instantly
 
 **Measurement Methods:**
-- Storage comparison between traditional and regenerative projects
-- File size analytics across user projects
-- Regeneration timing studies
-- Cache efficiency monitoring
+- Monthly storage cost analysis
+- Transfer size monitoring
+- Regeneration timing analytics
+- Cache performance metrics
 
-### Workflow Enhancement
-**Productivity Metrics:**
-- **Version Control Adoption**: >60% of users using Git with projects
-- **Collaboration Increase**: 3x increase in project sharing
-- **Iteration Velocity**: 5x more variations explored per project
-- **Model Migration**: >40% of users upgrading projects with new models
+### Collaboration Enhancement
+**Team Metrics:**
+- **Sharing Speed**: 100x faster project sharing
+- **Global Access**: <5s to access any project
+- **Concurrent Work**: 10+ team members without conflicts
+- **Version Adoption**: >50% using latest models
 
-**Measurement Methods:**
-- Git integration usage analytics
-- Project sharing statistics
-- Variation counting per project
-- Model version migration tracking
+**System Metrics:**
+- Sharing time measurements
+- Access latency monitoring
+- Concurrency analytics
+- Model version tracking
 
 ### Reliability and Trust
 **System Reliability:**
-- **Regeneration Success Rate**: >99% successful regeneration
-- **Parameter Integrity**: Zero parameter corruption incidents
-- **Path Resolution**: >95% automatic path resolution success
-- **Recovery Success**: 100% recovery from missing files
+- **Regeneration Success**: >99.5% successful
+- **Parameter Integrity**: Zero corruption incidents
+- **Availability**: 99.9% uptime for regeneration
+- **Recovery Rate**: 100% from storage failures
 
-**Measurement Methods:**
+**Quality Metrics:**
 - Automated regeneration testing
-- Parameter validation checking
-- Path resolution analytics
-- Recovery scenario testing
+- Parameter validation monitoring
+- System availability tracking
+- Disaster recovery testing
 
 ---
 
@@ -572,153 +562,116 @@ class RegenerationQueue:
 
 ### Technical Risks
 
-#### High Risk: Parameter Storage Reliability
-- **Risk**: Generation parameters could be lost or corrupted
-- **Probability**: Low (20%)
-- **Impact**: High - Permanent loss of creative work
-- **Mitigation Strategy**:
-  - Multiple parameter backup locations within .blend
-  - Validation on every save
-  - Parameter export tools for external backup
-  - Corruption detection and recovery
+#### High Risk: Parameter Synchronization
+- **Risk**: Parameters could desync across regions
+- **Impact**: Inconsistent regeneration results
+- **Mitigation**: 
+  - Strong consistency database settings
+  - Parameter versioning system
+  - Checksum validation
+  - Sync verification tools
 
-#### Medium Risk: Model Deprecation
-- **Risk**: Old models become unavailable for regeneration
-- **Probability**: Medium (40%)
-- **Impact**: Medium - Some content cannot be regenerated
-- **Mitigation Strategy**:
-  - Model version archive system
-  - Parameter migration tools
-  - Fallback to similar models
-  - Warning system for deprecated content
+#### Medium Risk: Regeneration Variations
+- **Risk**: Results differ from originals
+- **Impact**: User trust issues
+- **Mitigation**:
+  - Deterministic generation
+  - Visual diff tools
+  - A/B comparison features
+  - Clear communication
 
-### User Trust Risks
+### Business Risks
 
-#### High Risk: Regeneration Differences
-- **Risk**: Regenerated content differs from original
-- **Probability**: Medium (35%)
-- **Impact**: High - Loss of user trust
-- **Mitigation Strategy**:
-  - Deterministic generation with fixed seeds
-  - Visual comparison tools
-  - Option to preserve original files
-  - Clear communication about variations
-
-#### Medium Risk: Performance Perception
-- **Risk**: Regeneration time frustrates users
-- **Probability**: High (50%)
-- **Impact**: Medium - Workflow disruption
-- **Mitigation Strategy**:
+#### High Risk: Cost Overruns
+- **Risk**: Regeneration costs exceed storage savings
+- **Impact**: Economic model failure
+- **Mitigation**:
   - Smart caching strategies
-  - Background regeneration
-  - Progressive quality loading
-  - Clear progress communication
+  - Usage-based regeneration
+  - Cost monitoring alerts
+  - Optimization algorithms
 
 ---
 
 ## Implementation Roadmap
 
-### Phase 1: Core Parameter System (Weeks 1-3)
+### Phase 1: Cloud Foundation (Weeks 1-4)
 **Deliverables:**
-- Parameter storage schema implementation
-- Basic regeneration operators
-- Path management system
-- File reference validation
+- Database schema for parameters
+- S3 integration with references
+- Basic regeneration API
+- Simple web interface
 
 **Success Criteria:**
-- Parameters correctly stored for all generation types
-- Basic regeneration works for simple assets
-- Paths remain valid after project moves
-- No growth in .blend file size
+- Parameters stored correctly
+- S3 references working
+- Basic regeneration functional
+- Team access verified
 
-### Phase 2: Regeneration Engine (Weeks 4-6)
+### Phase 2: Collaborative Features (Weeks 5-8)
 **Deliverables:**
-- Complete regeneration queue system
-- Agent parameter capture integration
-- Batch optimization algorithms
-- Progress tracking UI
+- Distributed regeneration queue
+- Team coordination tools
+- Progress synchronization
+- Usage analytics
 
 **Success Criteria:**
-- Queue processes efficiently
-- All agents support regeneration
-- Batch processing improves performance
-- Users informed of progress
+- Queue distribution working
+- Team coordination smooth
+- Real-time progress updates
+- Analytics providing insights
 
-### Phase 3: Advanced Features (Weeks 7-9)
+### Phase 3: Optimization Systems (Weeks 9-12)
 **Deliverables:**
-- Model version migration system
-- Working set management
-- Automatic cleanup tools
-- Comparison utilities
+- Smart caching layer
+- Regional optimization
+- Storage management tools
+- Cost tracking
 
 **Success Criteria:**
-- Projects upgrade smoothly
-- Storage efficiently managed
-- Safe cleanup operations
-- Easy comparison of versions
+- Cache performance improved
+- Regional access optimized
+- Storage costs reduced
+- Cost visibility achieved
 
-### Phase 4: Polish and Optimization (Weeks 10-12)
+### Phase 4: Advanced Features (Weeks 13-16)
 **Deliverables:**
-- Performance optimizations
-- Advanced caching strategies
-- Comprehensive testing
-- User documentation
+- Model migration system
+- Batch operations
+- Advanced analytics
+- API documentation
 
 **Success Criteria:**
-- Regeneration performance acceptable
-- Cache hit rates meet targets
-- System reliability proven
-- Users understand benefits
-
----
-
-## Cross-PRD Integration Specifications
-
-### Backend Integration
-- **Integration**: PRD-007 → PRD-001
-- **Process**: Backend service stores and retrieves generation parameters
-- **Parameter Format**: Standardized JSON schema across all backends
-- **Queue Management**: Backend integration handles regeneration queue
-
-### Node Canvas Display
-- **Integration**: PRD-007 → PRD-006
-- **Process**: Nodes show regeneration status and options
-- **Visual Indicators**: Missing files, outdated versions, regeneration progress
-- **Quick Actions**: Regenerate buttons directly on nodes
-
-### Asset-Specific Regeneration
-- **Integration**: PRD-007 → PRD-003/004/005
-- **Process**: Each asset type has specialized regeneration logic
-- **Consistency**: Character/Style/Environment consistency maintained
-- **Dependencies**: Proper handling of asset interdependencies
+- Migrations working smoothly
+- Batch efficiency proven
+- Analytics driving decisions
+- API fully documented
 
 ---
 
 ## Stakeholder Sign-Off
 
 ### Development Team Approval
-- [ ] **Technical Lead** - Parameter storage architecture approved
-- [ ] **Backend Specialist** - Regeneration API design validated
-- [ ] **QA Lead** - Testing strategy comprehensive
+- [ ] **Frontend Lead** - Web interface design approved
+- [ ] **Backend Lead** - API architecture validated
+- [ ] **Infrastructure Lead** - Cloud strategy confirmed
+- [ ] **DevOps Lead** - Deployment plan accepted
 
 ### Business Stakeholder Approval
-- [ ] **Product Owner** - Business value clearly demonstrated
-- [ ] **Community Manager** - User benefits well articulated
-- [ ] **Support Lead** - Support implications understood
-
-### User Representative Review
-- [ ] **Power User** - Advanced features meet needs
-- [ ] **Storage-Limited User** - Storage benefits significant
-- [ ] **Collaborative User** - Sharing improvements valuable
+- [ ] **Product Owner** - Cost model validated
+- [ ] **Finance** - Economic benefits confirmed
+- [ ] **Customer Success** - User value demonstrated
+- [ ] **Marketing** - Differentiators identified
 
 ---
 
 **Next Steps:**
-1. Design detailed parameter schema for each content type
-2. Create regeneration API specification
-3. Develop path management testing suite
-4. Plan user education on regenerative concepts
+1. Design parameter schema with versioning
+2. Create S3 lifecycle policies
+3. Build regeneration queue system
+4. Plan cost optimization strategies
+5. Develop migration tools
 
 ---
 
-*This PRD establishes the Regenerative Content Model as the foundational architecture that enables Blender Movie Director to manage limitless creative iterations while maintaining tiny file sizes, perfect portability, and future-proof flexibility.*
+*This PRD represents the transformation of the regenerative model from a desktop-centric approach to a cloud-native collaborative system, enabling global teams to work with unlimited creative iterations while minimizing storage costs and maximizing performance through intelligent distributed processing.*

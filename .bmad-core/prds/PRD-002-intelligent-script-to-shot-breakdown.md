@@ -1,599 +1,584 @@
 # Product Requirements Document: Intelligent Script-to-Shot Breakdown System
 
-**Version:** 1.1  
-**Date:** 2025-01-27  
+**Version:** 2.0  
+**Date:** 2025-01-29  
 **Owner:** BMAD Business Analyst  
-**Status:** Updated - Stakeholder Review  
+**Status:** Web Architecture Pivot  
 **PRD ID:** PRD-002  
-**Dependencies:** Backend Integration Service Layer (PRD-001), Character Consistency Engine (PRD-003), Style Consistency Framework (PRD-004), Environment Management & Background Generation System (PRD-005), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007)
+**Dependencies:** Backend Integration Service Layer (PRD-001), Character Consistency Engine (PRD-003), Style Consistency Framework (PRD-004), Environment Management System (PRD-005), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007), File-Based Project Structure (PRD-008)
 
 ---
 
 ## Executive Summary
 
 ### Business Justification
-The Intelligent Script-to-Shot Breakdown System represents the critical entry point into the Blender Movie Director generative film studio. This feature transforms the fundamental bottleneck of film pre-production—manually breaking down scripts into actionable scenes and shots—into an automated, AI-driven process. By enabling filmmakers to begin with raw screenplay text and automatically generate the complete narrative structure within Blender, this system eliminates the most time-consuming and error-prone aspect of pre-production planning.
+The Intelligent Script-to-Shot Breakdown System represents the critical entry point into the Movie Director web-based generative film studio. This feature transforms the fundamental bottleneck of film pre-production—manually breaking down scripts into actionable scenes and shots—into an automated, AI-driven process accessible from any web browser. By enabling filmmakers to begin with raw screenplay text and automatically generate the complete narrative structure as an interactive node graph, this system eliminates the most time-consuming and error-prone aspect of pre-production planning.
 
-This feature directly addresses the primary user journey barrier: the complexity gap between creative intent (a script idea) and technical execution (structured generative workflows). It democratizes film pre-production by making professional-grade script analysis and shot planning accessible to creators without extensive film school training or industry experience.
+This feature directly addresses the primary user journey barrier: the complexity gap between creative intent (a script idea) and technical execution (structured generative workflows). It democratizes film pre-production by making professional-grade script analysis and shot planning accessible to creators without extensive film school training or industry experience, all through an intuitive web interface.
 
-The system operates on the regenerative content model foundation: script analysis parameters and breakdown structures are stored as project definitions in the .blend file, while the actual content generation (character assets, environment references, shot videos) exists as file references that can be regenerated at any time. This approach ensures project portability and enables unlimited iteration without file management complexity.
+The system operates on the regenerative content model foundation: script analysis parameters and breakdown structures are stored as project definitions in the PostgreSQL database, while the actual content generation (character assets, environment references, shot videos) exists as S3 file references that can be regenerated at any time. This approach ensures project portability and enables unlimited iteration without file management complexity.
 
 ### Target User Personas
-- **Independent Screenwriters** - Converting scripts into visual proof-of-concepts for pitching
-- **Indie Filmmakers** - Rapid pre-production planning and shot list generation  
-- **Content Creators** - Transforming story ideas into structured video content plans
-- **Film Students** - Learning professional pre-production workflows and shot planning
-- **Creative Agencies** - Quick concept visualization for client presentations
-- **Animation Studios** - Automated storyboard preparation and scene planning
+- **Independent Screenwriters** - Converting scripts into visual proof-of-concepts collaboratively
+- **Film Production Teams** - Distributed teams breaking down scripts together in real-time
+- **Content Creator Collectives** - Multiple creators working on shared story projects
+- **Film Schools** - Teaching collaborative pre-production workflows online
+- **Creative Agencies** - Client-involved concept visualization and iteration
+- **Remote Production Companies** - Global teams planning projects asynchronously
 
 ### Expected Impact on Film Production Workflow
-- **Pre-Production Acceleration**: Reduce script breakdown time from days/weeks to minutes
-- **Creative Accessibility**: Enable non-technical storytellers to access advanced film planning tools
-- **Workflow Standardization**: Establish consistent, professional shot planning across all project types
-- **Iteration Velocity**: Enable rapid script revisions with automatic regeneration of shot structures
-- **Educational Value**: Teach proper cinematographic structure through AI-guided scene analysis
+- **Collaborative Transformation**: Multiple users can work on script breakdown simultaneously
+- **Global Accessibility**: Access from any device with internet connection
+- **Real-Time Iteration**: Instant updates across all team members during revisions
+- **Cloud Processing**: Leverage powerful servers for complex script analysis
+- **Version Control**: Complete history of script iterations and breakdowns
 
 ---
 
 ## Problem Statement
 
-### Current Limitations in Generative Film Production
-1. **Manual Script Breakdown Barrier**: Traditional script-to-shot conversion requires extensive manual work, deep cinematography knowledge, and specialized software training
-2. **Disconnected Creative Process**: Writers create scripts in isolation from production planning, leading to costly revisions during production
-3. **Technical Knowledge Requirement**: Current tools assume users understand shot types, camera movements, and cinematographic terminology
-4. **Time-Intensive Pre-Production**: Professional script breakdown can take weeks, making rapid iteration impossible
-5. **Inconsistent Shot Planning**: Manual processes lead to varying quality and completeness of shot lists
+### Current Limitations in Desktop-Based Script Tools
+1. **Single-User Workflow**: Traditional tools lock scripts to individual workstations
+2. **No Real-Time Collaboration**: Team members work in isolation and merge later
+3. **Installation Barriers**: Complex software setup on each user's machine
+4. **Limited Processing Power**: Script analysis limited by local hardware
+5. **File Synchronization Issues**: Manual sharing leads to version conflicts
 
-### Pain Points in Existing Blender Workflows
-- **No Script Integration**: Blender has no native screenplay import or analysis capabilities
-- **Manual Scene Creation**: Users must manually create collections, objects, and properties for each scene/shot
-- **Disconnected Narrative Structure**: No link between written content and visual production elements
-- **Complex Data Entry**: Setting up shot properties, character assignments, and scene metadata is tedious and error-prone
-- **No Cinematographic Intelligence**: Blender lacks understanding of film language, shot composition, and pacing
+### Pain Points in Web-Based Creative Tools
+- **Fragmented Workflow**: Script writing separate from production planning
+- **No Visual Representation**: Text-based tools lack visual workflow capabilities
+- **Limited Intelligence**: Basic formatting without cinematographic understanding
+- **Poor Integration**: Scripts don't connect to production pipeline
+- **Manual Data Entry**: Re-entering script data into production tools
 
-### Gaps in Agent-Based Film Creation Pipeline
-- **Missing Entry Point**: The Screenwriter agent exists but lacks script parsing and breakdown capabilities
-- **Disconnected Data Flow**: Script content doesn't automatically populate scene/shot data structures
-- **No Cinematographic Analysis**: System lacks intelligence about shot types, pacing, and visual storytelling
-- **Workflow Initiation Gap**: Users must manually bootstrap the agent-driven workflow instead of starting from natural creative input
+### Gaps in Current Web Pipeline
+- **Missing Visual Interface**: No node-based representation of script structure
+- **No Collaborative Analysis**: AI insights not shared in real-time
+- **Limited Asset Linking**: Scripts disconnected from character/environment assets
+- **No Progressive Enhancement**: Can't leverage cloud compute for better analysis
 
 ---
 
 ## Solution Overview
 
-### Feature Description within BMAD Agent Framework
-The Intelligent Script-to-Shot Breakdown System integrates the Screenwriter agent with advanced natural language processing to automatically analyze screenplay text and generate a complete production-ready scene and shot structure within Blender. This system combines film industry best practices with AI-powered text analysis to transform unstructured creative writing into structured, generative-ready data.
+### Feature Description within Web Architecture
+The Intelligent Script-to-Shot Breakdown System leverages the web platform to provide real-time collaborative script analysis and visual production planning. Using the FastAPI backend for processing and WebSockets for live collaboration, multiple users can work together to transform scripts into production-ready node graphs visible to all team members instantly.
 
 **Core Capabilities:**
-1. **Story Management** - Overall project narrative overview and story development tools
-2. **Script Format Recognition** - Parse multiple screenplay formats (Final Draft, Fountain, PDF, plain text)
-3. **Scene Identification** - Automatically detect scene headers, locations, and transitions
-4. **Shot Analysis** - Generate cinematographically appropriate shot lists based on action and dialogue
-5. **Character Extraction** - Identify characters and their presence in each scene/shot with cross-references
-6. **Environment Detection** - Identify and create environment assets from scene descriptions
-7. **Technical Annotation** - Add camera movement, shot size, and composition suggestions
-8. **Asset Linkage System** - Automatic cross-referencing between scenes, characters, and environments
-9. **Blender Integration** - Automatically create Scene collections and Shot objects with complete metadata
-10. **Node Canvas Population** - Generate complete node graph structure from script breakdown
+1. **Collaborative Script Editor** - Real-time multi-user script editing with presence indicators
+2. **Cloud-Based Analysis** - Powerful LLMs analyze scripts on backend servers
+3. **Live Node Graph Generation** - Automatic visual representation updated for all users
+4. **Shared Asset Creation** - Characters and environments created collaboratively
+5. **Version History** - Complete tracking of all changes with rollback capability
+6. **Progressive Processing** - Stream results as analysis completes
+7. **Cross-Device Sync** - Seamless experience across desktop, tablet, and mobile
+8. **Real-Time Notifications** - Team alerts for important changes and completions
+9. **Export/Import Flexibility** - Support for all major screenplay formats
+10. **API Integration** - Connect with external screenwriting tools
 
-### Integration with Existing Film Crew Agents
-**Screenwriter Agent Enhancement:**
-- Evolves from simple text generation to comprehensive story and script management
-- Provides story overview and narrative structure management
-- Maintains project-level story continuity and character development tracking
-- Provides structured output feeding all downstream agents
-- Maintains conversation context for iterative script refinement
-- Integrates professional screenwriting best practices
-- Creates asset linkage data for characters and environments
+### Integration with Film Crew Agents
+**Web-Enhanced Screenwriter Agent:**
+- Runs on backend servers with access to powerful LLMs
+- Streams analysis results to all connected clients via WebSocket
+- Maintains conversation context in database for team continuity
+- Provides real-time suggestions visible to all collaborators
 
-**Downstream Agent Enablement:**
-- **Casting Director**: Receives character lists with scene/shot assignments for consistency planning and character asset creation
-- **Art Director**: Gets location and mood information for style development and style template suggestions
-- **Environment Director**: Receives location descriptions for environment asset creation and multi-angle generation
-- **Cinematographer**: Inherits shot specifications and technical requirements for video generation with character/style coordination
-- **Sound Designer**: Accesses dialogue content, character voice requirements, and scene audio requirements for integrated audio generation
-- **Editor**: Receives complete scene structure for final assembly planning with audio-visual synchronization
+**Distributed Processing Benefits:**
+- **Casting Director**: Character assets immediately available to all team members
+- **Art Director**: Style suggestions propagate instantly across sessions
+- **Environment Director**: Location assets shared in real-time
+- **Cinematographer**: Shot specifications synchronized across team
+- **Sound Designer**: Audio requirements visible during initial planning
+- **Editor**: Scene structure updates reflected immediately
 
-### Backend Service Requirements
-**LiteLLM Integration:**
-- Advanced prompt engineering for script analysis tasks
-- Structured JSON output for reliable data extraction
-- Context window management for long-form screenplay processing
-- Model selection optimization (larger models for complex analysis)
+### Backend Service Architecture
+**FastAPI Endpoints:**
+- Script upload and format detection
+- Incremental script analysis with progress streaming
+- Asset creation triggers for downstream systems
+- Version control and change tracking
 
-**File Processing Pipeline:**
-- Multi-format script import (PDF OCR, text parsing, format conversion)
-- Intelligent text cleaning and formatting normalization
-- Error detection and user feedback for ambiguous content
-- Backup and version control for script iterations
+**Celery Task Processing:**
+- Long-running script analysis on GPU workers
+- Parallel processing of scenes for faster results
+- Background asset generation from script data
+- Batch export of production documents
+
+**WebSocket Events:**
+- Real-time script editor synchronization
+- Live node graph updates as analysis progresses
+- Collaborative cursor and selection sharing
+- Team presence and activity indicators
 
 ---
 
 ## User Stories & Acceptance Criteria
 
-### Epic 1: Story Management and Project Overview
-**As a filmmaker, I want to manage my overall story concept and narrative structure before diving into detailed scene breakdown, so that I maintain creative control and story coherence throughout production.**
+### Epic 1: Collaborative Script Management
+**As a film production team, we want to collaboratively work on script breakdowns so that all team members stay synchronized throughout pre-production.**
 
-#### User Story 1.1: Story Creation and Overview
-- **Given** I have a story concept or idea for a film project
-- **When** I create a new Movie Director project in Blender
-- **Then** I can define the overall story concept, themes, and narrative structure
-- **And** I can track story development progress and key narrative elements
-- **And** I can see an overview of all scenes and their relationship to the main story
-- **And** I can modify story elements and see their impact on existing scenes
-
-**Acceptance Criteria:**
-- Story overview panel with narrative structure visualization
-- Story concept, themes, and character development tracking
-- Scene-story relationship display
-- Story modification workflow with scene impact assessment
-
-#### User Story 1.2: Story-to-Scene Breakdown Navigation
-- **Given** I have defined my overall story structure
-- **When** I want to develop specific story beats into scenes
-- **Then** I can navigate from story overview to scene development
-- **And** I can create scenes that directly support story objectives
-- **And** I can see how each scene contributes to the overall narrative
-- **And** I can maintain story continuity across scene creation
+#### User Story 1.1: Multi-User Script Editing
+- **Given** multiple team members have access to a project
+- **When** they open the script editor simultaneously
+- **Then** all users see real-time updates as others type
+- **And** each user's cursor and selection is visible to others
+- **And** changes are synchronized within 200ms
+- **And** conflict resolution handles simultaneous edits gracefully
 
 **Acceptance Criteria:**
-- Story-scene navigation interface
-- Scene purpose and story contribution tracking
-- Narrative continuity validation
-- Story beat to scene mapping functionality
+- Operational transformation for conflict-free editing
+- Color-coded user cursors and selections
+- Presence indicators showing active users
+- Change attribution in version history
 
-### Epic 2: Script Import and Analysis
-**As an independent filmmaker, I want to import my screenplay into Blender Movie Director and have it automatically broken down into scenes and shots so that I can immediately begin the visual production process.**
-
-#### User Story 2.1: Multi-Format Script Import
-- **Given** I have a screenplay in various formats (PDF, Final Draft, Fountain, Word doc)
-- **When** I use the "Import Script" operator in the Blender Movie Director panel
-- **Then** the system successfully imports and recognizes the script format
-- **And** displays a preview of recognized scenes and characters
-- **And** allows me to confirm or adjust the parsing before proceeding
+#### User Story 1.2: Cloud-Based Script Analysis
+- **Given** a team has uploaded or created a screenplay
+- **When** they trigger AI analysis
+- **Then** the script is processed on backend servers
+- **And** progress updates stream to all connected users
+- **And** results appear progressively as scenes are analyzed
+- **And** all team members see the same analysis results
 
 **Acceptance Criteria:**
-- Support for .fdx (Final Draft), .fountain, .pdf, .txt, .docx formats
-- 95% accuracy in scene header detection for properly formatted scripts
-- Character name extraction with >90% accuracy
-- User preview and confirmation workflow before data creation
+- Server-side processing with no local compute required
+- WebSocket streaming of analysis progress
+- Incremental result display as available
+- Consistent results across all clients
 
-#### User Story 2.2: Automatic Scene Structure with Asset Links
-- **Given** I have confirmed a successfully parsed script
-- **When** I click "Generate Scene Structure"
-- **Then** the system creates a Scene collection for each identified scene
-- **And** populates scene metadata (location, time of day, characters present)
-- **And** creates environment asset references for each unique location
-- **And** establishes character-scene linkage for all identified characters
-- **And** organizes scenes hierarchically in Blender's Outliner
-- **And** provides a summary of created scenes and any parsing warnings
-- **And** optionally generates a complete node graph structure in the Production Canvas
+### Epic 2: Visual Node Graph Collaboration
+**As a visual production planner, I want to see and manipulate the script structure as a node graph that updates for all team members in real-time.**
 
-**Acceptance Criteria:**
-- Scene collections created with proper naming convention (e.g., "Scene 01 - INT. CAFE - DAY")
-- Scene custom properties populated with extracted metadata
-- Character-scene usage tracking established
-- Environment assets created and linked to appropriate scenes
-- Hierarchical organization under main "Scenes" collection
-- Clear user feedback about parsing results and any ambiguities
-- Option to generate node canvas representation of script structure
-
-### Epic 3: Intelligent Shot Generation
-**As a content creator, I want the system to automatically generate appropriate shot lists for each scene based on the action and dialogue, so that I have a professional cinematographic foundation for video generation.**
-
-#### User Story 3.1: Action-Based Shot Planning
-- **Given** I have scenes with detailed action descriptions
-- **When** the system analyzes scene content for shot breakdown
-- **Then** it generates appropriate shot objects with cinematographically sound choices
-- **And** assigns shot types (wide, medium, close-up) based on dramatic content
-- **And** suggests camera movements and composition notes
-- **And** considers pacing and rhythm for shot duration estimates
+#### User Story 2.1: Automatic Node Graph Generation
+- **Given** a script has been analyzed by the AI
+- **When** users open the Production Canvas
+- **Then** they see a complete node graph of the film structure
+- **And** the graph is synchronized across all users
+- **And** layout is optimized for readability
+- **And** assets are automatically linked to appropriate nodes
 
 **Acceptance Criteria:**
-- Minimum 3 shots per scene (establishing, coverage, reaction)
-- Shot type selection follows cinematographic conventions
-- Camera movement suggestions appropriate to scene content
-- Shot duration estimates based on dialogue and action pacing
+- Svelte Flow integration with real-time sync
+- Hierarchical scene/shot organization
+- Automatic asset node creation and linking
+- Smooth animations for graph updates
 
-#### User Story 3.2: Dialogue-Driven Shot Coverage
-- **Given** I have scenes with significant dialogue between characters
-- **When** the system generates shot coverage
-- **Then** it creates appropriate dialogue coverage (over-the-shoulder, singles, two-shots)
-- **And** assigns correct characters to each shot
-- **And** plans reverse angles and cutaways for editing flexibility
-- **And** considers eye-line matches and screen direction
-
-**Acceptance Criteria:**
-- Proper dialogue coverage for 2-person conversations (minimum 4 shots)
-- Character assignments match dialogue attribution
-- Screen direction consistency maintained across reverse angles
-- Cutaway shots identified for reaction and pacing
-
-### Epic 4: Iterative Refinement and Customization
-**As a film student, I want to review and refine the automatically generated shot breakdown, learning from the AI's suggestions while customizing the plan to match my creative vision.**
-
-#### User Story 4.1: Shot Plan Review and Editing
-- **Given** I have an automatically generated shot breakdown
-- **When** I review the generated shots in a dedicated review panel
-- **Then** I can see detailed information about each shot's rationale
-- **And** I can modify shot types, camera movements, and duration
-- **And** I can add or remove shots while maintaining cinematographic consistency
-- **And** the system provides educational feedback about my modifications
+#### User Story 2.2: Collaborative Node Editing
+- **Given** multiple users are viewing the node canvas
+- **When** one user modifies the graph (add/move/delete nodes)
+- **Then** all users see the changes immediately
+- **And** modifications are animated smoothly
+- **And** the database is updated to persist changes
+- **And** undo/redo is available for all users
 
 **Acceptance Criteria:**
-- Detailed shot information display with cinematographic rationale
-- Inline editing capabilities for all shot properties
-- Add/remove shot functionality with automatic renumbering
-- Educational tooltips explaining cinematographic choices
+- <500ms synchronization latency
+- Smooth graph animations
+- Multi-level undo/redo system
+- Conflict resolution for simultaneous edits
 
-#### User Story 4.2: Script Revision and Regeneration
-- **Given** I have made changes to my screenplay after initial breakdown
-- **When** I trigger "Update from Script Changes"
-- **Then** the system intelligently updates only affected scenes and shots
-- **And** preserves my manual customizations where possible
-- **And** clearly indicates what has changed and what requires review
-- **And** allows me to accept or reject specific changes
+### Epic 3: Progressive Analysis and Streaming
+**As a production team working with long scripts, we want to see analysis results as they're generated rather than waiting for complete processing.**
 
-**Acceptance Criteria:**
-- Incremental updates without full regeneration when possible
-- Preservation of user customizations during script updates
-- Clear change tracking and approval workflow
-- Conflict resolution for contradictory changes
-
-### Epic 5: Audio Integration and Scene Coordination
-**As a filmmaker, I want the script breakdown to automatically identify and prepare audio requirements for each scene, so that dialogue, music, and sound effects can be seamlessly integrated during generation.**
-
-#### User Story 5.1: Dialogue and Character Voice Planning
-- **Given** I have scenes with character dialogue identified in the script
-- **When** the system processes character assignments to shots
-- **Then** it automatically identifies dialogue requirements for each character
-- **And** creates character voice training data requirements for RVC integration
-- **And** estimates dialogue timing and pacing for audio-visual synchronization
-- **And** establishes character-specific voice consistency tracking across scenes
+#### User Story 3.1: Streaming Script Analysis
+- **Given** a team uploads a feature-length screenplay
+- **When** analysis begins on backend servers
+- **Then** results stream to the UI as each scene is processed
+- **And** users can start working with completed sections
+- **And** the UI remains responsive during analysis
+- **And** estimated completion time is displayed
 
 **Acceptance Criteria:**
-- Automatic dialogue extraction with character attribution for 95% of correctly formatted scripts
-- Character voice requirements identified and linked to character assets
-- Dialogue timing estimates with 80% accuracy for synchronization planning
-- Cross-scene character voice consistency tracking and validation
+- Scene-by-scene result streaming
+- Progressive UI updates without blocking
+- Accurate time estimates based on script length
+- Ability to work with partial results
 
-#### User Story 5.2: Music and Sound Effects Analysis
-- **Given** I have scene descriptions with mood, action, and setting information
-- **When** the system analyzes scenes for audio requirements
-- **Then** it identifies music requirements based on scene mood and pacing
-- **And** detects sound effect needs from action descriptions and parentheticals
-- **And** suggests audio style coordination with visual style elements
-- **And** creates audio asset placeholders linked to scene structure
-
-**Acceptance Criteria:**
-- Music requirement identification for 80% of scenes with clear mood indicators
-- Sound effect detection from action lines and scene descriptions
-- Audio-visual style coordination suggestions with style consistency framework
-- Audio asset placeholder creation with regenerative parameter storage
-
-### Epic 6: Node Canvas Integration
-**As a visual thinker, I want the script breakdown to automatically populate the node-based production canvas, so I can see and manipulate the film structure as a visual graph.**
-
-#### User Story 6.1: Automatic Node Graph Generation
-- **Given** I have completed script import and breakdown
-- **When** I open the Production Canvas node editor
-- **Then** I see a complete node graph representing my film structure
-- **And** Scene Group nodes are created for each script scene
-- **And** Shot nodes are properly connected within their scenes
-- **And** Character and Environment asset nodes are linked appropriately
-- **And** the graph layout is organized and readable
+#### User Story 3.2: Distributed Processing
+- **Given** a complex script requiring extensive analysis
+- **When** the system processes it
+- **Then** the work is distributed across multiple backend workers
+- **And** different scenes are analyzed in parallel
+- **And** results are assembled in correct order
+- **And** total processing time is minimized
 
 **Acceptance Criteria:**
-- Automatic node graph creation from script data
-- Proper hierarchical organization (Project → Scene → Shot)
-- Asset nodes created and connected based on script analysis
-- Clean, organized layout with minimal crossing connections
-- Node properties populated from script metadata
+- Parallel scene processing on Celery workers
+- Intelligent work distribution
+- Result ordering and assembly
+- Linear performance scaling with workers
 
-#### User Story 6.2: Bidirectional Script-Node Synchronization
-- **Given** I have both script data and node graph representation
-- **When** I make changes in either the panel interface or node canvas
-- **Then** changes are synchronized between both representations
-- **And** script updates trigger node graph updates
-- **And** node modifications update script breakdown data
-- **And** conflicts are handled gracefully with user choice
+### Epic 4: Asset Creation and Linking
+**As a production designer, I want character and environment assets to be automatically created and linked based on script analysis, visible to all team members.**
+
+#### User Story 4.1: Collaborative Asset Generation
+- **Given** the script analysis identifies characters and locations
+- **When** asset generation is triggered
+- **Then** placeholder assets are created in the shared library
+- **And** all team members see new assets immediately
+- **And** assets are linked to relevant scenes/shots
+- **And** team members can collaborate on asset refinement
 
 **Acceptance Criteria:**
-- Real-time synchronization between data representations
-- Change propagation in both directions
-- Conflict resolution UI for contradictory changes
-- Preservation of user customizations during sync
-- Clear indication of sync status and any issues
+- Automatic asset creation from script data
+- Real-time asset library updates
+- Bidirectional scene-asset linking
+- Collaborative asset property editing
+
+#### User Story 4.2: Cross-System Asset Coordination
+- **Given** assets are created from script analysis
+- **When** team members refine them
+- **Then** updates propagate to all linked systems
+- **And** character consistency parameters are shared
+- **And** environment variations are generated
+- **And** style frameworks are applied consistently
+
+**Acceptance Criteria:**
+- Asset updates trigger system-wide propagation
+- Consistency parameters shared across workers
+- Version control for asset iterations
+- Real-time preview generation
+
+### Epic 5: Version Control and History
+**As a production coordinator, I want complete version history of our script breakdown so we can track changes and revert if needed.**
+
+#### User Story 5.1: Change Tracking
+- **Given** team members are making changes to the script/breakdown
+- **When** changes are saved
+- **Then** they are recorded with attribution and timestamp
+- **And** a visual diff shows what changed
+- **And** change history is searchable
+- **And** any team member can review history
+
+**Acceptance Criteria:**
+- Git-like change tracking in PostgreSQL
+- Visual diff viewer for script changes
+- Change attribution with user avatars
+- Searchable change history
+
+#### User Story 5.2: Version Rollback
+- **Given** a team needs to revert changes
+- **When** they select a previous version
+- **Then** they can preview the differences
+- **And** choose to restore that version
+- **And** all team members are notified
+- **And** the action is recorded in history
+
+**Acceptance Criteria:**
+- Non-destructive rollback (preserves history)
+- Preview before rollback
+- Team notifications for major changes
+- Rollback attribution and reasoning
 
 ---
 
 ## Technical Requirements
 
-### Blender Addon Architecture Integration
+### Web Application Architecture
 
-#### 1. Script Import Pipeline
-```python
-class MOVIE_DIRECTOR_OT_import_script(Operator):
-    """Import screenplay and generate scene/shot structure"""
-    bl_idname = "movie_director.import_script"
-    bl_label = "Import Script"
-    
-    filepath: StringProperty(subtype="FILE_PATH")
-    
-    def execute(self, context):
-        # Parse script file
-        script_parser = ScriptParser(self.filepath)
-        parsed_script = script_parser.analyze()
-        
-        # Generate Blender data structures
-        scene_generator = SceneStructureGenerator(context)
-        scene_generator.create_from_script(parsed_script)
-        
-        # Optionally generate node canvas
-        if context.scene.movie_director.auto_generate_nodes:
-            node_generator = NodeCanvasGenerator(context)
-            node_generator.create_from_script(parsed_script)
-        
-        return {'FINISHED'}
-```
+#### 1. Frontend Component Requirements
 
-#### 2. Data Structure Creation and Regenerative Content Model
-- **Scene Collections**: Automatic creation with proper naming and metadata
-- **Shot Objects**: Empty objects with comprehensive custom properties including audio requirements
-- **Character Assignments**: PointerProperty links between shots and character assets with voice requirements
-- **Environment Linkage**: Automatic environment asset creation and scene-environment relationships
-- **Audio Asset References**: Dialogue, music, and sound effect placeholders with regenerative parameters
-- **Metadata Storage**: Complete script analysis results stored in scene properties
-- **Regenerative Architecture**: Script breakdown parameters stored for regeneration, not final content
+**Collaborative Script Editor Requirements:**
+- Real-time collaborative text editing with WebSocket
+- Operational transformation for conflict resolution
+- User cursor and selection visualization
+- Syntax highlighting for screenplay format
+- Auto-save with debouncing
+- Version history sidebar
 
-#### 3. Node Canvas Integration
-```python
-class NodeCanvasGenerator:
-    """Generates node graph from parsed script data"""
+**Script Analysis Interface Requirements:**
+- Analysis trigger button with quality selector
+- Progress visualization during processing
+- Streaming results display
+- Scene/shot preview generation
+- Character extraction display
+- Location identification interface
+
+**Quality Tier Selection for Analysis:**
+- **Low**: Fast analysis, basic scene detection
+- **Standard**: Balanced analysis with character/location extraction
+- **High**: Deep analysis with cinematography suggestions
+
+**Node Graph Generation Requirements:**
+- Automatic layout from script structure
+- Hierarchical scene/shot organization
+- Character nodes linked to appearances
+- Style suggestions based on genre
+- Environment nodes from location descriptions
+
+#### 2. API Endpoint Requirements
+
+**Script Analysis Endpoint Requirements:**
+- Accept script content and quality tier parameter
+- Queue analysis task to appropriate worker pool:
+  - Low: Fast LLM queue with smaller models
+  - Standard: Balanced LLM queue
+  - High: Premium LLM queue with larger models
+- Store task ID for progress tracking
+- Return estimated completion time based on quality
+- Support partial script analysis
+
+**WebSocket Endpoint Requirements:**
+- Handle real-time script editing events
+- Stream analysis progress updates
+- Broadcast node graph changes
+- Manage user presence and cursors
+- Support reconnection with state sync
+
+**Script Storage Requirements:**
+- Store scripts in project file structure
+- Path: `02_Source_Creative/Scripts/`
+- Version tracking with Git
+- Never expose file paths to frontend
+- Use script ID references
+    """Handle real-time script collaboration"""
+    user = await verify_ws_token(token)
+    await script_manager.connect(websocket, project_id, user.id)
     
-    def create_from_script(self, parsed_script):
-        # Create or get node tree
-        node_tree = self.get_or_create_node_tree()
-        
-        # Create project settings node
-        project_node = self.create_project_node(node_tree, parsed_script.metadata)
-        
-        # Create scene group nodes
-        scene_nodes = []
-        for scene in parsed_script.scenes:
-            scene_node = self.create_scene_group_node(node_tree, scene)
+    try:
+        while True:
+            data = await websocket.receive_json()
             
-            # Create shot nodes within scene
-            self.populate_scene_shots(scene_node.node_tree, scene.shots)
+            if data['type'] == 'script.edit':
+                # Apply operational transformation
+                transformed = await apply_ot(project_id, data['payload'])
+                
+                # Broadcast to other users
+                await script_manager.broadcast(
+                    project_id,
+                    {
+                        'type': 'script.change',
+                        'payload': transformed,
+                        'userId': user.id,
+                        'timestamp': datetime.utcnow()
+                    },
+                    exclude_user=user.id
+                )
+                
+                # Persist change
+                await save_script_change(project_id, transformed)
+                
+    finally:
+        script_manager.disconnect(websocket, project_id, user.id)
+```
+
+#### 3. Celery Task Processing
+```python
+@celery_app.task(bind=True, name='script.analyze')
+def analyze_script_task(self, project_id: str, script_content: str):
+    """Analyze script with progressive result streaming"""
+    
+    # Parse script into scenes
+    scenes = script_parser.extract_scenes(script_content)
+    
+    # Initialize WebSocket notifications
+    ws_notify = WebSocketNotifier(project_id)
+    
+    # Process scenes in parallel batches
+    for i, scene_batch in enumerate(batch(scenes, size=5)):
+        # Update progress
+        progress = (i * 5) / len(scenes) * 100
+        self.update_state(
+            state='PROGRESS',
+            meta={'current': i * 5, 'total': len(scenes), 'percent': progress}
+        )
+        
+        # Analyze scenes in parallel
+        scene_results = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+            for scene in scene_batch:
+                future = executor.submit(analyze_single_scene, scene)
+                futures.append(future)
             
-            # Link to project flow
-            self.link_nodes(node_tree, project_node, scene_node)
-            scene_nodes.append(scene_node)
+            for future in as_completed(futures):
+                result = future.result()
+                scene_results.append(result)
+                
+                # Stream result immediately
+                ws_notify.send({
+                    'type': 'analysis.scene_complete',
+                    'scene_id': result['scene_id'],
+                    'data': result
+                })
         
-        # Create and link asset nodes
-        self.create_asset_nodes(node_tree, parsed_script.characters, parsed_script.environments)
-        
-        # Auto-layout for readability
-        self.auto_layout_nodes(node_tree)
-```
+        # Create assets for completed scenes
+        create_scene_assets.delay(project_id, scene_results)
+    
+    # Generate node graph structure
+    graph_data = generate_node_graph(project_id)
+    ws_notify.send({
+        'type': 'analysis.complete',
+        'graph': graph_data
+    })
+    
+    return {'status': 'complete', 'scenes': len(scenes)}
 
-#### 4. UI Integration
-```python
-class MOVIE_DIRECTOR_PT_script_breakdown(Panel):
-    """Script breakdown and review panel"""
-    bl_label = "Script Breakdown"
-    bl_parent_id = "MOVIE_DIRECTOR_PT_main_panel"
+def analyze_single_scene(scene: Dict) -> Dict:
+    """Analyze individual scene with LLM"""
     
-    def draw(self, context):
-        layout = self.layout
-        
-        # Script import section
-        layout.operator("movie_director.import_script")
-        
-        # Node canvas options
-        layout.prop(context.scene.movie_director, "auto_generate_nodes")
-        
-        # Scene/shot review section
-        if context.scene.movie_director.script_imported:
-            layout.operator("movie_director.review_breakdown")
-            layout.operator("movie_director.regenerate_shots")
-            layout.operator("movie_director.open_node_canvas")
-```
-
-### CrewAI Framework Integration
-
-#### 1. Enhanced Screenwriter Agent
-```python
-@tool("Analyze Script Structure")
-def analyze_script_structure_tool(script_text: str) -> Dict:
-    """Analyze screenplay and extract scene/shot structure"""
-    
-    prompt = f"""
-    Analyze this screenplay and provide a structured breakdown:
-    
-    {script_text}
-    
-    Return JSON with:
-    - scenes: [{{location, time, characters, summary, shots, audio_requirements}}]
-    - characters: [{{name, description, scenes, voice_characteristics}}]
-    - environments: [{{location_name, description, mood, time_of_day}}]
-    - audio_elements: [{{dialogue, music_mood, sound_effects}}]
-    - themes: [technical and stylistic notes]
-    """
-    
-    response = llm_client.complete(prompt)
-    return json.loads(response.content)
-
-@tool("Generate Shot List")
-def generate_shot_list_tool(scene_description: str, characters: List[str]) -> List[Dict]:
-    """Generate cinematographically appropriate shot list for scene"""
-    
-    prompt = f"""
-    Create a professional shot list for this scene:
-    Scene: {scene_description}
-    Characters: {characters}
-    
-    For each shot, specify:
-    - shot_type: (wide/medium/close_up/extreme_close_up)
-    - camera_movement: (static/pan/tilt/dolly/handheld)
-    - characters_in_frame: list of character names
-    - duration_estimate: seconds
-    - composition_notes: framing and visual notes
-    - dialogue_content: any dialogue in this shot
-    - audio_requirements: dialogue, background music, sound effects
-    - environment_context: setting and mood for environment coordination
-    """
-    
-    response = llm_client.complete(prompt)
-    return json.loads(response.content)
-
-@tool("Create Cross-System Asset Links")
-def create_cross_system_asset_links_tool(script_analysis: Dict) -> Dict:
-    """Create asset linkages across character, environment, and style systems"""
-    
-    asset_links = {
-        "character_assets": [],
-        "environment_assets": [],
-        "style_suggestions": [],
-        "audio_requirements": []
+    # Extract scene metadata
+    metadata = {
+        'location': scene['header']['location'],
+        'time': scene['header']['time'],
+        'characters': extract_characters(scene['content'])
     }
     
-    # Create character asset placeholders for Character Consistency Engine
-    for character in script_analysis['characters']:
-        asset_links["character_assets"].append({
-            "name": character['name'],
-            "description": character['description'],
-            "scenes": character['scenes'],
-            "voice_characteristics": character.get('voice_characteristics', {})
-        })
+    # Generate shots using LLM
+    shot_prompt = create_shot_generation_prompt(scene)
+    shots = llm_client.generate(shot_prompt, model='gpt-4')
     
-    # Create environment asset placeholders for Environment Management System
-    for environment in script_analysis['environments']:
-        asset_links["environment_assets"].append({
-            "location_name": environment['location_name'],
-            "description": environment['description'],
-            "mood": environment['mood'],
-            "time_of_day": environment['time_of_day']
-        })
+    # Extract audio requirements
+    audio_reqs = analyze_audio_requirements(scene)
     
-    # Generate style suggestions for Style Consistency Framework
-    for theme in script_analysis['themes']:
-        asset_links["style_suggestions"].append({
-            "style_type": theme.get('visual_style', 'cinematic'),
-            "mood": theme.get('mood', 'neutral'),
-            "color_palette": theme.get('color_suggestions', []),
-            "genre_context": theme.get('genre', 'drama')
-        })
-    
-    return asset_links
+    return {
+        'scene_id': scene['id'],
+        'metadata': metadata,
+        'shots': shots,
+        'audio_requirements': audio_reqs,
+        'assets_needed': {
+            'characters': metadata['characters'],
+            'environment': metadata['location']
+        }
+    }
 ```
 
-#### 2. Script Analysis Workflow
-```python
-class ScriptBreakdownWorkflow:
-    def __init__(self, screenwriter_agent):
-        self.screenwriter = screenwriter_agent
-    
-    def execute(self, script_path: str, context):
-        """Complete script-to-shot breakdown workflow"""
-        
-        # Step 1: Parse and analyze script
-        script_analysis = self.screenwriter.analyze_script_structure(script_path)
-        
-        # Step 2: Generate scene collections
-        for scene_data in script_analysis['scenes']:
-            scene_collection = self.create_scene_collection(scene_data, context)
-            
-            # Step 3: Generate shots for each scene
-            shots = self.screenwriter.generate_shot_list(
-                scene_data['summary'], 
-                scene_data['characters']
-            )
-            
-            # Step 4: Create shot objects with audio requirements
-            for shot_data in shots:
-                self.create_shot_object(shot_data, scene_collection, context)
-                
-            # Step 5: Create environment and audio asset placeholders
-            self.create_environment_assets(scene_data, context)
-            self.create_audio_asset_placeholders(scene_data, context)
-```
+#### 4. Node Graph Synchronization
+**Node Graph Synchronizer Requirements:**
+- Handle all node graph changes from analysis
+- Validate changes before applying
+- Persist to database atomically
+- Broadcast updates to all connected clients
+- Support node creation from script elements
+- Automatic asset node creation
+- Link assets by ID references only
 
-### Performance and Resource Considerations
+**Change Types Supported:**
+- Node creation (scenes, shots, assets)
+- Node updates (prompts, parameters)
+- Node deletion with cascade handling
+- Edge creation for asset connections
+- Subflow organization for scenes
+- Batch operations for efficiency
 
-#### 1. LLM Integration Optimization
-- **Chunked Processing**: Break long scripts into manageable sections for LLM processing
-- **Context Window Management**: Intelligent truncation and summarization for very long scripts
-- **Model Selection**: Use larger models (70B+) for complex analysis, smaller models for simple tasks
-- **Caching**: Cache script analysis results to avoid reprocessing unchanged content
+**Asset Node Generation:**
+- Create character nodes from script analysis
+- Generate environment nodes for locations
+- Suggest style nodes based on genre
+- All nodes reference assets by ID
+- No file paths exposed to frontend
+- Automatic thumbnail generation
 
-#### 2. Blender Performance
-- **Batch Object Creation**: Create scene/shot objects in batches to minimize UI updates
-- **Progressive Loading**: Show progress during long script processing operations
-- **Memory Management**: Efficiently handle large script files and analysis results
-- **UI Responsiveness**: Use background threading for LLM calls with progress callbacks
+### Database Schema Extensions
 
-#### 3. Error Handling and Recovery
-- **Format Detection**: Robust parsing for various screenplay formats and edge cases
-- **Graceful Degradation**: Continue processing even with parsing errors in script sections
-- **User Feedback**: Clear error messages with suggested fixes for common issues
-- **Partial Results**: Allow user to proceed with partial breakdown if some scenes fail
+#### PostgreSQL Schema Requirements for Script Management
+
+**Script Versions Table Requirements:**
+- Store complete script content with version history
+- Track version numbers sequentially
+- Support multiple script formats (Fountain, FDX, PDF)
+- User attribution for each version
+- Change summaries for version comparison
+- File path reference to project structure
+- Quality tier used for analysis
+
+**Script Analysis Results Table:**
+- Link to specific script version
+- Store complete analysis data as JSONB
+- Scene breakdown array with metadata
+- Quality tier of analysis performed
+- Processing time for performance tracking
+- Model versions used
+- Confidence scores for suggestions
+
+**Collaborative Editing Sessions:**
+- Track active users per script
+- Store cursor positions for visualization
+- Selection ranges for conflict detection
+- Activity timestamps for presence
+- Session state management
+- Connection quality indicators
+
+**Script Assets Tracking:**
+- Assets generated from script analysis
+- Asset type categorization
+- Source scene linkage
+- Generation parameters
+- Quality tier for asset generation
+- References to asset IDs only
+- No direct file paths
+
+### Performance Optimizations
+
+#### 1. Progressive Loading
+- Stream script analysis results as available
+- Lazy load node graph sections for large projects
+- Virtualized script editor for long documents
+- Incremental asset generation
+- Quality-based loading priorities
+
+#### 2. Quality-Tiered Processing
+- **Low Quality**: Fast workers with smaller models
+- **Standard Quality**: Balanced workers with mid-tier models
+- **High Quality**: Premium workers with large models
+- Different timeout values per quality tier
+- Resource allocation based on quality selection
+
+#### 3. Caching Strategy
+- Cache parsed script structures in Redis
+- Store frequently accessed analysis results
+- CDN delivery for generated assets
+- Browser caching for static resources
+- Quality-aware cache policies
+
+#### 4. Scalability Measures
+- Horizontal scaling of analysis workers per quality tier
+- Sharded WebSocket connections
+- Database read replicas for queries
+- Queue prioritization for active users
+- Separate worker pools for each quality level
 
 ---
 
 ## Success Metrics
 
-### User Adoption and Workflow Integration
+### Collaboration Effectiveness
 **Primary KPIs:**
-- **Script Import Success Rate**: >95% successful imports across supported formats within 6 months
-- **Feature Adoption**: >85% of users who import scripts complete full breakdown workflow within first session
-- **Time Savings**: Reduce script breakdown time from 4-8 hours to <15 minutes (95% time reduction)
-- **User Satisfaction**: >4.2/5.0 rating for script breakdown accuracy and usefulness
+- **Concurrent Users**: Average 3+ users per active project
+- **Collaboration Time**: 50% reduction in pre-production planning time
+- **Revision Cycles**: 40% fewer revision cycles due to real-time collaboration
+- **Global Usage**: Users from 25+ countries collaborating on projects
 
 **Measurement Methods:**
-- Anonymous telemetry analytics tracking import attempts vs. successes with user consent
-- Bi-weekly user survey feedback on accuracy and time savings (minimum 100 responses)
-- A/B testing comparing manual vs. automated breakdown workflows with professional filmmakers
-- Customer support ticket analysis for common failure patterns and resolution tracking
+- WebSocket connection analytics
+- Session overlap tracking
+- Time-to-completion metrics
+- Geographic distribution analysis
 
-### Content Quality and Accuracy
+### Analysis Quality and Speed
+**Performance Metrics:**
+- **Analysis Speed**: <30 seconds for 90-page screenplay
+- **Streaming Latency**: First results within 5 seconds
+- **Accuracy**: >95% scene detection accuracy
+- **Scalability**: Linear performance with added workers
+
 **Quality Metrics:**
-- **Scene Detection Accuracy**: >95% correct scene identification for properly formatted scripts (tested against 500+ diverse scripts)
-- **Character Extraction Accuracy**: >90% accurate character name detection and scene assignment across all supported formats
-- **Shot Appropriateness**: >80% of generated shots rated as "cinematographically appropriate" by professional film industry panel
-- **Educational Value**: >75% of film students report measurable learning of cinematographic principles from system suggestions
+- **Shot Appropriateness**: >85% professional approval rating
+- **Character Detection**: >92% accurate identification
+- **Asset Linking**: >90% correct automatic associations
+- **User Satisfaction**: >4.3/5.0 rating
 
-**Measurement Methods:**
-- Automated testing against standardized script format database (500+ samples from multiple sources)
-- Monthly expert review panels with 5+ professional cinematographers evaluating generated shot lists
-- Quarterly user feedback surveys on shot quality and appropriateness (minimum 200 responses)
-- Semester-based educational assessment surveys for film school users with pre/post competency testing
+### Technical Performance
+**System Metrics:**
+- **WebSocket Latency**: <200ms for 95th percentile
+- **Sync Reliability**: >99.5% successful synchronization
+- **Uptime**: 99.9% availability during business hours
+- **Data Integrity**: Zero data loss incidents
 
-### Technical Performance and Reliability
-**System Performance:**
-- **Processing Speed**: Complete breakdown of 90-page script in <3 minutes
-- **Memory Efficiency**: Handle scripts up to 200 pages without performance degradation
-- **Error Recovery**: <5% unrecoverable errors during script processing
-- **UI Responsiveness**: Maintain <100ms UI response during background processing
-
-**Integration Quality:**
-- **Data Consistency**: 100% accurate transfer from script analysis to Blender data structures
-- **Version Control**: Successful script update workflow in >95% of revision scenarios
-- **Downstream Compatibility**: Generated structure supports all agent workflows without modification
-- **Regenerative Compliance**: Scene/shot structure can be recreated from stored script parameters
-
-### Business Impact and ROI
-**Productivity Metrics:**
-- **Workflow Acceleration**: 15x improvement in pre-production planning speed
-- **Barrier Reduction**: 60% increase in successful project completion by new users
-- **Professional Quality**: 85% of generated breakdowns meet professional film industry standards
-- **Cost Effectiveness**: Enable $50K+ film projects with $500 tool budget
-
-**Market Adoption:**
-- **User Base Growth**: 50% month-over-month growth in script breakdown feature usage
-- **Educational Adoption**: Adoption by 25+ film schools within first year
-- **Professional Use**: 10+ commercial film projects using the system for pre-production
-- **Community Engagement**: Active community sharing script templates and breakdown examples
+**Scalability Metrics:**
+- **Concurrent Projects**: Support 1,000+ active projects
+- **User Capacity**: 10,000+ concurrent users
+- **Analysis Throughput**: 500+ scripts/hour
+- **Storage Efficiency**: <10MB per project average
 
 ---
 
@@ -601,228 +586,114 @@ class ScriptBreakdownWorkflow:
 
 ### Technical Risks
 
-#### High Risk: Script Format Complexity and Variations
-- **Risk**: Inconsistent screenplay formats lead to poor parsing accuracy
-- **Probability**: Medium (40%)
-- **Impact**: High - Feature works poorly for real-world scripts, blocking primary user workflow
-- **Mitigation Strategy**:
-  - Extensive testing with diverse script samples from multiple sources and production companies
-  - Partnership with screenwriting software companies for format specifications and validation
-  - Robust error handling with user feedback for unsupported variations and recovery guidance
-  - Manual correction capabilities for edge cases with learning system improvement
+#### High Risk: Real-Time Sync Complexity
+- **Risk**: Synchronization conflicts causing data inconsistency
+- **Impact**: Lost work, frustrated users
+- **Mitigation**: 
+  - Operational transformation algorithms
+  - Comprehensive conflict resolution
+  - Automatic backup every 60 seconds
+  - Client-side recovery mechanisms
 
-#### Medium Risk: LLM Hallucination in Shot Planning
-- **Risk**: AI generates cinematographically inappropriate or nonsensical shot suggestions
-- **Probability**: Medium (35%)
-- **Impact**: Medium - Poor user experience and lack of trust in system
-- **Mitigation Strategy**:
-  - Comprehensive prompt engineering with cinematographic best practices and professional consultation
-  - Multiple validation passes and consistency checking with automated quality assessment
-  - User review and approval workflow before final shot creation with educational feedback
-  - Expert review and refinement of prompt templates with continuous improvement based on user feedback
-
-#### Medium Risk: Performance with Long Scripts
-- **Risk**: Very long scripts (200+ pages) cause memory issues or excessive processing time
-- **Probability**: Medium (30%)
-- **Impact**: Medium - System unusable for feature-length scripts
-- **Mitigation Strategy**:
-  - Intelligent chunking and progressive processing
-  - Scene-by-scene processing option for very long scripts
-  - Memory usage optimization and garbage collection
-  - User feedback about processing time and progress
+#### Medium Risk: LLM Processing Costs
+- **Risk**: High computational costs for script analysis
+- **Impact**: Unsustainable unit economics
+- **Mitigation**:
+  - Efficient prompt engineering
+  - Result caching for common patterns
+  - Tiered service levels
+  - Batch processing optimizations
 
 ### Business Risks
 
-#### High Risk: User Expectation Management
-- **Risk**: Users expect perfect screenplay understanding and shot planning
-- **Probability**: High (50%)
-- **Impact**: High - User disappointment despite functional system
-- **Mitigation Strategy**:
-  - Clear documentation of system capabilities and limitations
-  - Educational content about cinematographic principles and AI assistance
-  - Emphasis on tool as assistant rather than replacement for creative decision-making
-  - Gradual feature rollout with beta testing and feedback incorporation
-
-#### Medium Risk: Professional Film Industry Acceptance
-- **Risk**: Industry professionals dismiss AI-generated shot planning as inferior
-- **Probability**: Medium (35%)
-- **Impact**: Medium - Limited adoption in professional contexts
-- **Mitigation Strategy**:
-  - Collaboration with industry professionals in feature development
-  - Emphasis on tool as education and efficiency aid, not creative replacement
-  - Demonstration of successful commercial projects using the system
-  - Professional-grade output quality and industry-standard terminology
-
-### Educational and Ethical Considerations
-
-#### Low Risk: Over-Reliance on AI for Creative Decisions
-- **Risk**: Users become dependent on AI suggestions without developing creative skills
-- **Probability**: Low (20%)
-- **Impact**: Medium - Negative impact on creative development
-- **Mitigation Strategy**:
-  - Educational content emphasizing AI as creative assistant
-  - Explanation of cinematographic principles behind AI suggestions
-  - Encouragement of manual customization and creative experimentation
-  - Integration with film education curricula and best practices
+#### High Risk: Network Dependency
+- **Risk**: Poor experience on slow connections
+- **Impact**: Limited adoption in some regions
+- **Mitigation**:
+  - Progressive enhancement design
+  - Offline draft capability
+  - Regional server deployment
+  - Adaptive quality settings
 
 ---
 
 ## Implementation Roadmap
 
-### Phase 1: Core Script Import and Basic Breakdown (Weeks 1-3)
-*Requires PRD-001 Core Infrastructure completion*
+### Phase 1: Core Web Infrastructure (Weeks 1-4)
 **Deliverables:**
-- Multi-format script import functionality (PDF, text, Fountain)
-- Basic scene detection and collection creation
-- Character extraction and metadata population
-- Simple UI for script import and structure review
+- Basic script upload and viewing
+- Initial FastAPI endpoints
+- Simple WebSocket connection
+- Database schema implementation
 
 **Success Criteria:**
-- Successfully import and parse 90% of properly formatted scripts
-- Accurate scene detection for standard screenplay formats
-- Basic Blender data structure creation with scene collections
+- Users can upload and view scripts
+- Basic real-time connection established
+- Script data persisted correctly
 
-### Phase 2: Intelligent Shot Generation with Cross-System Integration (Weeks 4-6)
-*Foundation for PRD-003 character assignment, PRD-004 style application, and PRD-005 environment coordination*
+### Phase 2: Collaborative Editing (Weeks 5-8)
 **Deliverables:**
-- LLM integration for shot list generation with audio requirements analysis
-- Cinematographic analysis and shot type assignment with style coordination
-- Character-to-shot mapping and dialogue assignment with voice requirements
-- Environment asset creation and scene-environment linkage
-- Camera movement and composition suggestions with environment context
+- Operational transformation implementation
+- Multi-user script editor
+- Presence indicators
+- Change history tracking
 
 **Success Criteria:**
-- Generate cinematographically appropriate shots for 80% of scenes with cross-system asset coordination
-- Accurate character assignment and dialogue distribution with voice requirement identification
-- Professional-quality shot descriptions and technical notes with audio-visual integration
-- Successful environment asset creation and scene linkage for 90% of location changes
-- Style suggestion accuracy >75% based on script genre and mood analysis
+- Multiple users can edit simultaneously
+- No data loss during concurrent edits
+- Change history accurately recorded
 
-### Phase 3: User Review and Refinement Tools (Weeks 7-9)
-*Enables iterative workflow supporting PRD-003, PRD-004, and PRD-005*
+### Phase 3: AI Analysis Integration (Weeks 9-12)
 **Deliverables:**
-- Comprehensive breakdown review panel with cross-system asset navigation
-- Shot editing and customization capabilities with audio-visual coordination
-- Script update and regeneration workflow with preservation of cross-system links
-- Educational feedback and learning features with cinematographic best practices
-- Asset usage tracking and cross-reference validation across all systems
+- LLM integration for script analysis
+- Progressive result streaming
+- Automatic asset creation
+- Node graph generation
 
 **Success Criteria:**
-- Intuitive editing interface with 95% user task completion
-- Successful script revision workflow without data loss
-- Educational value demonstrated through user feedback
+- Scripts analyzed with >90% accuracy
+- Results stream in real-time
+- Assets created automatically
+- Node graph accurately represents structure
 
-### Phase 4: Advanced Features and Production Integration (Weeks 10-12)
-*Production-ready integration with character, style, environment, and audio systems*
+### Phase 4: Advanced Features (Weeks 13-16)
 **Deliverables:**
-- Performance optimization for large scripts with complex cross-system coordination
-- Advanced cinematographic analysis features with AI-powered scene understanding
-- Comprehensive integration testing with all downstream agents (PRD-003, PRD-004, PRD-005)
-- Production-ready error handling and user guidance with system-specific recovery workflows
-- Professional workflow validation with broadcast television standard compliance
+- Advanced collaboration features
+- Performance optimizations
+- Export/import capabilities
+- API for external integrations
 
 **Success Criteria:**
-- Handle 200+ page scripts within 5 minutes with full cross-system asset creation
-- Seamless integration with all film crew agents across PRD-003, PRD-004, and PRD-005
-- Professional-grade output suitable for commercial film pre-production with broadcast quality standards
-- Complete regenerative content model implementation with version control compatibility
-- Audio-visual integration accuracy >90% for dialogue, music, and sound effect requirements
+- Meeting all performance benchmarks
+- Successful load testing at scale
+- Complete feature parity with requirements
+- API documentation complete
 
 ---
 
 ## Stakeholder Sign-Off
 
 ### Development Team Approval
-- [ ] **Technical Lead** - LLM integration and Blender architecture approved
-- [ ] **AI/ML Engineer** - Script analysis and shot generation approach validated
-- [ ] **UI/UX Designer** - Script breakdown workflow and review interface approved
+- [ ] **Frontend Lead** - Svelte Flow integration approved
+- [ ] **Backend Lead** - FastAPI/Celery architecture validated
+- [ ] **AI/ML Engineer** - LLM integration approach confirmed
+- [ ] **DevOps Lead** - Scalability plan approved
 
 ### Business Stakeholder Approval
-- [ ] **Product Owner** - Business case and user value proposition confirmed
-- [ ] **Education Partnership Lead** - Film school adoption strategy validated
-- [ ] **Community Manager** - User onboarding and support strategy approved
-
-### Domain Expert Review
-- [ ] **Professional Screenwriter** - Script analysis requirements and accuracy standards validated
-- [ ] **Cinematographer** - Shot planning approach and technical specifications approved
-- [ ] **Film Educator** - Educational value and learning integration confirmed
+- [ ] **Product Owner** - Collaboration features meet needs
+- [ ] **Customer Success** - User workflow validated
+- [ ] **Finance** - Infrastructure costs acceptable
+- [ ] **Marketing** - Unique value proposition confirmed
 
 ---
 
 **Next Steps:**
-1. Begin technical design document for LLM integration and prompt engineering
-2. Create comprehensive test suite of diverse screenplay samples
-3. Develop cinematographic knowledge base for shot planning validation
-4. Design user research study for script breakdown workflow testing
+1. Set up development environment with Docker
+2. Implement basic WebSocket infrastructure
+3. Create script editor component prototype
+4. Design LLM prompt templates
+5. Plan user testing for collaboration features
 
 ---
 
-## Cross-PRD Integration Specifications
-
-### Node Canvas Integration (PRD-006)
-
-#### Script-to-Node Graph Generation
-- **Integration**: PRD-002 → PRD-006
-- **Process**: Script import optionally generates complete node graph structure
-- **Data Flow**: Scene hierarchy, shot sequences, and asset relationships to node canvas
-- **User Experience**: Single import creates both traditional and node-based representations
-- **Synchronization**: Bidirectional updates between panel UI and node canvas
-
-#### Visual Script Navigation
-- **Integration**: PRD-002 ↔ PRD-006
-- **Process**: Changes in either representation update the other
-- **Navigation**: Click scene in panel to highlight in node graph
-- **Editing**: Modify script structure through node manipulation
-- **Consistency**: Shared data model ensures perfect synchronization
-
-### Regenerative Content Integration (PRD-007)
-
-#### Script Breakdown Parameter Storage
-- **Integration**: PRD-002 → PRD-007
-- **Process**: All script analysis parameters stored for regeneration
-- **Data Storage**: Script parsing results, shot decisions, asset assignments
-- **Regeneration**: Complete script breakdown can be regenerated with updates
-- **Evolution**: New AI models can re-analyze scripts for improved breakdowns
-
-### Asset Creation Workflow Integration
-
-#### Character Asset Auto-Creation from Script
-- **Integration**: PRD-002 → PRD-003
-- **Process**: Character extraction triggers automatic character asset creation with placeholder references
-- **Data Flow**: Character names, descriptions, and scene assignments passed to Character Consistency Engine
-- **UI Navigation**: Direct links from script breakdown to character management panels
-
-#### Environment Asset Generation from Scene Headers
-- **Integration**: PRD-002 → PRD-005
-- **Process**: Scene location analysis triggers environment asset creation with generated references
-- **Data Flow**: Location descriptions, time-of-day, mood context passed to Environment Management System
-- **Consistency**: Scene-environment linkage maintained throughout project lifecycle
-
-#### Style Inheritance from Script Analysis
-- **Integration**: PRD-002 → PRD-004
-- **Process**: Script tone and genre analysis suggests appropriate style templates
-- **Data Flow**: Mood descriptors, genre classification, emotional tone passed to Style Framework
-- **User Control**: Suggested styles with user approval/modification workflow
-
-#### Audio Requirements Integration
-- **Integration**: PRD-002 → PRD-004 (Audio Asset Management)
-- **Process**: Dialogue extraction and audio requirement analysis triggers audio asset placeholder creation
-- **Data Flow**: Character dialogue, scene mood, sound effect requirements passed to Sound Designer agent
-- **Coordination**: Audio timing and pacing synchronized with visual shot requirements
-
-### Workflow Coordination Specifications
-
-#### Complete Scene Generation Workflow
-- **Trigger**: User completes script breakdown and initiates scene generation
-- **Coordination Sequence**:
-  1. PRD-002 provides shot specifications and asset requirements
-  2. PRD-003 generates character assets and consistency parameters
-  3. PRD-005 creates environment assets and multi-angle references
-  4. PRD-004 coordinates style consistency across all generated assets
-  5. PRD-001 orchestrates unified generation with VRAM optimization
-- **Quality Assurance**: Cross-system validation ensures asset compatibility and consistency
-- **User Experience**: Unified progress tracking and error handling across all systems
-
----
-
-*This PRD establishes the Intelligent Script-to-Shot Breakdown System as the critical entry point into the Blender Movie Director generative film studio, transforming raw creative writing into structured, production-ready film projects through AI-powered analysis and cinematographic intelligence.*
+*This PRD represents the transformation of script breakdown from a solitary desktop task to a collaborative web experience, enabling global teams to work together in real-time on the foundation of their film projects.*

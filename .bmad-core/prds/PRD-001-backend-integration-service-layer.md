@@ -1,338 +1,836 @@
 # Product Requirements Document: Backend Integration Service Layer
 
-**Version:** 1.1  
-**Date:** 2025-01-27  
+**Version:** 2.1  
+**Date:** 2025-01-29  
 **Owner:** BMAD Business Analyst  
-**Status:** Updated - Stakeholder Review  
+**Status:** Web Architecture Pivot  
 **PRD ID:** PRD-001  
-**Dependencies:** None (Foundation layer for all other PRD systems)  
+**Dependencies:** PRD-008 (File-Based Project Structure)  
 
 ---
 
 ## Executive Summary
 
 ### Business Justification
-The Backend Integration Service Layer is the foundational infrastructure component that transforms the Blender Movie Director from a non-functional UI prototype into a complete generative film studio. This layer serves as the critical bridge between Blender's native interface and the powerful AI generation backends (ComfyUI, Wan2GP, LiteLLM), enabling users to create professional-quality video content entirely within their familiar Blender environment.
+The Backend Integration Service Layer transforms the Movie Director from a conceptual framework into a fully functional web-based generative film studio. This layer serves as the critical bridge between the browser-based user interface and powerful AI generation backends (ComfyUI, Wan2GP, heterogeneous model repositories), enabling users to create professional-quality video content through any modern web browser without installation barriers.
 
-This foundation layer directly enables the regenerative content model that defines the entire platform: users define project parameters once in the .blend file, while the backend service layer orchestrates unlimited content generation and regeneration from those stored definitions. This architectural approach ensures project portability, version control compatibility, and eliminates the traditional file management burden of generative workflows.
+This foundation layer directly enables the regenerative content model that defines the entire platform: users define project parameters once in the database, while the backend service layer orchestrates unlimited content generation and regeneration from those stored definitions. This architectural approach ensures project portability, collaborative workflows, and eliminates the traditional file management burden of generative workflows.
 
 ### Target User Personas
-- **Independent Filmmakers** - Creating short films and concept videos on limited budgets
-- **Content Creators** - YouTubers, social media creators needing high-quality video content
-- **Concept Artists** - Visualizing ideas for pre-production and pitching
-- **Advertising Agencies** - Rapid prototyping of video advertisements and promotional content
-- **Educational Institutions** - Teaching film production and AI integration
+- **Independent Filmmakers** - Creating short films and concept videos collaboratively from anywhere
+- **Content Creation Teams** - Distributed teams producing high-quality video content together
+- **Concept Artists** - Visualizing ideas for pre-production with real-time client feedback
+- **Advertising Agencies** - Rapid prototyping with multiple stakeholders reviewing simultaneously
+- **Educational Institutions** - Teaching film production with cloud-based collaborative tools
+- **Enterprise Studios** - Scaling production capacity with distributed compute resources
 
 ### Expected Impact on Film Production Workflow
-- **Workflow Transformation**: Reduce video production time from weeks to hours through intelligent automation
-- **Cost Reduction**: Eliminate need for expensive production equipment and teams (90%+ cost savings)
-- **Creative Democratization**: Enable solo creators to produce studio-quality content without technical barriers
-- **Market Positioning**: Establish Blender as the premier platform for AI-assisted filmmaking
-- **Professional Adoption**: Enable broadcast-quality content creation for sub-$5K budgets
+- **Accessibility Revolution**: Enable creation from any device with a web browser
+- **Collaborative Transformation**: Real-time multi-user editing and review capabilities
+- **Scalability Breakthrough**: Dynamically scale compute resources based on demand
+- **Cost Optimization**: Pay-per-use model eliminates need for expensive local hardware
+- **Market Expansion**: Reach users who cannot invest in high-end local GPU setups
 
 ---
 
 ## Problem Statement
 
-### Current Limitations in Generative Film Production
-1. **Fragmented Workflow**: Artists must juggle multiple disconnected tools (ComfyUI web interface, command-line tools, manual file management)
-2. **Technical Barriers**: Complex backend setup and API knowledge required for AI generation
-3. **Backend Resource Complexity**: Users must understand backend-specific resource requirements
-4. **Poor User Experience**: Context switching between applications breaks creative flow
-5. **Inconsistent Results**: Lack of automated asset management leads to style/character inconsistencies
+### Current Limitations in Desktop-Based Production
+1. **Hardware Barriers**: Requires expensive local GPU hardware (RTX 4080+ minimum)
+2. **Installation Complexity**: Complex setup of multiple backend services and dependencies
+3. **Single-User Limitation**: No real-time collaboration or remote review capabilities
+4. **Platform Lock-In**: Limited to specific operating systems and hardware configurations
+5. **Maintenance Burden**: Users must manage updates and compatibility across services
 
-### Pain Points in Existing Blender Workflows
-- **No AI Integration**: Blender has powerful 3D capabilities but zero native AI generation support
-- **Manual Asset Management**: Artists manually import/organize generated content
-- **Complex Setup**: Current AI tools require technical expertise to configure and operate
-- **Backend Configuration**: Each backend requires separate configuration and resource management
+### Pain Points in Existing Web Workflows
+- **Fragmented Services**: Current web tools are disconnected point solutions
+- **No Unified Interface**: Artists juggle multiple browser tabs and services
+- **Limited Asset Management**: No integrated system for managing generative assets
+- **Poor Collaboration**: File-based sharing instead of real-time cooperation
+- **No Version Control**: Difficult to track iterations and revert changes
 
-### Gaps in Agent-Based Film Creation Pipeline
-- **Non-Functional Agents**: Current agent framework lacks backend execution capabilities
-- **Missing Orchestration**: No actual workflow coordination between specialized agents
-- **Template Isolation**: Workflow templates exist but cannot be executed
-- **Status Blindness**: UI shows placeholder status without real progress tracking
+### Gaps in Current Generative Pipeline
+- **No Distributed Processing**: Cannot leverage cloud compute for resource-intensive tasks
+- **Limited Scalability**: Single-machine bottleneck for complex productions
+- **No Real-Time Updates**: Collaborators cannot see work in progress
+- **Poor Resource Utilization**: Idle local GPUs while waiting for other tasks
 
 ---
 
 ## Solution Overview
 
-### Feature Description within BMAD Agent Framework
-The Backend Integration Service Layer implements a robust, async-first architecture that enables the Producer agent to orchestrate complex generative workflows across multiple AI backends. This service layer acts as the "nervous system" of the generative film studio, coordinating between the Blender UI, specialized film crew agents, and external AI services.
+### Feature Description within Web Architecture
+The Backend Integration Service Layer implements a modern, distributed architecture using FastAPI for the API gateway, Celery for task orchestration, and WebSockets for real-time communication. This service layer acts as the intelligent orchestrator of the generative film studio, coordinating between the web UI, specialized processing workers, and external AI services.
 
 **Core Components:**
-1. **Unified API Client Manager** - Abstracted interfaces for ComfyUI, Wan2GP, and LiteLLM
-2. **Workflow Execution Engine** - Template-driven, parameter-injection workflow runner  
-3. **Task Queue System** - Async job management with progress tracking and error recovery
-4. **File Management Service** - Generated asset organization and Blender integration
-5. **Backend Resource Delegation** - Rely on ComfyUI and Wan2GP for VRAM and resource management
+1. **FastAPI Gateway** - RESTful API and WebSocket server for client communication
+2. **Celery Task Orchestration** - Distributed task queue with Redis message broker
+3. **Function Runner System** - Heterogeneous model execution for standalone repositories
+4. **Worker Pool Management** - GPU/CPU worker allocation and load balancing
+5. **Real-Time Event System** - WebSocket protocol for live updates and collaboration
+6. **File Storage Service** - S3-compatible object storage for generated assets
+7. **Metadata Database** - PostgreSQL for project state and regenerative parameters
+8. **Project Structure Service** - Automated project scaffolding and file management
+9. **Path Resolution Service** - Centralized file path handling for all operations
+10. **Git Integration Service** - Version control operations and history tracking
 
-### Integration with Existing Film Crew Agents
-- **Screenwriter Agent**: Uses LiteLLM client for script development and analysis
-- **Casting Director Agent**: Leverages ComfyUI workflows for character consistency and LoRA training
-- **Cinematographer Agent**: Orchestrates video generation across ComfyUI and Wan2GP backends
-- **Sound Designer Agent**: Integrates RVC voice synthesis, AudioLDM sound effects, and music generation APIs
-- **Art Director Agent**: Coordinates with style consistency framework for visual coherence
-- **Environment Director Agent**: Manages environment generation and multi-angle consistency
-- **Editor Agent**: Manages final assembly and imports generated content into Blender VSE
+### Distributed Processing Architecture
+- **GPU Worker Pools**: Specialized Celery workers for ComfyUI, Wan2GP, and custom models
+- **CPU Worker Pools**: Dedicated workers for video assembly, audio processing, and file operations
+- **Function Runner Workers**: Isolated Docker containers for arbitrary Python model execution
+- **Auto-Scaling**: Dynamic worker scaling based on queue depth and resource availability
+- **Load Balancing**: Intelligent task routing based on worker capabilities and current load
 
-### Backend Service Requirements
-- **ComfyUI Server**: WebSocket client for complex image/video workflow execution and LoRA training
-- **Wan2GP Server**: Gradio client integration for fast video preview generation and CausVid models
-- **LiteLLM Server**: OpenAI-compatible client for text generation and script analysis with local models
-- **RVC Integration**: Voice cloning and character dialogue generation
-- **AudioLDM Integration**: Sound effect and ambient audio generation
-- **Health Monitoring**: Continuous service availability checking and automatic reconnection
-- **Load Balancing**: Intelligent routing based on system capabilities and task requirements
+### Real-Time Collaboration Features
+- **Live Canvas Updates**: WebSocket events for node graph modifications
+- **Progress Broadcasting**: Real-time generation progress to all connected clients
+- **Collaborative Editing**: Multiple users can work on same project simultaneously
+- **Change Notifications**: Instant updates when team members modify assets or settings
+- **Presence Awareness**: See which team members are active and what they're working on
 
 ---
 
 ## User Stories & Acceptance Criteria
 
-### Epic 1: Basic Backend Connectivity
-**As a filmmaker using Blender Movie Director, I want the addon to automatically connect to my local AI services so that I can start creating content immediately without technical setup.**
+### Epic 1: Web-Based Access and Authentication
+**As a filmmaker, I want to access the movie director from any web browser so that I can work from anywhere without installation.**
 
-#### User Story 1.1: Service Discovery and Connection
-- **Given** I have ComfyUI, Wan2GP, and LiteLLM running locally
-- **When** I load the Movie Director addon in Blender  
-- **Then** the addon automatically discovers and connects to available services
-- **And** displays connection status in the main panel
-- **And** shows which AI capabilities are available
+#### User Story 1.1: Browser-Based Access
+- **Given** I have a modern web browser (Chrome, Firefox, Safari, Edge)
+- **When** I navigate to the Movie Director URL
+- **Then** the application loads without plugins or downloads
+- **And** I see the login/registration screen
+- **And** the UI is responsive to my screen size
 
-#### User Story 1.2: Health Monitoring and Recovery
-- **Given** I'm working on a film project with active AI generation
-- **When** a backend service becomes unavailable
-- **Then** the addon detects the disconnection within 30 seconds
-- **And** automatically attempts reconnection every 30 seconds
-- **And** notifies me of service status changes
-- **And** gracefully handles in-progress tasks
+#### User Story 1.2: User Authentication and Projects
+- **Given** I have registered an account
+- **When** I log in with my credentials
+- **Then** I see my project dashboard
+- **And** can create new projects or open existing ones
+- **And** my projects are securely isolated from other users
 
-### Epic 2: Workflow Execution Engine
-**As a content creator, I want to generate character images and videos by clicking buttons in Blender, without needing to understand the technical complexity of AI workflows.**
+### Epic 2: Distributed Task Execution
+**As a content creator, I want my generation tasks to run on powerful cloud servers so that I don't need expensive local hardware.**
 
-#### User Story 2.1: Character Generation with Multi-Tier Consistency
-- **Given** I have created a character asset with reference images
-- **When** I click "Generate Character Variations" 
-- **Then** the system loads the appropriate ComfyUI workflow template based on consistency tier
-- **And** injects character-specific parameters (reference image paths, descriptions, LoRA paths if available)
-- **And** executes the workflow on the ComfyUI backend with its native resource management
-- **And** imports generated images back into Blender as assets with regenerative parameters
-- **And** updates the character's asset browser preview and usage tracking
+#### User Story 2.1: Cloud-Based Generation
+- **Given** I have created a shot node with generation parameters
+- **When** I click "Generate"
+- **Then** the task is queued to available GPU workers
+- **And** I see real-time progress updates via WebSocket
+- **And** the generated content appears in my canvas when complete
+- **And** other team members see the same updates in real-time
 
-#### User Story 2.2: Integrated Shot Generation with Audio
-- **Given** I have defined a shot with dialogue, camera notes, and linked characters/environments
-- **When** I click "Generate Shot"
-- **Then** the system selects optimal backend (ComfyUI vs Wan2GP) based on complexity and character/style requirements
-- **And** loads appropriate video generation workflow with character LoRAs, style parameters, and environment context
-- **And** generates dialogue audio using character-specific RVC voice models
-- **And** executes coordinated video and audio generation with real-time progress updates
-- **And** imports final video clip and synchronized audio into Blender VSE at correct timeline position
+#### User Story 2.2: Function Runner Integration
+- **Given** I want to use a cutting-edge model like FlexiAct or LoRAEdit
+- **When** I connect it to my shot node
+- **Then** the Function Runner creates an isolated environment
+- **And** executes the model's multi-step Python workflow
+- **And** handles all dependencies and file paths automatically
+- **And** returns results seamlessly to the main workflow
 
-### Epic 3: Backend Optimization and Selection
-**As a user, I want the system to intelligently route tasks to the appropriate backend, leveraging each backend's native resource management capabilities.**
+### Epic 3: Real-Time Collaboration
+**As a creative team, we want to work together on the same project simultaneously so that we can iterate faster.**
 
-#### User Story 3.1: Intelligent Backend Selection
-- **Given** I request video generation for a shot
-- **When** the system has multiple backend options available
-- **Then** it selects the optimal backend based on:
-  - Task complexity and requirements
-  - Desired quality level (draft vs final)
-  - Character/style consistency needs
-  - Backend-specific capabilities
-  - Estimated processing time
-- **And** provides rationale for backend selection in progress panel
-- **And** lets the backend handle its own resource management
+#### User Story 3.1: Collaborative Canvas Editing
+- **Given** multiple team members have the project open
+- **When** one member adds or modifies a node
+- **Then** all other members see the change within 500ms
+- **And** the change is properly synchronized without conflicts
+- **And** each user's cursor/selection is visible to others
 
-#### User Story 3.2: Backend Error Recovery
-- **Given** I'm generating content through a backend service
-- **When** the backend reports a resource constraint or error
-- **Then** the system captures the error gracefully
-- **And** provides user-friendly error messages
-- **And** suggests alternative approaches (different backend, simplified workflow)
-- **And** allows retry with modified parameters
+#### User Story 3.2: Shared Asset Management
+- **Given** team members are working with character and style assets
+- **When** one member creates or updates an asset
+- **Then** it immediately appears in all users' asset libraries
+- **And** usage tracking shows who created/modified each asset
+- **And** version history is maintained for rollback
 
-### Epic 4: Audio Integration and Coordination
-**As a filmmaker, I want audio generation to be seamlessly integrated with video generation so that I can create complete audiovisual content without manual synchronization.**
+### Epic 4: Scalable Resource Management
+**As a production studio, I want to scale processing power based on demand so that we can handle variable workloads efficiently.**
 
-#### User Story 4.1: Character Voice Generation
-- **Given** I have a character with dialogue in a shot
-- **When** the shot generation includes voice requirements
-- **Then** the system automatically generates character dialogue using RVC voice models
-- **And** synchronizes voice generation with video generation timing
-- **And** imports audio tracks with proper character attribution and scene linkage
-- **And** maintains voice consistency across all character appearances
+#### User Story 4.1: Auto-Scaling Workers
+- **Given** multiple users are generating content simultaneously
+- **When** the task queue exceeds threshold depth
+- **Then** the system automatically provisions additional workers
+- **And** new tasks are distributed across available workers
+- **And** workers are decommissioned when queue empties
 
-#### User Story 4.2: Music and Sound Effects Integration
-- **Given** I have scenes requiring background music or sound effects
-- **When** I generate scene content with audio requirements
-- **Then** the system generates appropriate music using scene mood and style context
-- **And** creates sound effects based on scene action descriptions
-- **And** coordinates audio generation with visual content for proper timing
-- **And** organizes all audio assets with scene usage tracking and cross-references
+#### User Story 4.2: Heterogeneous Model Support
+- **Given** I want to use models from different repositories and frameworks
+- **When** I add a new model via Function Runner configuration
+- **Then** the system creates appropriate Docker container
+- **And** manages all dependencies and environment setup
+- **And** integrates seamlessly with existing workflow nodes
 
 ---
 
 ## Technical Requirements
 
-### Blender Addon Architecture Constraints
+### Web Application Architecture
 
-#### 1. Threading and Async Operations
-- **Requirement**: All backend operations must be non-blocking to Blender UI
-- **Implementation**: Use `threading.Thread` for API calls with `queue.Queue` for result handling
-- **Constraint**: Blender's operator system requires main thread updates for UI refresh
-- **Solution**: Implement timer-based polling for progress updates using `bpy.app.timers`
+#### 1. Frontend Integration (SvelteKit)
+- **Framework**: SvelteKit with server-side rendering for performance
+- **State Management**: Svelte stores for reactive UI updates
+- **Real-Time**: Native WebSocket integration for live updates
+- **Node Editor**: Svelte Flow for visual workflow editing
+- **Asset Management**: Drag-and-drop asset library with preview
 
-#### 2. Python Environment Integration
-- **Requirement**: Backend clients must work within Blender's Python environment
-- **Dependencies**: `requests`, `websocket-client`, `gradio_client`, `pyyaml`
-- **Constraint**: Avoid dependencies that conflict with Blender's built-in packages
-- **Installation**: Provide automated dependency installation for common platforms
-
-#### 3. File Path Management and Regenerative Content Model
-- **Requirement**: Handle both absolute and relative paths for cross-platform compatibility
-- **Integration**: Use Blender's `bpy.path` utilities for path resolution
-- **Storage**: Generated assets stored as file references only; all project definitions in .blend file
-- **Regenerative Architecture**: Content can be regenerated from stored parameters at any time
-- **Cleanup**: Implement automatic cleanup of temporary files on project close
-
-### CrewAI Framework Integration
-
-#### 1. Tool Integration Pattern
+#### 2. API Gateway (FastAPI)
 ```python
-@tool("Generate Video Clip")
-def generate_video_clip_tool(prompt: str, character_refs: List[str], style_path: str) -> str:
-    """Generate video clip using optimal backend selection"""
-    backend = backend_service.select_optimal_backend(
-        task_type="video_generation",
-        complexity_score=calculate_complexity(prompt, character_refs)
+from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Movie Director API")
+
+# REST endpoints for CRUD operations
+@app.post("/api/projects/{project_id}/generate")
+async def generate_content(project_id: str, node_id: str, params: GenerationParams):
+    """Queue generation task to Celery workers"""
+    task = celery_app.send_task(
+        'generate.video',
+        args=[project_id, node_id, params.dict()],
+        queue='gpu_heavy'
     )
-    
-    workflow_template = template_engine.load_template(
-        backend_type=backend.type,
-        template_name="video_generation"
-    )
-    
-    result = workflow_executor.execute_async(
-        template=workflow_template,
-        parameters={
-            "video_prompt": prompt,
-            "character_references": character_refs,
-            "style_lora_path": style_path
-        }
-    )
-    
-    return result.video_path
+    return {"task_id": task.id, "status": "queued"}
+
+# WebSocket for real-time updates
+@app.websocket("/ws/{project_id}")
+async def websocket_endpoint(websocket: WebSocket, project_id: str):
+    """Handle real-time collaboration and progress updates"""
+    await connection_manager.connect(websocket, project_id)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            await handle_client_event(project_id, data)
+    finally:
+        connection_manager.disconnect(websocket, project_id)
 ```
 
-#### 2. Agent-Backend Communication
-- **Async Execution**: Agents submit tasks to backend queue and receive completion callbacks
-- **Progress Tracking**: Real-time status updates propagated to UI panels
-- **Error Handling**: Structured error responses with recovery suggestions
-- **State Management**: Task state persisted in .blend file for session recovery
+#### 3. Task Orchestration (Celery)
+```python
+from celery import Celery
+from celery.signals import task_prerun, task_postrun
 
-### Backend API Requirements
+celery_app = Celery('movie_director', broker='redis://localhost:6379')
 
-#### 1. ComfyUI Integration
-- **WebSocket Client**: Real-time workflow execution and progress monitoring
-- **Workflow Templates**: YAML-based templates with parameter injection
-- **Model Management**: API calls for loading/unloading models based on VRAM availability
-- **File Handling**: Direct integration with ComfyUI's output directory structure
+@celery_app.task(bind=True, name='generate.video')
+def generate_video_task(self, project_id, node_id, params):
+    """Execute video generation with progress updates"""
+    # Get project paths
+    paths = ProjectPaths(WORKSPACE_ROOT)
+    project = get_project_sync(project_id)
+    project_root = paths.get_project_root(project.name)
+    
+    # Resolve asset paths for generation
+    path_service = PathResolutionService(WORKSPACE_ROOT)
+    if params.get('character_id'):
+        char_path = path_service.resolve_asset_path_sync(
+            project_id, 'character', params['character_id']
+        )
+        params['character_files'] = list(char_path.glob('reference_images/*'))
+    
+    # Select optimal backend
+    backend = select_backend(params['complexity'], params['requirements'])
+    
+    # Send progress via WebSocket
+    def progress_callback(percent, message):
+        send_websocket_event(project_id, {
+            'type': 'progress',
+            'node_id': node_id,
+            'percent': percent,
+            'message': message
+        })
+    
+    # Execute generation
+    result = backend.generate(params, progress_callback)
+    
+    # Store output in project structure
+    scene = params.get('scene', 'SCENE_01')
+    shot = params.get('shot', 'SHOT_001')
+    version = params.get('version', 1)
+    take = get_next_take_number(project_root, scene, shot, version)
+    
+    output_path = paths.get_shot_render_path(
+        project_root, scene, shot, version, take
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Move generated file to correct location
+    shutil.move(result['temp_path'], output_path)
+    
+    # Update result with proper path
+    result['output_path'] = str(output_path)
+    result['take_number'] = take
+    
+    # Store result and notify
+    store_generated_asset(project_id, node_id, result)
+    send_websocket_event(project_id, {
+        'type': 'generation_complete',
+        'node_id': node_id,
+        'output_path': str(output_path.relative_to(project_root)),
+        'take_number': take
+    })
+    
+    # Auto-commit if enabled
+    if params.get('auto_commit', True):
+        git_service = GitIntegrationService()
+        git_service.commit_changes_sync(
+            project_id, 
+            f"Generated {scene}/{shot} take {take}",
+            params['user_id']
+        )
+    
+    return result
+```
 
-#### 2. Wan2GP Integration  
-- **Gradio Client**: HTTP-based API for fast video generation
-- **Quality Presets**: Configurable quality/speed tradeoffs for different use cases
-- **Batch Processing**: Support for multiple shots with consistent parameters
-- **Format Handling**: Direct MP4 output compatible with Blender VSE
+#### 4. Function Runner System
+```python
+class FunctionRunner:
+    """Execute arbitrary model repositories in isolated environments"""
+    
+    def __init__(self, docker_client):
+        self.docker = docker_client
+        self.containers = {}
+        self.supported_node_types = {
+            'shot_generation': self.run_shot_model,
+            'transition': self.run_transition_model,
+            'combine_overlay': self.run_composite_model,
+            'style_transfer': self.run_style_model,
+            'upscale': self.run_upscale_model
+        }
+    
+    async def run_model(self, model_config, inputs, node_type='shot_generation'):
+        """Run a model based on node type with appropriate input/output handling"""
+        
+        # Validate inputs based on node type
+        self.validate_inputs(inputs, node_type)
+        
+        # Execute appropriate handler
+        handler = self.supported_node_types.get(node_type)
+        if not handler:
+            raise ValueError(f"Unsupported node type: {node_type}")
+        
+        return await handler(model_config, inputs)
+    
+    def validate_inputs(self, inputs, node_type):
+        """Validate input types for specific node"""
+        required_inputs = {
+            'shot_generation': {
+                'image_paths': list,      # Reference images
+                'prompt': str,            # Text prompt
+                'parameters': dict        # Model parameters
+            },
+            'transition': {
+                'video_a': str,           # Path to first video
+                'video_b': str,           # Path to second video
+                'duration': float,        # Transition duration
+                'type': str              # Transition type (fade, wipe, etc.)
+            },
+            'combine_overlay': {
+                'base_media': str,        # Base image/video path
+                'overlay_media': str,     # Overlay image/video path
+                'mask': str,             # Optional mask path
+                'blend_mode': str,       # Blend mode (multiply, screen, etc.)
+                'opacity': float         # Overlay opacity
+            }
+        }
+        
+        # Check required inputs exist
+        for key, expected_type in required_inputs.get(node_type, {}).items():
+            if key not in inputs:
+                raise ValueError(f"Missing required input: {key}")
+            if not isinstance(inputs[key], expected_type):
+                raise TypeError(f"Input {key} must be {expected_type}")
+    
+    async def run_shot_model(self, model_config, inputs):
+        """Generate shot from prompts and references"""
+        container = await self.get_or_create_container(model_config)
+        
+        # Standard shot generation with Docker image
+        volumes = {
+            inputs['image_paths'][0].parent: {'bind': '/inputs', 'mode': 'ro'},
+            '/tmp/outputs': {'bind': '/outputs', 'mode': 'rw'}
+        }
+        
+        # For development: run locally, for production: deploy to cloud
+        if model_config.get('local_dev', True):
+            result = container.exec_run(
+                f"python inference.py --prompt '{inputs['prompt']}' --output /outputs",
+                volumes=volumes
+            )
+        else:
+            # Cloud deployment would use K8s Job or similar
+            result = await self.submit_cloud_job(model_config, inputs)
+        
+        return {
+            'output_path': '/tmp/outputs/generated.mp4',
+            'metadata': self.extract_metadata(result)
+        }
+    
+    async def run_transition_model(self, model_config, inputs):
+        """Create transition between two video clips"""
+        container = await self.get_or_create_container(model_config)
+        
+        # Transition-specific processing
+        cmd = f"""python transition.py \
+            --video_a /inputs/video_a.mp4 \
+            --video_b /inputs/video_b.mp4 \
+            --type {inputs['type']} \
+            --duration {inputs['duration']} \
+            --output /outputs/transition.mp4"""
+        
+        result = container.exec_run(cmd, volumes=self.get_volumes(inputs))
+        
+        return {
+            'output_path': '/tmp/outputs/transition.mp4',
+            'duration': inputs['duration'],
+            'type': inputs['type']
+        }
+    
+    async def run_composite_model(self, model_config, inputs):
+        """Combine/overlay multiple media elements"""
+        container = await self.get_or_create_container(model_config)
+        
+        # Compositing with optional mask
+        cmd_parts = [
+            "python composite.py",
+            f"--base /inputs/base.{inputs['base_media'].split('.')[-1]}",
+            f"--overlay /inputs/overlay.{inputs['overlay_media'].split('.')[-1]}",
+            f"--blend_mode {inputs['blend_mode']}",
+            f"--opacity {inputs['opacity']}"
+        ]
+        
+        if inputs.get('mask'):
+            cmd_parts.append(f"--mask /inputs/mask.png")
+        
+        cmd_parts.append("--output /outputs/composite.mp4")
+        
+        result = container.exec_run(" ".join(cmd_parts), volumes=self.get_volumes(inputs))
+        
+        return {
+            'output_path': '/tmp/outputs/composite.mp4',
+            'blend_mode': inputs['blend_mode'],
+            'has_mask': bool(inputs.get('mask'))
+        }
+```
 
-#### 3. LiteLLM Integration
-- **OpenAI Compatibility**: Standard chat completion API for script development
-- **Model Selection**: Automatic selection between available local models (Llama, GOAT-70B-Storytelling)
-- **Context Management**: Maintain conversation context for iterative script development
-- **Structured Output**: Support for JSON-formatted responses for data extraction
+### Backend Service Integration
 
-#### 4. Audio Service Integration
-- **RVC Integration**: Character voice model training and dialogue generation
-- **AudioLDM Integration**: Sound effect and ambient audio generation from text descriptions
-- **Music Generation**: Scene-appropriate music composition with mood and style coordination
-- **Audio Synchronization**: Timing coordination between audio and visual generation workflows
+#### 1. ComfyUI WebSocket Adapter
+- **Protocol**: WebSocket communication with ComfyUI server
+- **Workflow Management**: JSON template system with parameter injection
+- **Progress Tracking**: Real-time progress events forwarded to clients
+- **Error Handling**: Graceful fallback and error propagation
 
-### Performance and Resource Considerations
+#### 2. Wan2GP HTTP Adapter  
+- **Integration**: Gradio client for HTTP-based communication
+- **Batch Processing**: Queue multiple requests for efficiency
+- **Format Conversion**: Automatic video format handling
+- **Quality Presets**: Dynamic quality selection based on requirements
 
-#### 1. Backend Resource Delegation
-- **Backend Autonomy**: Each backend (ComfyUI, Wan2GP) manages its own resources
-- **Error Propagation**: Clear communication of backend resource errors to users
-- **Workflow Optimization**: Leverage backend-specific optimizations and capabilities
-- **Configuration Passthrough**: Allow users to configure backend-specific resource settings
+#### 3. Heterogeneous Model Integration
+- **Docker Containers**: Isolated environments for each model type
+- **Dependency Management**: Automatic pip/conda environment setup
+- **GPU Allocation**: Dynamic GPU assignment to containers
+- **File System Bridge**: Shared volumes for input/output data
 
-#### 2. Storage Management and Regenerative Content Model
-- **Generated Asset Organization**: Hierarchical directory structure by project/scene/shot
-- **File Reference Storage**: Only file paths stored in .blend; content regenerated as needed
-- **Temporary File Cleanup**: Automatic cleanup of intermediate generation files
-- **Asset Caching**: Intelligent caching of frequently used character/style assets
-- **Disk Space Monitoring**: Warnings when project storage approaches limits
-- **Regenerative Architecture**: All content can be recreated from stored project definitions
+### Data Storage Architecture
 
-#### 3. Network Optimization
-- **Local-First Design**: All backends run locally to avoid network dependencies
-- **Connection Pooling**: Efficient reuse of HTTP connections for API calls
-- **Retry Logic**: Exponential backoff for transient network failures
-- **Timeout Management**: Configurable timeouts based on operation complexity
+#### 1. PostgreSQL Database Schema
+```sql
+-- Projects and collaboration
+CREATE TABLE projects (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP,
+    node_graph JSONB,
+    settings JSONB
+);
+
+-- Generative assets with regeneration parameters
+CREATE TABLE assets (
+    id UUID PRIMARY KEY,
+    project_id UUID REFERENCES projects(id),
+    type VARCHAR(50), -- character, style, environment
+    name VARCHAR(255),
+    parameters JSONB, -- Full regeneration parameters
+    file_references JSONB, -- S3 URLs for generated content
+    created_at TIMESTAMP,
+    created_by UUID REFERENCES users(id)
+);
+
+-- Real-time collaboration tracking
+CREATE TABLE project_sessions (
+    id UUID PRIMARY KEY,
+    project_id UUID REFERENCES projects(id),
+    user_id UUID REFERENCES users(id),
+    connected_at TIMESTAMP,
+    last_activity TIMESTAMP,
+    cursor_position JSONB
+);
+```
+
+#### 2. S3-Compatible Object Storage
+- **Asset Organization**: `/projects/{project_id}/assets/{asset_id}/`
+- **Version Control**: Automatic versioning for iterative generations
+- **CDN Integration**: Optional CDN for global asset delivery
+- **Lifecycle Policies**: Automatic cleanup of temporary files
+
+### WebSocket Event Protocol
+
+#### Event Types and Payloads
+```typescript
+// Client to Server Events
+interface ClientEvent {
+    type: 'node.create' | 'node.update' | 'node.delete' | 
+          'edge.create' | 'edge.delete' | 'generate.start' |
+          'cursor.move' | 'selection.change';
+    payload: any;
+    timestamp: number;
+}
+
+// Server to Client Events  
+interface ServerEvent {
+    type: 'state.update' | 'progress.update' | 'generation.complete' |
+          'error.occurred' | 'user.joined' | 'user.left' |
+          'cursor.update' | 'selection.update';
+    payload: any;
+    userId?: string;
+    timestamp: number;
+}
+
+// Progress Update Payload
+interface ProgressUpdate {
+    nodeId: string;
+    taskId: string;
+    percent: number;
+    message: string;
+    eta?: number;
+}
+```
+
+### File Storage Architecture
+
+#### 1. Project Structure Service
+```python
+from pathlib import Path
+from project_paths import ProjectPaths
+import subprocess
+
+@app.post("/api/projects/create")
+async def create_project(
+    request: CreateProjectRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Scaffold complete project structure with Git initialization"""
+    paths = ProjectPaths(WORKSPACE_ROOT)
+    scaffolder = ProjectScaffolder(WORKSPACE_ROOT, TEMPLATE_DIR)
+    
+    try:
+        # Create project structure
+        project_root = scaffolder.create_project(
+            request.project_name,
+            request.title,
+            request.description
+        )
+        
+        # Create database record
+        project = await create_project_record(
+            name=request.project_name,
+            title=request.title,
+            owner_id=current_user.id,
+            root_path=str(project_root)
+        )
+        
+        return {
+            "project_id": project.id,
+            "name": project.name,
+            "structure_created": True,
+            "git_initialized": True
+        }
+    except Exception as e:
+        logger.error(f"Project creation failed: {e}")
+        raise HTTPException(400, str(e))
+
+@app.get("/api/projects/{project_id}/structure")
+async def get_project_structure(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Return project file tree structure"""
+    project = await get_user_project(project_id, current_user.id)
+    paths = ProjectPaths(WORKSPACE_ROOT)
+    project_root = paths.get_project_root(project.name)
+    
+    def build_tree(path: Path):
+        tree = {"name": path.name, "type": "directory", "children": []}
+        try:
+            for item in sorted(path.iterdir()):
+                if item.name.startswith('.git'):
+                    continue
+                if item.is_dir():
+                    tree["children"].append(build_tree(item))
+                else:
+                    tree["children"].append({
+                        "name": item.name,
+                        "type": "file",
+                        "size": item.stat().st_size
+                    })
+        except PermissionError:
+            pass
+        return tree
+    
+    return build_tree(project_root)
+```
+
+#### 2. Path Resolution Service
+```python
+class PathResolutionService:
+    """Centralized service for resolving asset references to file paths"""
+    
+    def __init__(self, workspace_root: Path):
+        self.paths = ProjectPaths(workspace_root)
+    
+    async def resolve_asset_path(
+        self, 
+        project_id: str, 
+        asset_type: str, 
+        asset_name: str
+    ) -> Path:
+        """Resolve high-level asset reference to file path"""
+        project = await get_project(project_id)
+        project_root = self.paths.get_project_root(project.name)
+        
+        if asset_type == "character":
+            return self.paths.get_character_asset_path(project_root, asset_name)
+        elif asset_type == "style":
+            return self.paths.get_style_asset_path(project_root, asset_name)
+        elif asset_type == "location":
+            return project_root / "01_Assets" / "Generative_Assets" / "Locations" / asset_name
+        else:
+            raise ValueError(f"Unknown asset type: {asset_type}")
+    
+    async def get_asset_files(
+        self, 
+        project_id: str, 
+        asset_type: str, 
+        asset_name: str
+    ) -> Dict[str, List[str]]:
+        """List all files for a given asset"""
+        asset_path = await self.resolve_asset_path(project_id, asset_type, asset_name)
+        
+        files = {
+            "reference_images": [],
+            "models": [],
+            "metadata": []
+        }
+        
+        if not asset_path.exists():
+            return files
+        
+        for file in asset_path.rglob("*"):
+            if file.is_file():
+                if file.suffix in [".png", ".jpg", ".jpeg"]:
+                    files["reference_images"].append(str(file.relative_to(asset_path)))
+                elif file.suffix in [".safetensors", ".ckpt", ".pth"]:
+                    files["models"].append(str(file.relative_to(asset_path)))
+                elif file.suffix in [".txt", ".json"]:
+                    files["metadata"].append(str(file.relative_to(asset_path)))
+        
+        return files
+
+# API endpoints using path resolution
+@app.post("/api/assets/{asset_type}/create")
+async def create_asset(
+    asset_type: str,
+    request: CreateAssetRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create asset folder structure"""
+    path_service = PathResolutionService(WORKSPACE_ROOT)
+    
+    # Create asset directory
+    asset_path = await path_service.resolve_asset_path(
+        request.project_id,
+        asset_type,
+        request.name
+    )
+    
+    asset_path.mkdir(parents=True, exist_ok=True)
+    
+    # Create standard subdirectories
+    if asset_type in ["character", "style", "location"]:
+        (asset_path / "reference_images").mkdir(exist_ok=True)
+    
+    # Create metadata files
+    with open(asset_path / "description.txt", "w") as f:
+        f.write(request.description or "")
+    
+    return {"asset_path": str(asset_path), "created": True}
+```
+
+#### 3. Git Integration Service
+```python
+class GitIntegrationService:
+    """Handles Git operations for project version control"""
+    
+    async def commit_project_changes(
+        self, 
+        project_id: str, 
+        message: str, 
+        user_id: str
+    ):
+        """Create Git commit for project changes"""
+        project = await get_project(project_id)
+        project_root = Path(project.root_path)
+        
+        # Stage all changes
+        subprocess.run(["git", "add", "-A"], cwd=project_root, check=True)
+        
+        # Check if there are changes to commit
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=project_root,
+            capture_output=True,
+            text=True
+        )
+        
+        if not result.stdout.strip():
+            return {"status": "no_changes"}
+        
+        # Commit with user attribution
+        user = await get_user(user_id)
+        subprocess.run([
+            "git", "-c", f"user.name={user.name}",
+            "-c", f"user.email={user.email}",
+            "commit", "-m", message
+        ], cwd=project_root, check=True)
+        
+        return {"status": "committed", "message": message}
+    
+    async def get_project_history(
+        self, 
+        project_id: str, 
+        limit: int = 20
+    ):
+        """Get Git commit history for project"""
+        project = await get_project(project_id)
+        project_root = Path(project.root_path)
+        
+        result = subprocess.run([
+            "git", "log", 
+            f"--max-count={limit}",
+            "--pretty=format:%H|%an|%ae|%at|%s"
+        ], cwd=project_root, capture_output=True, text=True, check=True)
+        
+        commits = []
+        for line in result.stdout.strip().split("\n"):
+            if line:
+                hash, author, email, timestamp, subject = line.split("|", 4)
+                commits.append({
+                    "hash": hash,
+                    "author": author,
+                    "email": email,
+                    "timestamp": int(timestamp),
+                    "message": subject
+                })
+        
+        return commits
+
+# API endpoints for Git operations
+@app.post("/api/projects/{project_id}/commit")
+async def commit_project(
+    project_id: str,
+    request: CommitRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Commit project changes"""
+    git_service = GitIntegrationService()
+    result = await git_service.commit_project_changes(
+        project_id,
+        request.message,
+        current_user.id
+    )
+    return result
+
+@app.get("/api/projects/{project_id}/history")
+async def get_history(
+    project_id: str,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user)
+):
+    """Get project commit history"""
+    await verify_project_access(project_id, current_user.id)
+    git_service = GitIntegrationService()
+    return await git_service.get_project_history(project_id, limit)
+```
+
+### Performance and Scalability
+
+#### 1. Horizontal Scaling Strategy
+- **API Gateway**: Multiple FastAPI instances behind load balancer
+- **Worker Pools**: Separate queues for GPU-heavy and CPU-only tasks
+- **Database**: Read replicas for query distribution
+- **Redis Cluster**: Sharded Redis for message broker scaling
+- **Quality-Based Scaling**: Different worker pools per quality tier
+
+#### 2. Quality-Optimized Resource Allocation
+- **Low Quality Workers**: More workers with smaller GPUs (8GB VRAM)
+- **Standard Workers**: Balanced count with mid-range GPUs (16GB VRAM)
+- **High Quality Workers**: Fewer workers with premium GPUs (24GB+ VRAM)
+- **Dynamic Scaling**: Scale worker pools based on queue depth per quality tier
+
+#### 3. Caching Architecture
+- **Result Caching**: Cache generated content with same parameters
+- **Asset CDN**: CloudFront or similar for global asset delivery
+- **Database Caching**: Redis cache for frequently accessed metadata
+- **Workflow Templates**: Pre-parsed template cache
+- **Quality-Aware Caching**: Different cache TTL per quality tier
+
+#### 4. Resource Optimization
+- **Worker Recycling**: Periodic worker restart to prevent memory leaks
+- **Connection Pooling**: Reuse database and Redis connections
+- **Batch Processing**: Group similar tasks for GPU efficiency
+- **Progressive Loading**: Stream large assets instead of bulk transfer
+- **Quality-Based Timeouts**: Shorter timeouts for low quality, longer for high
 
 ---
 
 ## Success Metrics
 
-### User Adoption within Blender Workflow
+### User Adoption and Engagement
 **Primary KPIs:**
-- **Daily Active Users**: Target 500+ DAU within 6 months of release
-- **Session Duration**: Average session >30 minutes indicating productive workflow
-- **Feature Adoption Rate**: >80% of users complete end-to-end film generation within first week
-- **Retention Rate**: 70% monthly active user retention after initial onboarding
+- **Monthly Active Users**: Target 5,000+ MAU within 6 months
+- **Collaborative Projects**: >40% of projects have multiple active users
+- **Session Duration**: Average session >45 minutes indicating engagement
+- **Geographic Distribution**: Users from 50+ countries demonstrating global reach
 
 **Measurement Methods:**
-- Anonymous telemetry collection with user consent
-- In-addon usage analytics (button clicks, feature usage, error rates)
-- User survey feedback on workflow integration
-- Community forum engagement and support requests
+- Analytics integration (Plausible, PostHog)
+- WebSocket connection metrics
+- Project collaboration statistics
+- User survey feedback
 
-### Generative Content Quality Improvements
-**Quality Metrics:**
-- **Character Consistency Score**: >85% visual similarity across shots using same character
-- **Style Coherence**: >90% of users rate final output as "stylistically consistent"
-- **Technical Quality**: Generated videos meet broadcast standards (resolution, frame rate, compression)
-- **Artistic Merit**: User satisfaction rating >4.0/5.0 for creative output quality
+### Performance and Reliability
+**Technical Metrics:**
+- **API Response Time**: <200ms for 95th percentile
+- **WebSocket Latency**: <100ms for collaborative updates
+- **Task Completion Rate**: >98% successful generation completion
+- **Uptime**: 99.9% availability SLA
 
-**Measurement Methods:**
-- Automated computer vision analysis for character/style consistency
-- User surveys rating output quality and artistic satisfaction
-- Community showcase submissions and feedback
-- Professional filmmaker evaluation panels
+**Scalability Metrics:**
+- **Concurrent Users**: Support 1,000+ simultaneous users
+- **Task Throughput**: Process 10,000+ generation tasks/day
+- **Worker Efficiency**: >80% GPU utilization during peak
+- **Auto-scaling Response**: <2 minutes to provision new workers
 
-### Production Workflow Efficiency Gains
-**Efficiency Metrics:**
-- **Time to First Output**: Reduce concept-to-video time from 8+ hours to <30 minutes
-- **Iteration Speed**: Enable >10 creative iterations per hour vs <2 with traditional tools
-- **Setup Time**: <5 minutes from Blender startup to first generation vs >60 minutes traditional
-- **Resource Utilization**: >90% uptime for backend services during active sessions
-
-**Measurement Methods:**
-- Time-based analytics tracking key workflow milestones
-- User productivity surveys comparing pre/post adoption workflows
-- System performance monitoring (uptime, response times, error rates)
-- Cost analysis comparing traditional vs AI-assisted production methods
-
-### Technical Performance Benchmarks
-**System Performance:**
-- **Response Time**: <3 seconds for workflow initiation, <30 seconds for simple generations
-- **Reliability**: >99% uptime for backend integration layer
-- **Resource Efficiency**: Optimal VRAM utilization with <5% waste on multi-model workflows
-- **Error Rate**: <2% unrecoverable errors across all backend operations
-
-**User Experience:**
-- **Ease of Use**: >90% of new users complete tutorial without external help
-- **Error Recovery**: Average error resolution time <2 minutes with guided recovery
-- **Learning Curve**: Productive workflow achievement within <4 hours of first use
-- **Documentation**: Support ticket resolution rate >95% using provided documentation
+### Business Impact
+**Revenue Metrics:**
+- **Conversion Rate**: 10% free to paid conversion
+- **Resource Usage**: Optimize compute costs to <$0.50 per generation
+- **Customer Acquisition Cost**: <$50 per paying user
+- **Lifetime Value**: >$500 per paying customer
 
 ---
 
@@ -340,230 +838,129 @@ def generate_video_clip_tool(prompt: str, character_refs: List[str], style_path:
 
 ### Technical Risks
 
-#### High Risk: Backend Service Dependencies
-- **Risk**: External AI services (ComfyUI, Wan2GP) may be unstable or incompatible
-- **Probability**: Medium (40%)
-- **Impact**: High - Core functionality unavailable
-- **Mitigation Strategy**: 
-  - Implement robust health checking and automatic recovery
-  - Provide fallback mechanisms and graceful degradation
-  - Develop comprehensive testing suite for backend compatibility
-  - Create mock backends for development and testing
+#### High Risk: Distributed System Complexity
+- **Risk**: Complex coordination between multiple services
+- **Impact**: System instability and difficult debugging
+- **Mitigation**: 
+  - Comprehensive logging and tracing (OpenTelemetry)
+  - Circuit breakers for service failures
+  - Gradual rollout with feature flags
+  - Extensive integration testing
 
-#### Medium Risk: Backend Resource Limitations
-- **Risk**: Backend services hit resource limits causing generation failures
-- **Probability**: Medium (30%)
-- **Impact**: Medium - User frustration and workflow interruption
-- **Mitigation Strategy**:
-  - Clear error messaging from backend services
-  - Workflow simplification suggestions
-  - Backend configuration guidance in documentation
-  - Alternative backend routing for resource-intensive tasks
-
-#### Medium Risk: Blender API Changes
-- **Risk**: Future Blender updates break addon compatibility
-- **Probability**: Low (15%)
-- **Impact**: High - Addon becomes non-functional
-- **Mitigation Strategy**:
-  - Follow Blender development roadmap and test against beta releases
-  - Use stable, well-documented Blender APIs
-  - Implement version checking and compatibility warnings
-  - Maintain backward compatibility for recent Blender versions
+#### Medium Risk: Real-Time Synchronization Conflicts
+- **Risk**: Concurrent edits causing data conflicts
+- **Impact**: Lost work or corrupted projects
+- **Mitigation**:
+  - Operational transformation for conflict resolution
+  - Automatic save and version history
+  - Conflict detection and user notification
+  - Manual merge tools for complex conflicts
 
 ### Business Risks
 
-#### High Risk: User Adoption Barriers
-- **Risk**: Complex setup process prevents mainstream adoption
-- **Probability**: Medium (35%)  
-- **Impact**: High - Product fails to reach target market
-- **Mitigation Strategy**:
-  - Provide automated backend installation scripts
-  - Create comprehensive video tutorials and documentation
-  - Implement guided onboarding flow within addon
-  - Partner with community for setup assistance and troubleshooting
+#### High Risk: Infrastructure Costs
+- **Risk**: GPU compute costs exceeding revenue
+- **Impact**: Unsustainable business model
+- **Mitigation**:
+  - Efficient task scheduling and batching
+  - Spot instance usage for non-urgent tasks
+  - Tiered pricing with resource limits
+  - Aggressive caching of common operations
 
-#### Medium Risk: Performance Expectations
-- **Risk**: Users expect faster generation times than technically possible
-- **Probability**: High (50%)
-- **Impact**: Medium - User dissatisfaction despite functional product
-- **Mitigation Strategy**:
-  - Set clear expectations about generation times in documentation
-  - Provide real-time estimates and progress feedback
-  - Offer multiple quality/speed tradeoff options
-  - Educate users about hardware requirements and optimization
-
-### Regulatory and Ethical Risks
-
-#### Low Risk: AI Content Attribution
-- **Risk**: Generated content attribution and licensing concerns
-- **Probability**: Low (10%)
-- **Impact**: Medium - Legal complications for commercial users
-- **Mitigation Strategy**:
-  - Clear documentation about AI-generated content rights
-  - Metadata tracking of generation parameters and models used
-  - User education about commercial use considerations
-  - Legal disclaimer and user agreement
+#### Medium Risk: Network Latency
+- **Risk**: Poor experience for global users
+- **Impact**: Limited international adoption
+- **Mitigation**:
+  - Multi-region deployment strategy
+  - Edge caching for static assets
+  - Regional worker pools
+  - Progressive enhancement for slow connections
 
 ---
 
 ## Implementation Roadmap
 
-### Phase 1: Core Infrastructure (Weeks 1-4)
-*Foundation for PRD-002, PRD-003, PRD-004, and PRD-005*
+### Phase 1: Core Web Infrastructure (Weeks 1-4)
 **Deliverables:**
-- Basic API client implementations for all backends (ComfyUI, Wan2GP, LiteLLM, RVC, AudioLDM)
-- Health monitoring and connection management system with automatic service discovery
-- Simple workflow template loading and parameter injection system
-- Basic async task execution with progress callbacks and error handling
-- Regenerative content model foundation with file reference storage
+- FastAPI application with basic CRUD operations
+- PostgreSQL database schema and migrations
+- S3 storage integration for file management
+- Basic SvelteKit frontend with authentication
+- Docker development environment
 
 **Success Criteria:**
-- Successfully connect to and communicate with all backend services
-- Execute simple workflows (text generation, basic image generation)
-- Handle connection failures gracefully with user notification
+- Users can create accounts and projects
+- Basic REST API functional
+- File upload/download working
+- Development environment reproducible
 
-### Phase 2: Advanced Workflow Execution (Weeks 5-8)
-*Enables PRD-002 script breakdown and PRD-005 environment generation workflows*  
+### Phase 2: Real-Time Collaboration (Weeks 5-8)
 **Deliverables:**
-- Complete VRAM budgeting system with dynamic model management and multi-system coordination
-- Complex workflow template support (multi-node ComfyUI workflows, character LoRA training)
-- File management integration with Blender asset system and Asset Browser
-- Comprehensive error handling and recovery mechanisms with user guidance
-- Audio integration foundation with RVC and AudioLDM connectivity
+- WebSocket server implementation
+- Real-time event synchronization
+- Collaborative editing for node canvas
+- User presence indicators
+- Conflict resolution system
 
 **Success Criteria:**
-- Execute complex character generation workflows without VRAM crashes
-- Automatic import of generated assets into Blender with proper organization
-- Robust error recovery with clear user guidance
+- Multiple users can edit same project
+- Changes propagate in <500ms
+- No data loss during concurrent edits
+- Smooth user experience
 
-### Phase 3: Full Agent Integration (Weeks 9-12)
-*Supports PRD-003 character, PRD-004 style, and PRD-005 environment consistency*
+### Phase 3: Distributed Processing (Weeks 9-12)
 **Deliverables:**
-- Full CrewAI tool integration for all film crew agents with cross-system coordination
-- UI integration with real-time progress updates and unified navigation framework
-- Complete audio integration with character voice models and sound effect generation
-- Cross-PRD workflow coordination for character-environment-style integration
-- Performance optimization and intelligent caching across all systems
+- Celery worker infrastructure
+- GPU worker pool management
+- ComfyUI and Wan2GP adapters
+- Function Runner for arbitrary models
+- Progress tracking system
 
 **Success Criteria:**
-- End-to-end film generation workflow from script to final video with synchronized audio
-- Sub-30 minute generation time for short film sequences with character, style, and environment consistency
-- Professional-quality output suitable for broadcast television and commercial film production
-- Seamless integration across all five PRD systems with unified user experience
+- Generation tasks execute on remote workers
+- Real-time progress updates to UI
+- Support for multiple model types
+- Automatic scaling under load
 
-### Phase 4: Production Polish and Community Integration (Weeks 13-16)
-*Production-ready integration for all dependent PRDs (001-005)*
+### Phase 4: Production Features (Weeks 13-16)
 **Deliverables:**
-- Comprehensive error handling and user guidance with context-aware recovery workflows
-- Performance profiling and optimization for complex multi-system operations
-- Complete user documentation and tutorial creation covering all integrated systems
-- Community feedback integration and bug fixes with automated testing suite
-- Professional workflow validation with industry standard compliance testing
+- Advanced caching system
+- Performance optimization
+- Monitoring and alerting
+- User documentation
+- Public beta launch preparation
 
 **Success Criteria:**
-- >95% workflow success rate in user testing across all integrated systems
-- Documentation enables successful setup for 90% of target users without external support
-- Performance meets all technical benchmarks outlined in success metrics for production use
-- Professional quality validation with broadcast television standard compliance
-- Complete regenerative content model implementation with version control compatibility
+- Meet all performance benchmarks
+- 99.9% uptime in testing
+- Complete user documentation
+- Successful load testing at 1000+ users
 
 ---
 
 ## Stakeholder Sign-Off
 
 ### Development Team Approval
-- [ ] **Technical Lead** - Architecture and implementation feasibility confirmed
-- [ ] **UI/UX Designer** - Integration approach preserves user experience quality  
-- [ ] **QA Lead** - Testing strategy and acceptance criteria validated
+- [ ] **Frontend Lead** - SvelteKit architecture approved
+- [ ] **Backend Lead** - FastAPI/Celery design validated
+- [ ] **DevOps Lead** - Infrastructure approach confirmed
+- [ ] **QA Lead** - Testing strategy comprehensive
 
 ### Business Stakeholder Approval  
-- [ ] **Product Owner** - Business requirements and success metrics approved
-- [ ] **Community Manager** - User adoption strategy and support model confirmed
-- [ ] **Release Manager** - Implementation timeline and deliverables agreed upon
-
-### Technical Review Board
-- [ ] **Backend Architecture** - Service integration approach technically sound
-- [ ] **Performance Engineering** - Resource management strategy validated
-- [ ] **Security Review** - Local-first architecture security implications assessed
+- [ ] **Product Owner** - Requirements meet business goals
+- [ ] **Finance** - Infrastructure costs acceptable
+- [ ] **Marketing** - Go-to-market strategy aligned
+- [ ] **Legal** - Data privacy compliance confirmed
 
 ---
 
 **Next Steps:**
-1. Technical design document creation based on approved requirements
-2. Development environment setup and dependency analysis  
-3. Sprint planning and task breakdown for Phase 1 implementation
-4. User research interviews to validate assumptions and refine user stories
+1. Infrastructure setup and cost modeling
+2. Development environment creation
+3. API specification documentation
+4. Frontend mockup creation
+5. Database schema implementation
 
 ---
 
-## Cross-PRD Integration Specifications
-
-### Integration with Node-Based Production Canvas (PRD-006)
-- **Backend Execution from Nodes**: Node graph execution triggers backend API calls
-- **Progress Visualization**: Real-time backend progress displayed on nodes
-- **Error Display**: Backend errors shown directly on affected nodes
-- **Pipeline Configuration**: Node-based pipeline selection routes to appropriate backends
-
-### Integration with Regenerative Content Model (PRD-007)
-- **Parameter Storage**: Backend integration stores all generation parameters for regeneration
-- **Regeneration Queue**: Backend manages regeneration requests efficiently
-- **File Reference Updates**: Backend updates file references after generation/regeneration
-- **Model Version Tracking**: Backend tracks which models were used for future regeneration
-
-## Original Cross-PRD Integration Specifications
-
-### Complex Multi-System Workflows
-
-#### Character-Environment-Style Coordination Workflow
-- **Trigger**: Shot generation with character, environment, and style requirements
-- **Systems Involved**: PRD-001 (Backend), PRD-003 (Character), PRD-004 (Style), PRD-005 (Environment)
-- **Coordination Logic**: Backend service orchestrates sequential loading of character LoRA, style parameters, and environment context for unified generation
-- **Error Handling**: Fallback to baseline consistency if resource constraints prevent full coordination
-- **Performance Impact**: Additional 15-30% generation time for coordinated workflows
-
-#### Scene-Wide Consistency Validation
-- **Trigger**: Complete scene generation with multiple shots
-- **Systems Involved**: All PRDs (001-005)
-- **Process**: Automated cross-shot analysis for character, style, and environment consistency
-- **Validation Metrics**: Character similarity >85%, style coherence >90%, environment continuity >80%
-- **Remediation**: Automatic regeneration recommendations for inconsistent elements
-
-### Resource Management Coordination
-
-#### Backend Resource Coordination
-- **Task Distribution**: Intelligent routing to appropriate backends based on capabilities
-- **Error Handling**: Unified error handling across different backend services
-- **Progress Aggregation**: Combined progress reporting from multiple backends
-- **Configuration Management**: Centralized backend configuration interface
-
-### UI Navigation Framework
-
-#### Cross-System Navigation Pattern
-- **Asset Browser Integration**: Unified asset browser showing characters, styles, environments with cross-references
-- **Scene-Centric Navigation**: Scene properties panel with direct links to all related assets
-- **Asset Usage Tracking**: "Used In" sections showing scene/shot relationships for each asset type
-- **Quick Access Operators**: Context-sensitive buttons for asset creation and modification
-
-#### Progress and Status Coordination
-- **Unified Progress Panel**: Single panel showing all active backend operations across systems
-- **Status Hierarchy**: System status > workflow status > individual task status
-- **Error Consolidation**: Centralized error reporting with system-specific remediation
-- **Resource Monitoring**: Real-time VRAM and processing status visible in main panel
-
-### Coordinated Error Handling Strategy
-
-#### Error Classification and Routing
-- **Backend Connection Errors**: PRD-001 handles with automatic reconnection and user notification
-- **Generation Failures**: Route to appropriate system (PRD-003/004/005) with context preservation
-- **Resource Constraints**: VRAM management system provides optimization recommendations
-- **User Input Errors**: Context-aware validation with system-specific error messages
-
-#### Error Recovery Workflows
-- **Graceful Degradation**: Automatic fallback to lower-fidelity options when high-fidelity fails
-- **State Preservation**: All error states preserved for user review and manual intervention
-- **Recovery Guidance**: Step-by-step recovery instructions with system-specific context
-- **Learning Integration**: Error patterns used to improve future workflow optimization
-
----
-
-*This PRD represents the foundational requirements for transforming Blender Movie Director from concept to functional generative film studio. Implementation of this Backend Integration Service Layer enables all subsequent agent functionality and unlocks the full potential of AI-assisted filmmaking within Blender.*
+*This PRD represents the foundational shift from desktop-based to web-based architecture, enabling global access, real-time collaboration, and scalable processing for the next generation of AI-assisted filmmaking.*

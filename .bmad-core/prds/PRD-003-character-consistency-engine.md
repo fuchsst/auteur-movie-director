@@ -1,769 +1,578 @@
 # Product Requirements Document: Character Consistency Engine
 
-**Version:** 1.0  
-**Date:** 2025-01-21  
+**Version:** 2.0  
+**Date:** 2025-01-29  
 **Owner:** BMAD Business Analyst  
-**Status:** Draft - Stakeholder Review  
+**Status:** Web Architecture Pivot  
 **PRD ID:** PRD-003  
-**Dependencies:** Backend Integration Service Layer (PRD-001), Intelligent Script-to-Shot Breakdown System (PRD-002), Style Consistency Framework (PRD-004), Environment Management & Background Generation System (PRD-005)
+**Dependencies:** Backend Integration Service Layer (PRD-001), Intelligent Script-to-Shot Breakdown System (PRD-002), Style Consistency Framework (PRD-004), Environment Management System (PRD-005), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007), File-Based Project Structure (PRD-008)
 
 ---
 
 ## Executive Summary
 
 ### Business Justification
-The Character Consistency Engine addresses the fundamental barrier between proof-of-concept and production-ready generative filmmaking: maintaining character identity across multiple shots and scenes. This feature transforms the Blender Movie Director from a script processing tool into a genuine character-driven storytelling platform capable of producing professional-quality narrative content.
+The Character Consistency Engine addresses the fundamental barrier in generative filmmaking: maintaining character identity across multiple shots and scenes in a collaborative web environment. This feature transforms the Movie Director from a script processing tool into a genuine character-driven storytelling platform capable of producing professional-quality narrative content through distributed team collaboration.
 
-Character consistency represents the most technically complex and creatively critical challenge in generative film production. Without reliable character identity maintenance, filmmakers cannot create coherent narratives, making the tool unsuitable for any serious creative work. This engine implements a sophisticated multi-tier approach combining cutting-edge AI techniques with practical production workflows to ensure characters remain visually and auditorily consistent throughout entire film projects.
+Character consistency represents the most technically complex and creatively critical challenge in generative film production. Without reliable character identity maintenance, filmmakers cannot create coherent narratives. This engine implements a sophisticated multi-tier approach combining cutting-edge AI models (InfiniteYou, DreamO, OmniGen2) with practical production workflows, all accessible through a web browser with real-time team collaboration.
 
-The regenerative content model depends entirely on this feature: users define character parameters once in the .blend file, and the system maintains that identity across unlimited generations and iterations. Character assets exist as parametric definitions with file references to generated content (reference images, LoRA models, voice models), enabling complete character regeneration at any time. This approach ensures professional-quality character development while keeping project files small, version-control friendly, and fully portable across different hardware configurations.
+The system operates on the regenerative content model: users define character parameters once in the PostgreSQL database, and the system maintains that identity across unlimited generations. Character assets exist as parametric definitions with S3 file references to generated content, enabling complete character regeneration at any time while supporting real-time collaborative workflows.
 
 ### Target User Personas
-- **Narrative Filmmakers** - Creating character-driven stories requiring consistent protagonists
-- **Animation Directors** - Developing animated series with recurring character appearances
-- **Marketing Agencies** - Building brand mascots and spokesperson characters for campaigns
-- **Game Developers** - Creating consistent character assets for cinematics and trailers
-- **Content Creators** - Developing series content with recognizable character hosts
-- **Film Students** - Learning character development and continuity principles
+- **Distributed Film Teams** - Creating character-driven stories with remote team members
+- **Animation Studios** - Developing series with consistent characters across episodes
+- **Global Creative Agencies** - Building brand characters with international teams
+- **Educational Institutions** - Teaching character development through cloud collaboration
+- **Freelance Character Artists** - Creating consistent characters for multiple clients
+- **Virtual Production Teams** - Managing digital actors across distributed workflows
 
 ### Expected Impact on Film Production Workflow
-- **Character-Driven Storytelling**: Enable creation of multi-scene narratives with consistent protagonists
-- **Production Scalability**: Allow character-based content to scale from shorts to series without continuity breaks
-- **Creative Iteration**: Support rapid character design exploration while maintaining established identities
-- **Professional Quality**: Achieve broadcast-standard character consistency meeting industry expectations
-- **Educational Value**: Teach character development principles through AI-assisted consistency management
+- **Collaborative Character Development**: Multiple artists refine characters simultaneously
+- **Cloud-Based Consistency**: Leverage powerful servers for advanced character models
+- **Real-Time Updates**: Character changes instantly visible to all team members
+- **Scalable Processing**: Handle multiple character training jobs in parallel
+- **Global Asset Library**: Share character assets across projects and teams
 
 ---
 
 ## Problem Statement
 
-### Current Limitations in Generative Film Production
-1. **Character Identity Loss**: AI-generated characters appear completely different between shots, breaking narrative continuity
-2. **Manual Consistency Management**: Artists spend 60-80% of time on manual consistency correction rather than creative work
-3. **Technical Complexity Barriers**: Character consistency requires deep knowledge of LoRA training, face swapping, and model management
-4. **Inconsistent Quality**: Character appearance varies dramatically based on prompt variations and random seeds
-5. **Production Workflow Breaks**: Character inconsistency forces directors to abandon AI assistance for character-focused scenes
+### Current Limitations in Desktop Character Tools
+1. **Single-User Character Development**: Character creation locked to individual workstations
+2. **No Real-Time Sharing**: Team members work on characters in isolation
+3. **Hardware Limitations**: LoRA training requires expensive local GPUs
+4. **File Synchronization Issues**: Character asset versions conflict across team
+5. **Limited Model Access**: Can't leverage cutting-edge models without local setup
 
-### Pain Points in Existing Blender Workflows
-- **No Character Identity Management**: Blender lacks any concept of character continuity across generated content
-- **Manual Asset Correlation**: Users must manually track which generated images represent the same character
-- **Disconnected Reference Management**: Character reference materials exist separately from generation workflows
-- **No Learning System**: Each generation starts from scratch without building on previous character iterations
-- **Limited Creative Control**: No systematic way to modify character attributes while maintaining core identity
+### Pain Points in Web-Based Creative Tools
+- **No Advanced Consistency**: Web tools lack sophisticated character consistency
+- **Fragmented Asset Management**: Character references scattered across services
+- **Poor Team Coordination**: No unified character development workflow
+- **Limited Processing Power**: Browser-based tools can't handle complex models
+- **No Version Control**: Character iterations lost without proper tracking
 
-### Gaps in Agent-Based Film Creation Pipeline
-- **Casting Director Agent Incompleteness**: Currently lacks the technical capabilities for character consistency management
-- **No Character Memory**: Agents cannot remember or reference previous character generations
-- **Missing Cross-Agent Communication**: Character definitions don't propagate between Cinematographer and Sound Designer agents
-- **Workflow Fragmentation**: Character creation and character usage exist in separate, disconnected processes
+### Gaps in Current Web Pipeline
+- **Missing Advanced Models**: No access to InfiniteYou, DreamO, OmniGen2
+- **No Distributed Training**: Can't leverage cloud GPUs for LoRA training
+- **Limited Real-Time Preview**: Character updates not instantly visible
+- **Poor Cross-Project Sharing**: Characters locked to single projects
 
 ---
 
 ## Solution Overview
 
-### Feature Description within BMAD Agent Framework
-The Character Consistency Engine extends the Casting Director agent with sophisticated AI-powered character management capabilities. This system implements a multi-tier approach to character consistency, automatically selecting the appropriate technique based on character importance, available resources, and quality requirements.
+### Feature Description within Web Architecture
+The Character Consistency Engine leverages the distributed web architecture to provide collaborative character development with advanced AI models. Using Function Runner for heterogeneous model execution and Celery for distributed processing, teams can develop, train, and maintain consistent characters across entire productions with real-time synchronization.
 
-**Core Architecture:**
-1. **Character Creation and Image Generation** - Generate character reference images from text descriptions
-2. **Character Asset Management System** - Comprehensive character definition storage and organization
-3. **Character Gallery and Variations** - Generate multiple character poses, expressions, and outfits
-4. **Multi-Tier Consistency Pipeline** - Automated selection between baseline, enhanced, and ultimate fidelity approaches
-5. **Reference Image Processing** - Intelligent analysis and optimization of character reference materials
-6. **LoRA Training Automation** - Streamlined character-specific model training for hero characters
-7. **Voice Identity Integration** - Coordinated visual and audio character consistency
-8. **Scene Usage Tracking** - Track and display character appearances across all scenes with cross-navigation
-9. **Cross-Shot Validation** - Automated consistency checking and regeneration recommendations
-10. **Script Integration** - Automatic character creation from script breakdown with metadata inheritance
-11. **Audio-Visual Coordination** - Synchronized character voice and visual consistency management
+**Core Capabilities:**
+1. **Collaborative Character Gallery** - Real-time shared character asset library
+2. **Cloud-Based Model Training** - Distributed LoRA training on GPU workers
+3. **Advanced Model Integration** - InfiniteYou, DreamO, OmniGen2 via Function Runner
+4. **Live Character Preview** - Instant visual updates across all clients
+5. **Quality-Tiered Consistency** - Three levels of character quality
+6. **Version History** - Complete character evolution tracking
+7. **Cross-Project Templates** - Share characters across productions
+8. **Team Annotations** - Collaborative notes and feedback on characters
+9. **Batch Variation Generation** - Create multiple poses/expressions in parallel
+10. **API Access** - Integrate character assets with external tools
+11. **Git LFS Integration** - Version control for character assets
+12. **File Structure Compliance** - Organized in project hierarchy
 
-### Integration with Existing Film Crew Agents
+**Quality Tier Specifications:**
+- **Low Quality**: Basic character consistency with IPAdapter, fast generation
+- **Standard Quality**: Enhanced consistency with LoRA or InstantID, balanced
+- **High Quality**: Maximum consistency with InfiniteYou/DreamO, best results
 
-**Enhanced Casting Director Agent:**
-- Manages complete character creation workflow from description to final reference images
-- Generates character galleries with variations for different scenes and contexts
-- Evolves from basic character creation to comprehensive identity management
-- Implements the three-tier consistency strategy outlined in the CLAUDE.md architecture
-- Manages character lifecycle from initial concept through final production
-- Tracks character usage across scenes and provides scene linkage information
-- Coordinates with other agents to ensure character consistency across all content types
+### Integration with Advanced Models
+**Function Runner Model Support:**
+- **InfiniteYou**: Zero-shot identity preservation on FLUX
+- **DreamO**: Unified identity, try-on, and style transfer
+- **OmniGen2**: Multi-modal character generation from complex prompts
+- **Traditional Models**: LoRA training, IPAdapter, InstantID as fallbacks
 
-**Cinematographer Agent Integration:**
-- Receives character-specific LoRA models and reference data for video generation
-- Automatically applies appropriate character consistency techniques based on shot requirements
-- Implements character-aware prompt engineering and parameter optimization
-- Handles character positioning and interaction consistency across shots
+**Distributed Processing Benefits:**
+- Parallel character training across multiple GPU workers
+- Real-time progress updates to all team members
+- Automatic model selection based on hardware availability
+- Seamless fallback to simpler models when needed
 
-**Sound Designer Agent Coordination:**
-- Accesses character-specific voice models for dialogue generation with RVC integration
-- Maintains voice consistency across all character dialogue and audio appearances
-- Coordinates timing between visual character appearance and voice characteristics
-- Manages character voice training data and model versioning
-- Synchronizes audio generation with character visual consistency requirements
+### Backend Service Architecture
+**FastAPI Endpoints:**
+- Character CRUD operations with team permissions
+- Training job submission and monitoring
+- Character validation and consistency scoring
+- Gallery management and sharing
 
-**Environment Director Agent Integration:**
-- Coordinates character placement and scale for environment-specific shots
-- Adapts character lighting and appearance to match environment conditions
-- Ensures character-environment interaction consistency across multi-angle shots
-- Optimizes character positioning for environment camera perspectives
+**Celery Task Processing:**
+- Distributed LoRA training on GPU clusters
+- Quality-based queue routing for character tasks
+- Parallel processing for batch variations
+- Progress streaming to all connected clients
 
-### Backend Service Requirements
+**File Storage Integration:**
+- Characters stored in `01_Assets/Generative_Assets/Characters/`
+- Reference images in standardized subdirectories
+- Model files tracked with Git LFS
+- Metadata in version-controlled JSON files
+- Parallel character variation generation
+- Batch consistency validation
+- Model optimization and compression
 
-**ComfyUI Advanced Workflows:**
-- Character LoRA training pipelines with automated parameter optimization
-- IPAdapter + InstantID baseline consistency workflows
-- ComfyUI-ReActor enhanced facial fidelity processing
-- Batch character generation with consistency validation
-
-**Specialized Model Management:**
-- Character-specific model storage and versioning
-- Intelligent model loading/unloading based on current character requirements
-- VRAM optimization for complex character workflows
-- Model performance monitoring and optimization recommendations
+**WebSocket Events:**
+- Real-time character preview updates
+- Training progress streaming
+- Gallery synchronization
+- Team collaboration events
 
 ---
 
 ## User Stories & Acceptance Criteria
 
-### Epic 1: Character Creation and Image Generation
-**As a filmmaker, I want to create characters from text descriptions and generate reference images, so that I can quickly develop character concepts and have visual references for my film project.**
+### Epic 1: Collaborative Character Development
+**As a character design team, we want to develop characters together in real-time so that we maintain consistent vision across our production.**
 
-#### User Story 1.1: Character Creation from Description
-- **Given** I have a written description of a character (appearance, personality, role)
-- **When** I use the "Create Character from Description" operator
-- **Then** the system generates initial reference images based on the text description
-- **And** creates a character asset with the generated references
-- **And** allows me to refine the description and regenerate references
-- **And** stores all character data in my .blend file following regenerative content model
-
-**Acceptance Criteria:**
-- Text-to-image character generation with multiple style options
-- Character description parsing and visual interpretation
-- Reference image generation with user feedback and refinement
-- Character asset creation with regenerative parameters stored
-
-#### User Story 1.2: Character Gallery and Variations
-- **Given** I have created a character with initial reference images
-- **When** I want to generate character variations for different scenes
-- **Then** I can generate character images in different poses, expressions, and outfits
-- **And** I can create character variations while maintaining core identity
-- **And** I can organize these variations in a character gallery within the character UI
-- **And** I can select appropriate variations for specific scenes or shots
+#### User Story 1.1: Shared Character Gallery
+- **Given** multiple team members working on a project
+- **When** one member creates or updates a character
+- **Then** all team members see the change immediately
+- **And** can access the same character reference images
+- **And** see who made what changes and when
+- **And** can revert to previous versions if needed
 
 **Acceptance Criteria:**
-- Character variation generation maintaining identity consistency
-- Character gallery organization within character management UI
-- Pose, expression, and outfit variation capabilities
-- Scene-appropriate character variation selection
+- Real-time gallery synchronization <500ms
+- Version history with visual diff
+- User attribution for all changes
+- Rollback capability with team notification
 
-### Epic 2: Character Asset Management and Scene Integration
-**As a filmmaker, I want to manage my characters and track their usage across scenes, so that I can maintain character consistency and easily navigate my project structure.**
-
-#### User Story 2.1: Character Management with Scene Links
-- **Given** I have created characters and assigned them to scenes
-- **When** I access the character management UI
-- **Then** I can see a list of all scenes where each character appears
-- **And** I can navigate directly from character UI to scenes using that character
-- **And** I can modify character properties and see impact on linked scenes
-- **And** I can track character development and usage throughout the project
+#### User Story 1.2: Collaborative Character Refinement
+- **Given** a team has created initial character concepts
+- **When** they want to refine character details together
+- **Then** multiple users can annotate character images
+- **And** suggest variations and improvements
+- **And** vote on preferred character versions
+- **And** see consensus emerging in real-time
 
 **Acceptance Criteria:**
-- Character-scene usage tracking and display
-- Direct navigation from character UI to linked scenes
-- Character modification impact assessment on scenes
-- Project-wide character usage overview
+- Multi-user annotation system
+- Variation suggestion workflow
+- Voting/approval mechanism
+- Real-time consensus visualization
 
-#### User Story 2.2: Character Attribute Management
-- **Given** I have created a character with initial references
-- **When** I want to modify character attributes (age, clothing, expression ranges)
-- **Then** I can edit character properties through a dedicated character panel
-- **And** the system validates modifications against existing character data
-- **And** provides options to regenerate existing content with updated attributes
-- **And** maintains character identity core while allowing controlled variations
+### Epic 2: Cloud-Based Advanced Model Integration
+**As a filmmaker, I want to use cutting-edge character consistency models without local setup so that I can achieve the best possible results.**
 
-**Acceptance Criteria:**
-- Intuitive character editing interface with preview capabilities
-- Attribute validation to prevent identity-breaking changes
-- Regeneration workflow for updating existing character content
-- Version tracking for character modifications
-
-### Epic 3: Multi-Tier Consistency Implementation
-**As a content creator, I want the system to automatically choose the best character consistency approach based on my character's importance and my hardware capabilities, so that I get optimal results without technical complexity.**
-
-#### User Story 3.1: Baseline Consistency for Secondary Characters
-- **Given** I have defined secondary characters for background appearances
-- **When** I generate shots containing these characters
-- **Then** the system uses IPAdapter + InstantID for quick, consistent character appearance
-- **And** applies appropriate ControlNet guidance for pose and positioning
-- **And** maintains reasonable character similarity across shots (>70% visual consistency)
-- **And** processes generations quickly for rapid iteration
+#### User Story 2.1: InfiniteYou Integration
+- **Given** I have character reference images
+- **When** I select InfiniteYou for character generation
+- **Then** the system uses Function Runner to execute the model
+- **And** maintains character identity with zero-shot learning
+- **And** streams results back to all team members
+- **And** handles the complex model dependencies automatically
 
 **Acceptance Criteria:**
-- IPAdapter + InstantID implementation with <60 second generation time
-- 70%+ character visual consistency score across multiple generations
-- Automatic pose and positioning guidance through ControlNet
-- Resource-efficient processing suitable for secondary characters
+- Successful InfiniteYou model execution via Function Runner
+- >90% identity preservation accuracy
+- Results streaming to all connected clients
+- Automatic dependency management
 
-#### User Story 3.2: Enhanced Fidelity for Main Characters
-- **Given** I have designated main characters requiring high consistency
-- **When** I generate shots featuring these characters
-- **Then** the system applies ComfyUI-ReActor face enhancement for precise facial matching
-- **And** combines IPAdapter, InstantID, and face swapping for maximum consistency
-- **And** achieves >85% visual consistency across character appearances
-- **And** automatically detects and corrects facial distortions
-
-**Acceptance Criteria:**
-- ComfyUI-ReActor integration with automated face detection and swapping
-- 85%+ character visual consistency score for main characters
-- Facial distortion detection and automatic correction
-- Quality validation with regeneration recommendations for failed attempts
-
-#### User Story 3.3: Ultimate Fidelity with LoRA Training
-- **Given** I have hero characters requiring perfect consistency throughout a long-form project
-- **When** I request ultimate fidelity character processing
-- **Then** the system automatically trains a custom LoRA model using my character references
-- **And** integrates the trained LoRA into all character generation workflows
-- **And** achieves >95% character visual consistency across unlimited generations
-- **And** provides progress feedback and estimated completion time for training
+#### User Story 2.2: Intelligent Model Selection
+- **Given** different characters with varying importance levels
+- **When** I generate character content
+- **Then** the system automatically selects the best model
+- **And** considers available resources and queue depth
+- **And** falls back gracefully if advanced models are busy
+- **And** notifies me of the model being used
 
 **Acceptance Criteria:**
-- Automated LoRA training pipeline with progress tracking
-- 95%+ character visual consistency score using trained LoRA models
-- Training completion in <2 hours on recommended hardware
-- Automatic integration of trained LoRA into generation workflows
+- Automatic model selection based on character importance
+- Resource-aware scheduling
+- Graceful fallback mechanism
+- Clear model selection feedback
 
-### Epic 4: Voice Identity Integration
-**As a narrative filmmaker, I want my characters to have consistent voices that match their visual appearance, so that I can create complete character performances across dialogue scenes.**
+### Epic 3: Distributed Character Training
+**As a production team, we want to train custom character models in the cloud so that we don't need expensive local hardware.**
 
-#### User Story 4.1: Voice Model Training and Integration
-- **Given** I have character dialogue content and optional voice samples
-- **When** I initiate voice model training for a character
-- **Then** the system trains an RVC voice model specific to that character
-- **And** integrates voice generation with visual character generation workflows
-- **And** maintains voice consistency across all character dialogue
-- **And** provides voice preview capabilities before final generation
-
-**Acceptance Criteria:**
-- RVC voice model training integration with character workflow
-- Voice consistency across all character dialogue generations
-- Voice preview capabilities with instant feedback
-- Coordinated visual-audio character consistency
-
-#### User Story 4.2: Dialogue-Character Synchronization
-- **Given** I have shots with character dialogue defined in the script breakdown
-- **When** I generate video content for dialogue scenes
-- **Then** the system automatically matches character voice to visual appearance
-- **And** synchronizes lip movement with generated character voice
-- **And** maintains character identity across both visual and audio elements
-- **And** provides editing capabilities for voice-visual coordination
+#### User Story 3.1: Cloud LoRA Training
+- **Given** I have collected character reference images
+- **When** I initiate LoRA training
+- **Then** the job is distributed to available GPU workers
+- **And** progress updates stream to all team members
+- **And** the trained model is automatically available upon completion
+- **And** training can be monitored from any device
 
 **Acceptance Criteria:**
-- Automatic voice-visual character matching for dialogue scenes
-- Basic lip synchronization for generated character content
-- Consistent character identity across audio and visual generation
-- Voice-visual coordination editing interface
+- Distributed training across GPU workers
+- Real-time progress updates via WebSocket
+- Automatic model deployment on completion
+- Cross-device monitoring capability
 
-### Epic 5: Script Integration and Automated Character Creation
-**As a filmmaker, I want characters to be automatically created from my script breakdown with appropriate metadata and scene assignments, so that I can seamlessly transition from script analysis to character development.**
-
-#### User Story 5.1: Automatic Character Asset Creation from Script
-- **Given** I have completed script breakdown with character extraction
-- **When** the script analysis identifies characters and their scene appearances
-- **Then** the system automatically creates character asset placeholders for all identified characters
-- **And** populates character metadata from script descriptions and dialogue analysis
-- **And** establishes character-scene linkage based on script breakdown results
-- **And** identifies voice characteristics and dialogue requirements for each character
+#### User Story 3.2: Training Queue Management
+- **Given** multiple team members submitting training jobs
+- **When** resources are limited
+- **Then** jobs are intelligently prioritized
+- **And** users see their position in queue
+- **And** can adjust priority based on urgency
+- **And** receive notifications when training starts/completes
 
 **Acceptance Criteria:**
-- Automatic character asset creation for 90%+ of properly identified script characters
-- Character metadata population from script descriptions with 80% accuracy
-- Character-scene linkage establishment matching script breakdown results
-- Voice requirement identification from dialogue analysis and character context
+- Fair queue management algorithm
+- Queue position visibility
+- Priority adjustment system
+- Multi-channel notifications
 
-#### User Story 5.2: Character Development Workflow Integration
-- **Given** I have character assets created from script breakdown
-- **When** I want to develop these characters with visual references and consistency settings
-- **Then** I can access character development tools directly from script breakdown UI
-- **And** I can generate initial character references based on script descriptions
-- **And** I can set character importance levels based on scene usage frequency
-- **And** the system suggests appropriate consistency tiers based on character role and usage
+### Epic 4: Character Variation Generation
+**As a creative team, we want to generate multiple character variations efficiently so that we can explore different options quickly.**
+
+#### User Story 4.1: Batch Variation Generation
+- **Given** I have a base character defined
+- **When** I request variations (poses, expressions, outfits)
+- **Then** the system generates multiple options in parallel
+- **And** displays them in a comparison grid
+- **And** allows team voting on preferred variations
+- **And** integrates selected variations into the character asset
 
 **Acceptance Criteria:**
-- Direct navigation from script breakdown to character development interface
-- Character reference generation from script descriptions with style coordination
-- Automatic character importance assessment based on scene frequency and dialogue volume
-- Consistency tier recommendations based on character role analysis and project requirements
+- Parallel generation of 10+ variations
+- Grid-based comparison interface
+- Team voting mechanism
+- Seamless integration of selections
+
+#### User Story 4.2: Context-Aware Variations
+- **Given** characters assigned to specific scenes
+- **When** generating variations
+- **Then** the system considers scene context
+- **And** generates appropriate expressions/poses
+- **And** maintains consistency with scene mood
+- **And** suggests variations based on script analysis
+
+**Acceptance Criteria:**
+- Scene context integration
+- Mood-appropriate generation
+- Script-based suggestions
+- Consistency validation
+
+### Epic 5: Cross-Project Character Sharing
+**As a studio, we want to reuse characters across projects so that we can build a library of consistent digital actors.**
+
+#### User Story 5.1: Character Templates
+- **Given** I have developed characters in one project
+- **When** I want to use them in another project
+- **Then** I can export characters as templates
+- **And** import them into new projects
+- **And** maintain all consistency parameters
+- **And** track character usage across projects
+
+**Acceptance Criteria:**
+- Character export/import functionality
+- Parameter preservation
+- Cross-project usage tracking
+- Template versioning
+
+#### User Story 5.2: Studio Character Library
+- **Given** our studio has created many characters
+- **When** starting new projects
+- **Then** we can browse our character library
+- **And** filter by attributes and tags
+- **And** see usage statistics
+- **And** maintain character licensing info
+
+**Acceptance Criteria:**
+- Centralized character library
+- Advanced filtering and search
+- Usage analytics
+- Licensing management
 
 ---
 
 ## Technical Requirements
 
-### Blender Addon Architecture Integration
+### Web Application Architecture
 
-#### 1. Character Asset Data Model Extension
-```python
-class MovieDirectorCharacterProperties(PropertyGroup):
-    """Extended character properties for consistency engine"""
-    name: StringProperty(name="Character Name")
-    description: StringProperty(name="Character Description")
-    
-    # Reference Management
-    reference_images_path: StringProperty(name="Reference Images", subtype='DIR_PATH')
-    processed_references_path: StringProperty(name="Processed References", subtype='DIR_PATH')
-    reference_quality_score: FloatProperty(name="Reference Quality", min=0.0, max=1.0)
-    
-    # Consistency Configuration
-    consistency_tier: EnumProperty(
-        name="Consistency Level",
-        items=[
-            ('BASELINE', "Baseline", "IPAdapter + InstantID for quick consistency"),
-            ('ENHANCED', "Enhanced", "Face swapping for improved fidelity"),
-            ('ULTIMATE', "Ultimate", "Custom LoRA training for perfect consistency")
-        ],
-        default='ENHANCED'
+#### 1. Frontend Component Requirements
+
+**Character Gallery Component Requirements:**
+- Real-time synchronization of character assets
+- WebSocket connection for live updates
+- Display character thumbnails with metadata
+- Quality tier indicators (Low/Standard/High)
+- Training status visualization
+- Batch selection for operations
+- Drag-and-drop to Production Canvas
+- Reference characters by ID only
+
+**Character Creation Interface Requirements:**
+- Multiple reference image upload
+- Automatic image validation
+- Quality tier selection:
+  - Low: Basic consistency, 5+ images
+  - Standard: Enhanced consistency, 10+ images
+  - High: Maximum consistency, 20+ images
+- Metadata input (name, age, traits)
+- Real-time preview generation
+- Team collaboration features
+
+**Training Monitor Requirements:**
+- Live progress tracking for all training jobs
+- Queue position display
+- Resource usage visualization
+- Time estimation based on quality tier
+- Cancel/pause functionality
+- Multi-character batch training
+- Success/failure notifications
+
+#### 2. API Endpoint Requirements
+
+**Character Training Endpoint Requirements:**
+- Accept character ID and quality tier parameter
+- Validate reference image count based on tier:
+  - Low: Minimum 5 images
+  - Standard: Minimum 10 images
+  - High: Minimum 20 images
+- Queue to appropriate worker pool:
+  - Low: Fast training with basic model
+  - Standard: Balanced training with LoRA
+  - High: Premium training with advanced techniques
+- Calculate priority based on user tier and urgency
+- Store training job metadata
+- Broadcast start notification to team
+- Return job ID and estimated time
+
+**Advanced Model Generation Endpoints:**
+- Support multiple model backends:
+  - InfiniteYou for zero-shot consistency
+  - DreamO for unified identity operations
+  - OmniGen2 for multi-modal generation
+- Quality-based model selection:
+  - Low: IPAdapter or basic LoRA
+  - Standard: Fine-tuned LoRA or InstantID
+  - High: InfiniteYou or DreamO
+- Handle fallback when models unavailable
+- Stream progress updates via WebSocket
+    current_user: User = Depends(get_current_user)
+):
+    """Generate using InfiniteYou, DreamO, or OmniGen2"""
+    # Select best available model
+    model = await select_advanced_model(
+        generation_params.preferred_model,
+        check_availability=True
     )
     
-    # Script Integration
-    script_character_id: StringProperty(name="Script Character ID")
-    script_descriptions: StringProperty(name="Script Descriptions JSON")
-    dialogue_frequency: IntProperty(name="Dialogue Frequency", default=0)
-    scene_importance_score: FloatProperty(name="Scene Importance", min=0.0, max=1.0)
-    
-    # Generated Assets (File References Only - Regenerative Model)
-    character_lora_path: StringProperty(name="Character LoRA", subtype='FILE_PATH')
-    voice_model_path: StringProperty(name="Voice Model", subtype='FILE_PATH')
-    character_gallery_path: StringProperty(name="Character Gallery", subtype='DIR_PATH')
-    consistency_validation_results: StringProperty(name="Validation Data")
-    
-    # Cross-System Integration
-    linked_scenes: CollectionProperty(name="Linked Scenes", type=bpy.types.PropertyGroup)
-    style_coordination_data: StringProperty(name="Style Coordination JSON")
-    environment_interaction_data: StringProperty(name="Environment Interaction JSON")
-    
-    # Regenerative Parameters
-    generation_parameters: StringProperty(name="Generation Parameters JSON")
-    can_regenerate: BoolProperty(name="Can Regenerate Content", default=True)
-    
-    # Training Status
-    lora_training_status: EnumProperty(
-        name="LoRA Training Status",
-        items=[
-            ('NOT_STARTED', "Not Started", "LoRA training not initiated"),
-            ('IN_PROGRESS', "Training", "LoRA training in progress"),
-            ('COMPLETED', "Completed", "LoRA training finished"),
-            ('FAILED', "Failed", "LoRA training failed")
-        ],
-        default='NOT_STARTED'
-    )
-    training_progress: FloatProperty(name="Training Progress", min=0.0, max=1.0)
-```
-
-#### 2. Character Consistency Operators
-```python
-class MOVIE_DIRECTOR_OT_train_character_lora(Operator):
-    """Train character-specific LoRA for ultimate consistency"""
-    bl_idname = "movie_director.train_character_lora"
-    bl_label = "Train Character LoRA"
-    
-    def execute(self, context):
-        character_obj = context.active_object
-        character = character_obj.movie_director_character
-        
-        # Validate reference images
-        if not self.validate_references(character.reference_images_path):
-            self.report({'ERROR'}, "Insufficient reference images for training")
-            return {'CANCELLED'}
-        
-        # Initiate LoRA training workflow
-        casting_director = get_casting_director_agent()
-        training_task = casting_director.train_character_lora(
-            character_name=character.name,
-            reference_path=character.reference_images_path,
-            description=character.description
+    if model in ['infiniteyou', 'dreamo', 'omnigen2']:
+        # Use Function Runner for advanced models
+        task = celery_app.send_task(
+            'function_runner.execute',
+            args=[{
+                'model': model,
+                'character_id': character_id,
+                'params': generation_params.dict()
+            }],
+            queue='function_runner'
         )
-        
-        # Update training status
-        character.lora_training_status = 'IN_PROGRESS'
-        character.training_progress = 0.0
-        
-        # Register progress tracking timer
-        bpy.app.timers.register(
-            lambda: self.update_training_progress(character, training_task),
-            first_interval=5.0,
-            persistent=True
-        )
-        
-        return {'FINISHED'}
-
-class MOVIE_DIRECTOR_OT_validate_character_consistency(Operator):
-    """Validate character consistency across generated content"""
-    bl_idname = "movie_director.validate_character_consistency"
-    bl_label = "Validate Character Consistency"
-    
-    def execute(self, context):
-        character_obj = context.active_object
-        
-        # Collect all generated content featuring this character
-        character_content = self.collect_character_content(character_obj)
-        
-        # Run consistency validation
-        consistency_engine = get_character_consistency_engine()
-        validation_results = consistency_engine.validate_consistency(
-            character_content,
-            character_obj.movie_director_character
-        )
-        
-        # Store results and provide user feedback
-        character_obj.movie_director_character.consistency_validation_results = json.dumps(validation_results)
-        
-        # Report results to user
-        avg_consistency = validation_results.get('average_consistency', 0.0)
-        if avg_consistency > 0.85:
-            self.report({'INFO'}, f"Character consistency: {avg_consistency:.1%} (Excellent)")
-        elif avg_consistency > 0.70:
-            self.report({'WARNING'}, f"Character consistency: {avg_consistency:.1%} (Good)")
-        else:
-            self.report({'ERROR'}, f"Character consistency: {avg_consistency:.1%} (Poor - Consider LoRA training)")
-        
-        return {'FINISHED'}
-
-class MOVIE_DIRECTOR_OT_create_character_from_script(Operator):
-    """Create character asset from script breakdown data"""
-    bl_idname = "movie_director.create_character_from_script"
-    bl_label = "Create Character from Script"
-    
-    script_character_data: StringProperty(name="Script Character Data JSON")
-    
-    def execute(self, context):
-        import json
-        character_data = json.loads(self.script_character_data)
-        
-        # Create character asset with script metadata
-        character_obj = self.create_character_object(character_data['name'], context)
-        character = character_obj.movie_director_character
-        
-        # Populate from script data
-        character.script_character_id = character_data.get('id', '')
-        character.description = character_data.get('description', '')
-        character.script_descriptions = json.dumps(character_data.get('descriptions', []))
-        character.dialogue_frequency = character_data.get('dialogue_count', 0)
-        character.scene_importance_score = character_data.get('importance_score', 0.5)
-        
-        # Set up scene linkage
-        for scene_name in character_data.get('scenes', []):
-            scene_link = character.linked_scenes.add()
-            scene_link.name = scene_name
-        
-        # Generate initial character reference if description available
-        if character.description:
-            casting_director = get_casting_director_agent()
-            reference_result = casting_director.generate_character_from_description(
-                character_data['name'],
-                character.description
-            )
-            
-            if reference_result.get('success'):
-                character.reference_images_path = reference_result['reference_path']
-        
-        self.report({'INFO'}, f"Character '{character_data['name']}' created from script")
-        return {'FINISHED'}
-```
-
-### CrewAI Framework Integration
-
-#### 1. Enhanced Casting Director Agent Tools
-```python
-@tool("Train Character LoRA")
-def train_character_lora_tool(character_name: str, reference_images_path: str, description: str) -> Dict:
-    """Train a character-specific LoRA model for ultimate consistency"""
-    
-    # Load LoRA training workflow template
-    lora_workflow = template_engine.load_template(
-        backend_type="comfyui",
-        template_name="character_lora_training"
-    )
-    
-    # Prepare training data
-    training_data = prepare_character_training_data(
-        reference_images_path,
-        character_name,
-        description
-    )
-    
-    # Execute training workflow
-    training_result = workflow_executor.execute_async(
-        template=lora_workflow,
-        parameters={
-            "character_name": character_name,
-            "training_images": training_data.image_paths,
-            "character_description": description,
-            "training_steps": 1000,
-            "learning_rate": 0.0001,
-            "batch_size": 1
-        }
-    )
-    
-    return {
-        "status": "training_started",
-        "training_id": training_result.task_id,
-        "estimated_completion": "120 minutes",
-        "lora_output_path": training_result.output_path
-    }
-
-@tool("Generate Character Consistent Image")
-def generate_character_consistent_image_tool(
-    character_ref: str, 
-    scene_description: str, 
-    consistency_tier: str
-) -> str:
-    """Generate character image using appropriate consistency technique"""
-    
-    # Select workflow based on consistency tier
-    if consistency_tier == "ULTIMATE":
-        workflow_template = "character_generation_lora"
-    elif consistency_tier == "ENHANCED":
-        workflow_template = "character_generation_enhanced"
     else:
-        workflow_template = "character_generation_baseline"
+        # Fallback to traditional models
+        task = celery_app.send_task(
+            'character.generate_traditional',
+            args=[character_id, generation_params.dict()],
+            queue='gpu_standard'
+        )
     
-    # Load appropriate workflow
-    character_workflow = template_engine.load_template(
-        backend_type="comfyui",
-        template_name=workflow_template
-    )
-    
-    # Execute generation
-    generation_result = workflow_executor.execute_async(
-        template=character_workflow,
-        parameters={
-            "character_reference": character_ref,
-            "scene_description": scene_description,
-            "consistency_tier": consistency_tier
-        }
-    )
-    
-    return generation_result.image_path
+#### 3. Function Runner Integration Requirements
 
-@tool("Create Character from Script Data")
-def create_character_from_script_tool(script_character_data: Dict, project_style_context: Dict) -> Dict:
-    """Create character asset from script breakdown with style coordination"""
-    
-    # Generate character reference images from script description
-    character_workflow = template_engine.load_template(
-        backend_type="comfyui",
-        template_name="character_from_description"
-    )
-    
-    # Coordinate with style system for visual coherence
-    generation_params = {
-        "character_name": script_character_data['name'],
-        "character_description": script_character_data['description'],
-        "style_parameters": project_style_context.get('style_parameters', {}),
-        "mood_context": script_character_data.get('mood_context', 'neutral'),
-        "importance_level": script_character_data.get('importance_score', 0.5)
-    }
-    
-    # Execute character generation
-    generation_result = workflow_executor.execute_async(
-        template=character_workflow,
-        parameters=generation_params
-    )
-    
-    # Determine appropriate consistency tier based on character importance
-    if script_character_data.get('importance_score', 0.5) > 0.8:
-        suggested_tier = "ULTIMATE"
-    elif script_character_data.get('importance_score', 0.5) > 0.6:
-        suggested_tier = "ENHANCED"
-    else:
-        suggested_tier = "BASELINE"
-    
-    return {
-        "character_name": script_character_data['name'],
-        "reference_images": generation_result.image_paths,
-        "script_metadata": script_character_data,
-        "suggested_consistency_tier": suggested_tier,
-        "style_coordination_data": project_style_context
-    }
+**Advanced Model Execution:**
+- Execute models in isolated Docker containers
+- Support for multiple model repositories:
+  - InfiniteYou for zero-shot consistency
+  - DreamO for unified identity operations
+  - OmniGen2 for multi-modal generation
+- Quality-based container selection
+- Workflow orchestration for multi-step processes
 
-@tool("Validate Character Consistency")
-def validate_character_consistency_tool(character_images: List[str], reference_image: str) -> Dict:
-    """Validate consistency across multiple character images"""
-    
-    # Use computer vision similarity analysis
-    consistency_scores = []
-    
-    for image_path in character_images:
-        similarity_score = calculate_character_similarity(reference_image, image_path)
-        consistency_scores.append(similarity_score)
-    
-    average_consistency = sum(consistency_scores) / len(consistency_scores)
-    consistency_variance = calculate_variance(consistency_scores)
-    
-    return {
-        "average_consistency": average_consistency,
-        "consistency_variance": consistency_variance,
-        "individual_scores": consistency_scores,
-        "recommendation": get_consistency_recommendation(average_consistency)
-    }
-```
+**Container Configuration per Quality:**
+- **Low Quality**:
+  - Basic models container
+  - Minimal resource allocation
+  - Fast execution priority
+  
+- **Standard Quality**:
+  - Balanced models container
+  - Standard resource allocation
+  - Normal execution priority
+  
+- **High Quality**:
+  - Premium models container
+  - Maximum resource allocation
+  - Extended execution timeouts
 
-#### 2. Character Consistency Workflow Integration
-```python
-class CharacterConsistencyWorkflow:
-    def __init__(self, casting_director_agent):
-        self.casting_director = casting_director_agent
-        self.character_cache = {}
-    
-    def ensure_character_consistency(self, shot_obj, context):
-        """Ensure all characters in shot maintain consistency"""
+**Distributed Training Architecture:**
+- Multi-GPU support for large models
+- Automatic data distribution
+- Training strategy based on resources:
+  - Single GPU for low quality
+  - Multi-GPU for standard/high
+- Progress tracking across workers
+- Model optimization per quality tier
+- Automatic deployment to storage
+
+#### 4. Real-time Character Synchronization
+**Real-time Character Synchronization Requirements:**
         
-        # Get characters assigned to this shot
-        shot_characters = self.get_shot_characters(shot_obj)
-        
-        for character in shot_characters:
-            # Check if character needs LoRA training
-            if self.should_train_lora(character):
-                self.initiate_lora_training(character)
+        # Update database
+        async with get_db() as db:
+            character = await update_character(db, update['characterId'], update['data'])
             
-            # Validate existing character content
-            consistency_score = self.validate_character(character)
-            
-            if consistency_score < 0.70:
-                self.recommend_regeneration(character, shot_obj)
+            # Generate preview if visual change
+            if update['type'] in ['reference_added', 'variation_selected']:
+                preview_task = generate_character_preview.delay(update['characterId'])
+                update['preview_task_id'] = preview_task.id
         
-        return True
-    
-    def should_train_lora(self, character):
-        """Determine if character should have LoRA training"""
-        # Count character usage across project
-        usage_count = self.count_character_usage(character)
+        # Broadcast to all clients
+        await self.broadcast(project_id, {
+            'type': 'character.update',
+            'update': update,
+            'userId': user_id,
+            'timestamp': datetime.utcnow(),
+            'character': character.to_dict()
+        })
         
-        # Train LoRA for characters appearing in 5+ shots
-        return usage_count >= 5 and character.lora_training_status == 'NOT_STARTED'
-    
-    def coordinate_character_style(self, character, style_context):
-        """Coordinate character generation with active style parameters"""
-        
-        # Ensure character generation respects style while maintaining identity
-        coordination_params = {
-            "character_identity_weight": 0.8,  # Character identity takes priority
-            "style_influence_weight": 0.6,    # Style has secondary influence
-            "consistency_validation": True
-        }
-        
-        # Validate that style application doesn't compromise character recognition
-        if style_context.get('style_intensity', 0.5) > 0.8:
-            coordination_params["character_identity_weight"] = 0.9
-            coordination_params["style_influence_weight"] = 0.4
-        
-        return coordination_params
-    
-    def adapt_character_for_environment(self, character, environment_context):
-        """Adapt character appearance for environment-specific requirements"""
-        
-        adaptation_params = {
-            "lighting_adaptation": environment_context.get('lighting_conditions', 'neutral'),
-            "scale_adjustment": environment_context.get('character_scale', 1.0),
-            "positioning_context": environment_context.get('composition_requirements', {}),
-            "environment_interaction": environment_context.get('interaction_elements', [])
-        }
-        
-        return adaptation_params
+        # Trigger dependent updates
+        if update['type'] == 'model_trained':
+            await self.notify_dependent_systems(character)
 ```
 
-### Performance and Resource Management
+### Database Schema Extensions
 
-#### 1. VRAM Optimization for Character Workflows
-```python
-class CharacterVRAMManager:
-    def __init__(self):
-        self.vram_profiles = load_vram_profiles()
-        self.active_character_models = {}
-    
-    def optimize_character_workflow(self, characters, consistency_tiers):
-        """Optimize VRAM usage for multi-character workflows"""
-        
-        total_vram_required = 0
-        
-        for character, tier in zip(characters, consistency_tiers):
-            if tier == "ULTIMATE":
-                total_vram_required += self.vram_profiles["character_lora_generation"]
-            elif tier == "ENHANCED":
-                total_vram_required += self.vram_profiles["character_enhanced_generation"]
-            else:
-                total_vram_required += self.vram_profiles["character_baseline_generation"]
-        
-        available_vram = get_available_vram()
-        
-        if total_vram_required > available_vram:
-            # Sequential processing required
-            return self.create_sequential_workflow(characters, consistency_tiers)
-        else:
-            # Concurrent processing possible
-            return self.create_concurrent_workflow(characters, consistency_tiers)
+#### PostgreSQL Tables for Character Management
+```sql
+-- Character assets with collaboration features
+CREATE TABLE characters (
+    id UUID PRIMARY KEY,
+    project_id UUID REFERENCES projects(id),
+    name VARCHAR(255),
+    description TEXT,
+    importance_score FLOAT,
+    consistency_tier VARCHAR(50),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    script_character_id VARCHAR(255),
+    metadata JSONB
+);
+
+-- Character training jobs
+CREATE TABLE character_training_jobs (
+    id UUID PRIMARY KEY,
+    character_id UUID REFERENCES characters(id),
+    job_type VARCHAR(50), -- lora, voice, etc
+    status VARCHAR(50),
+    priority INTEGER,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    initiated_by UUID REFERENCES users(id),
+    parameters JSONB,
+    results JSONB
+);
+
+-- Character variations and gallery
+CREATE TABLE character_variations (
+    id UUID PRIMARY KEY,
+    character_id UUID REFERENCES characters(id),
+    variation_type VARCHAR(50), -- pose, expression, outfit
+    prompt_used TEXT,
+    model_used VARCHAR(100),
+    file_reference JSONB, -- S3 URLs
+    votes INTEGER DEFAULT 0,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP
+);
+
+-- Team collaboration on characters
+CREATE TABLE character_annotations (
+    id UUID PRIMARY KEY,
+    character_id UUID REFERENCES characters(id),
+    user_id UUID REFERENCES users(id),
+    annotation_type VARCHAR(50), -- note, suggestion, approval
+    content TEXT,
+    coordinates JSONB, -- for image annotations
+    created_at TIMESTAMP
+);
+
+-- Cross-project character templates
+CREATE TABLE character_templates (
+    id UUID PRIMARY KEY,
+    source_character_id UUID REFERENCES characters(id),
+    template_name VARCHAR(255),
+    description TEXT,
+    parameters JSONB, -- All consistency parameters
+    usage_count INTEGER DEFAULT 0,
+    is_public BOOLEAN DEFAULT false,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP
+);
 ```
 
-#### 2. Character Model Lifecycle Management
-- **Intelligent Caching**: Keep frequently used character LoRAs in VRAM
-- **Automatic Unloading**: Remove unused character models to free memory
-- **Preemptive Loading**: Load character models before generation workflows
-- **Training Queue Management**: Schedule LoRA training during idle periods
+### Performance Optimizations
+
+#### 1. Distributed Training Strategy
+- GPU worker pools with automatic scaling
+- Training job prioritization based on user tier
+- Checkpoint resumption for interrupted training
+- Model compression and optimization post-training
+
+#### 2. Caching and CDN
+- Character preview caching at edge locations
+- Trained model distribution via CDN
+- Reference image optimization and compression
+- Lazy loading for large character galleries
+
+#### 3. Real-time Optimization
+- WebSocket connection pooling
+- Debounced updates for rapid changes
+- Differential synchronization
+- Progressive image loading
 
 ---
 
 ## Success Metrics
 
-### Character Consistency Quality
+### Collaboration Effectiveness
 **Primary KPIs:**
-- **Character Visual Consistency**: >85% similarity score across multiple generations for main characters within 6 months
-- **Cross-Shot Character Recognition**: >90% accuracy in automatic character identification across shots using computer vision
-- **Training Success Rate**: >95% successful LoRA training completion for valid reference sets (5+ reference images)
-- **User Satisfaction with Character Quality**: >4.3/5.0 rating for character consistency and professional quality
+- **Team Participation**: Average 4+ team members per character
+- **Iteration Speed**: 70% faster character development cycles
+- **Cross-Team Usage**: 30% of characters shared across projects
+- **Global Collaboration**: Teams spanning 3+ time zones
 
 **Measurement Methods:**
-- Automated computer vision similarity analysis using industry-standard face recognition algorithms (FaceNet, ArcFace)
-- Monthly user surveys rating character consistency across generated content (minimum 150 responses)
-- Quarterly A/B testing comparing system-generated vs. manually-corrected character consistency with professional evaluators
-- Bi-annual professional film industry evaluation panels for character continuity standards compliance
+- Collaboration analytics dashboard
+- Time-to-completion tracking
+- Character reuse statistics
+- Geographic distribution analysis
 
-### Production Workflow Efficiency
-**Efficiency Metrics:**
-- **Character Setup Time**: Reduce character preparation from 4+ hours to <30 minutes
-- **Consistency Correction Time**: Eliminate 60-80% of manual character correction work
-- **LoRA Training Time**: Complete character model training in <2 hours on recommended hardware
-- **Character Iteration Speed**: Enable character attribute changes with full regeneration in <15 minutes
+### Model Performance and Quality
+**Technical Metrics:**
+- **InfiniteYou Success Rate**: >85% identity preservation
+- **Training Time**: <90 minutes for LoRA on cloud
+- **Model Selection Accuracy**: >90% optimal model choice
+- **Fallback Rate**: <10% degradation to simpler models
 
-**Measurement Methods:**
-- Time-tracking analytics for character creation and modification workflows
-- Comparison studies between manual and automated character consistency approaches
-- Hardware performance benchmarking across different system configurations
-- User productivity surveys measuring time savings in character-focused projects
+**Quality Metrics:**
+- **Character Consistency**: >90% visual similarity score
+- **User Satisfaction**: >4.5/5.0 rating
+- **Professional Approval**: Meets broadcast standards
+- **Variation Quality**: >80% approval rate
 
-### Technical Performance Benchmarks
-**System Performance:**
-- **LoRA Training Reliability**: >95% successful training completion with quality reference images
-- **VRAM Optimization**: Efficient memory usage with <10% waste in multi-character workflows
-- **Generation Speed**: Character-consistent shots generated in <5 minutes for enhanced tier
-- **Model Storage Efficiency**: Character LoRA models <100MB each with optimal compression
+### System Performance
+**Infrastructure Metrics:**
+- **Training Throughput**: 100+ concurrent training jobs
+- **Generation Speed**: <3 minutes per variation
+- **Availability**: 99.9% uptime for character services
+- **Sync Latency**: <300ms global average
 
-**Integration Quality:**
-- **Cross-Agent Communication**: 100% reliable character data propagation between agents
-- **Reference Image Processing**: Successful analysis and optimization of 90%+ uploaded references
-- **Voice-Visual Synchronization**: Coordinated character audio-visual consistency in >85% of dialogue scenes
-- **Regenerative Compliance**: Character assets follow regenerative content model with file references only
-
-### Business Impact and Market Positioning
-**Professional Adoption:**
-- **Industry Standard Compliance**: Meet broadcast television character consistency requirements
-- **Professional Project Usage**: 50+ independent films using system for character consistency
-- **Educational Institution Adoption**: 15+ film schools integrating tool into character development curricula
-- **Commercial Viability**: Enable sub-$10K film productions with professional character quality
-
-**User Base Growth:**
-- **Character-Focused Creator Adoption**: 40% of users creating character-driven narrative content
-- **Series Content Creation**: 25% of users creating multi-episode content with recurring characters
-- **Animation Community Adoption**: Significant uptake in animation and motion graphics communities
-- **Professional Freelancer Usage**: Adoption by character designers and concept artists for client work
+**Scalability Metrics:**
+- **Character Capacity**: 10,000+ characters per instance
+- **Concurrent Users**: 500+ per character gallery
+- **Storage Efficiency**: <50MB per character average
+- **CDN Performance**: <2s global load time
 
 ---
 
@@ -771,207 +580,113 @@ class CharacterVRAMManager:
 
 ### Technical Risks
 
-#### High Risk: LoRA Training Complexity and Hardware Requirements
-- **Risk**: LoRA training fails frequently or requires prohibitively expensive hardware
-- **Probability**: Medium (40%)
-- **Impact**: High - Ultimate consistency tier becomes unusable, limiting professional adoption
-- **Mitigation Strategy**:
-  - Implement robust reference image validation and preprocessing with automated quality assessment
-  - Provide comprehensive hardware requirement guidance and optimization recommendations
-  - Create fallback mechanisms using enhanced tier when ultimate tier fails with user notification
-  - Develop cloud-based training option for users with insufficient hardware and cost-effective alternatives
+#### High Risk: Advanced Model Complexity
+- **Risk**: InfiniteYou/DreamO integration failures
+- **Impact**: Limited to fallback models only
+- **Mitigation**: 
+  - Comprehensive Function Runner testing
+  - Graceful degradation paths
+  - Multiple model options
+  - Clear user communication
 
-#### Medium Risk: Character Similarity Validation Accuracy
-- **Risk**: Automated consistency validation produces false positives/negatives
-- **Probability**: Medium (35%)
-- **Impact**: Medium - Users lose trust in system recommendations
-- **Mitigation Strategy**:
-  - Implement multiple validation algorithms with cross-validation
-  - Provide user override capabilities for validation results
-  - Continuous improvement of validation algorithms based on user feedback
-  - Clear communication about validation confidence levels
+#### Medium Risk: Training Job Failures
+- **Risk**: Distributed training interruptions
+- **Impact**: Delayed character development
+- **Mitigation**:
+  - Checkpoint-based resumption
+  - Redundant worker pools
+  - Priority queue management
+  - Progress persistence
 
-#### Medium Risk: Multi-Character VRAM Management
-- **Risk**: Complex scenes with multiple characters exceed available VRAM consistently
-- **Probability**: High (50%)
-- **Impact**: Medium - System becomes unusable for multi-character scenes
-- **Mitigation Strategy**:
-  - Intelligent character prioritization and sequential processing
-  - Dynamic quality reduction for background characters
-  - Clear user guidance about character count limitations
-  - Smart scene composition recommendations to minimize VRAM conflicts
+### Business Risks
 
-### Business and User Experience Risks
-
-#### High Risk: Character Creation Learning Curve
-- **Risk**: Users struggle with reference image selection and character definition process
-- **Probability**: High (60%)
-- **Impact**: High - Feature abandonment despite technical functionality
-- **Mitigation Strategy**:
-  - Comprehensive tutorial content with example workflows
-  - Automated reference image quality assessment with improvement suggestions
-  - Pre-built character templates and examples for learning
-  - Community-driven character sharing and template library
-
-#### Medium Risk: Professional Quality Expectations
-- **Risk**: Generated character consistency doesn't meet professional film industry standards
-- **Probability**: Medium (30%)
-- **Impact**: High - Professional user rejection and negative industry perception
-- **Mitigation Strategy**:
-  - Collaboration with professional filmmakers in feature development
-  - Rigorous testing against industry-standard character consistency requirements
-  - Clear communication about system capabilities and appropriate use cases
-  - Continuous quality improvement based on professional user feedback
-
-### Ethical and Creative Considerations
-
-#### Medium Risk: Character Likeness and Rights Issues
-- **Risk**: Users create characters based on real people without permission
-- **Probability**: Medium (25%)
-- **Impact**: Medium - Legal complications and platform liability
-- **Mitigation Strategy**:
-  - Clear terms of service regarding character creation and usage rights
-  - Educational content about ethical character creation practices
-  - Technical limitations preventing exact real-person replication
-  - Community reporting mechanisms for inappropriate character usage
+#### High Risk: Cloud Infrastructure Costs
+- **Risk**: GPU training costs exceed budget
+- **Impact**: Service limitations
+- **Mitigation**:
+  - Tiered pricing model
+  - Training quotas
+  - Spot instance usage
+  - Model caching
 
 ---
 
 ## Implementation Roadmap
 
-### Phase 1: Core Character Asset Management with Script Integration (Weeks 1-4)
-*Requires PRD-001 Backend Integration and PRD-002 Script Breakdown System*
+### Phase 1: Core Character Infrastructure (Weeks 1-4)
 **Deliverables:**
-- Character creation and reference image management system with script integration
-- Automatic character asset creation from script breakdown data
-- Basic Asset Browser integration with character previews and scene navigation
-- Character property storage and organization in .blend files with regenerative model compliance
-- Character-scene linkage system with cross-navigation capabilities
+- Basic character CRUD with real-time sync
+- Character gallery with WebSocket updates
+- Simple variation generation
+- Team collaboration features
 
 **Success Criteria:**
-- Users can create and manage character assets with reference images and script metadata
-- Automatic character creation from script breakdown with 85% accuracy
-- Character data properly stored in .blend file custom properties following regenerative model
-- Character-scene linkage functional with bidirectional navigation
-- Asset Browser displays character assets with generated previews and usage tracking
+- Multi-user character editing functional
+- Real-time updates working globally
+- Basic variation generation operational
 
-### Phase 2: Multi-Tier Consistency Pipeline with Style Coordination (Weeks 5-8)
-*Coordinates with PRD-004 Style Consistency Framework and PRD-005 Environment Management*
+### Phase 2: Advanced Model Integration (Weeks 5-8)
 **Deliverables:**
-- IPAdapter + InstantID baseline consistency implementation with style integration
-- ComfyUI-ReActor enhanced fidelity integration with environment adaptation
-- Automated consistency tier selection based on character importance and script analysis
-- Character consistency validation and scoring system with cross-system coordination
-- Character-style coordination workflows preventing identity loss during style application
+- Function Runner setup for InfiniteYou/DreamO
+- Model selection algorithm
+- Fallback mechanisms
+- Performance monitoring
 
 **Success Criteria:**
-- Baseline tier achieves >70% character visual consistency with style coordination
-- Enhanced tier achieves >85% character visual consistency across environments
-- Automatic tier selection works for 90% of use cases based on script importance analysis
-- Consistency validation provides accurate feedback with cross-system impact assessment
-- Character-style coordination maintains >80% character recognition while applying style parameters
+- Advanced models executing successfully
+- Automatic model selection working
+- Graceful degradation functional
 
-### Phase 3: LoRA Training Automation (Weeks 9-12)
-*Ultimate consistency tier supporting PRD-004 advanced features*
+### Phase 3: Distributed Training (Weeks 9-12)
 **Deliverables:**
-- Automated LoRA training pipeline with progress tracking
-- Character-specific model management and storage
-- Ultimate consistency tier integration with trained LoRA models
-- Training queue management and resource optimization
+- Cloud LoRA training pipeline
+- Training queue management
+- Progress monitoring
+- Model deployment automation
 
 **Success Criteria:**
-- LoRA training completes successfully for 95% of valid reference sets
-- Ultimate tier achieves >95% character visual consistency
-- Training time <2 hours on recommended hardware
-- Trained LoRA models integrate seamlessly into generation workflows
+- Distributed training operational
+- <2 hour training completion
+- Automatic model deployment
 
-### Phase 4: Complete Audio-Visual Integration and Professional Features (Weeks 13-16)
-*Complete character system integration across all PRDs with professional workflow support*
+### Phase 4: Enterprise Features (Weeks 13-16)
 **Deliverables:**
-- RVC voice model training integration with character consistency coordination
-- Voice-visual character synchronization with lip-sync and audio timing
-- Advanced character editing and attribute modification with style/environment impact validation
-- Cross-project character asset sharing and templates with community integration
-- Professional workflow validation with broadcast television standard compliance
+- Cross-project templates
+- Studio character library
+- Advanced analytics
+- API documentation
 
 **Success Criteria:**
-- Voice consistency matches visual character consistency standards with >85% accuracy
-- Character attribute modifications maintain core identity while adapting to style/environment changes
-- Voice-visual synchronization works for dialogue scenes with professional lip-sync quality
-- Character templates and sharing system enables community growth with 100+ shared character assets
-- Complete regenerative content model implementation with full cross-system compatibility
+- Template system functional
+- Library search/filter working
+- Analytics dashboard complete
+- API fully documented
 
 ---
 
 ## Stakeholder Sign-Off
 
 ### Development Team Approval
-- [ ] **Technical Lead** - LoRA training and multi-tier consistency architecture approved
-- [ ] **AI/ML Engineer** - Character consistency algorithms and validation approach confirmed
-- [ ] **Backend Integration Specialist** - ComfyUI workflow integration and VRAM management validated
+- [ ] **Frontend Lead** - Real-time sync architecture approved
+- [ ] **Backend Lead** - Distributed training design validated
+- [ ] **ML Engineer** - Advanced model integration confirmed
+- [ ] **DevOps Lead** - Infrastructure scaling plan approved
 
 ### Business Stakeholder Approval
-- [ ] **Product Owner** - Character consistency business value and user impact confirmed
-- [ ] **Professional Film Advisor** - Industry standard compliance and professional quality validated
-- [ ] **Community Manager** - Character asset sharing and template strategy approved
-
-### Domain Expert Review
-- [ ] **Character Designer** - Character creation workflow and reference management validated
-- [ ] **VFX Supervisor** - Consistency requirements and quality standards confirmed
-- [ ] **Animation Director** - Character continuity approach and practical workflow approved
+- [ ] **Product Owner** - Collaboration features meet needs
+- [ ] **Customer Success** - User workflow validated
+- [ ] **Finance** - Cloud costs acceptable
+- [ ] **Legal** - Character licensing handled
 
 ---
 
 **Next Steps:**
-1. Begin technical architecture design for multi-tier consistency pipeline
-2. Create comprehensive test dataset of character reference images for validation
-3. Develop character consistency evaluation metrics and benchmarking system
-4. Design user research study for character creation workflow optimization
+1. Set up Function Runner test environment
+2. Design character gallery UI mockups
+3. Plan distributed training architecture
+4. Create model selection algorithm
+5. Design template sharing system
 
 ---
 
-## Cross-PRD Integration Specifications
-
-### Character-Style Coordination
-- **Integration**: PRD-003 ↔ PRD-004
-- **Process**: Character generation incorporates active style parameters for visual coherence
-- **Conflict Resolution**: Character identity preservation takes priority over style enforcement
-- **Quality Assurance**: Automated validation that style application doesn't compromise character recognition
-
-### Character-Environment Interaction
-- **Integration**: PRD-003 ↔ PRD-005
-- **Process**: Character positioning and scale adapted for environment-specific shots
-- **Lighting Coordination**: Character appearance adapted to environment lighting conditions
-- **Composition Analysis**: Character placement optimized for environment camera angles
-
-### Character-Driven Shot Requirements
-- **Integration**: PRD-003 → PRD-002
-- **Process**: Character consistency requirements influence shot planning and camera choices
-- **Performance Impact**: Character LoRA requirements factored into shot complexity scoring
-- **Workflow Optimization**: Character-focused shots grouped for efficient LoRA loading
-
-### Script Breakdown Integration
-- **Integration**: PRD-002 → PRD-003
-- **Process**: Automatic character asset creation from script breakdown with metadata inheritance
-- **Data Flow**: Character names, descriptions, scene assignments, and importance scores from script analysis
-- **Quality Assurance**: Character creation validation with script accuracy >85%
-
-### Audio-Visual Character Coordination
-- **Integration**: PRD-003 ↔ PRD-004 (Audio Asset Management)
-- **Process**: Synchronized character voice model training with visual consistency development
-- **Coordination**: Character voice characteristics coordinated with visual appearance and personality
-- **Performance**: Voice-visual synchronization with professional lip-sync quality standards
-
-### Multi-System Character Generation Workflow
-- **Trigger**: Complete character-driven shot generation
-- **Coordination Sequence**:
-  1. PRD-003 provides character consistency parameters and LoRA models
-  2. PRD-004 coordinates style application while preserving character identity
-  3. PRD-005 adapts character appearance for environment lighting and composition
-  4. PRD-001 orchestrates generation with optimal VRAM allocation for character models
-- **Quality Control**: Cross-system validation ensures character recognition >85% across all variations
-- **User Experience**: Unified character management with cross-system navigation and status tracking
-
----
-
-*This PRD establishes the Character Consistency Engine as the critical feature that transforms Blender Movie Director from a script processing tool into a professional character-driven filmmaking platform, enabling creators to produce narrative content with broadcast-quality character continuity through automated AI-powered consistency management.*
+*This PRD represents the evolution of character consistency from a single-user desktop feature to a collaborative cloud-based system, enabling global teams to create and maintain professional-quality digital actors through the power of advanced AI models and distributed computing.*
