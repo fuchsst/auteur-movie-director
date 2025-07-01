@@ -1,9 +1,9 @@
 # Product Requirements Document: Character Consistency Engine
 
-**Version:** 2.0  
-**Date:** 2025-01-29  
+**Version:** 4.0  
+**Date:** 2025-07-01  
 **Owner:** BMAD Business Analyst  
-**Status:** Web Architecture Pivot  
+**Status:** Web Architecture Complete - Function Runner Integration  
 **PRD ID:** PRD-003  
 **Dependencies:** Backend Integration Service Layer (PRD-001), Intelligent Script-to-Shot Breakdown System (PRD-002), Style Consistency Framework (PRD-004), Environment Management System (PRD-005), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007), File-Based Project Structure (PRD-008)
 
@@ -16,7 +16,9 @@ The Character Consistency Engine addresses the fundamental barrier in generative
 
 Character consistency represents the most technically complex and creatively critical challenge in generative film production. Without reliable character identity maintenance, filmmakers cannot create coherent narratives. This engine implements a sophisticated multi-tier approach combining cutting-edge AI models (InfiniteYou, DreamO, OmniGen2) with practical production workflows, all accessible through a web browser with real-time team collaboration.
 
-The system operates on the regenerative content model: users define character parameters once in the PostgreSQL database, and the system maintains that identity across unlimited generations. Character assets exist as parametric definitions with S3 file references to generated content, enabling complete character regeneration at any time while supporting real-time collaborative workflows.
+The system operates on the regenerative content model: users define character parameters once in the PostgreSQL database, and the system maintains that identity across unlimited generations. Character assets exist as parametric definitions with S3 file references to generated content, enabling complete character regeneration at any time while supporting real-time collaborative workflows. 
+
+As emphasized in draft6, the containerized "Function Runner" backend serves as the platform's strategic moat. This architecture treats each character consistency model (InfiniteYou, DreamO, OmniGen2, FlexiAct, Fantasy-Talking) as an isolated Docker microservice, eliminating dependency conflicts and enabling rapid integration of new character models. This approach ensures the platform can quickly adopt breakthrough character technologies without requiring costly re-engineering, maintaining a sustainable competitive advantage in the rapidly evolving AI landscape.
 
 ### Target User Personas
 - **Distributed Film Teams** - Creating character-driven stories with remote team members
@@ -62,33 +64,40 @@ The system operates on the regenerative content model: users define character pa
 ## Solution Overview
 
 ### Feature Description within Web Architecture
-The Character Consistency Engine leverages the distributed web architecture to provide collaborative character development with advanced AI models. Using Function Runner for heterogeneous model execution and Celery for distributed processing, teams can develop, train, and maintain consistent characters across entire productions with real-time synchronization.
+The Character Consistency Engine leverages the distributed web architecture to provide collaborative character development with advanced AI models. Using the containerized Function Runner backend for heterogeneous model execution and Celery for distributed processing, teams can develop, train, and maintain consistent characters across entire productions with real-time synchronization.
 
 **Core Capabilities:**
-1. **Collaborative Character Gallery** - Real-time shared character asset library
-2. **Cloud-Based Model Training** - Distributed LoRA training on GPU workers
-3. **Advanced Model Integration** - InfiniteYou, DreamO, OmniGen2 via Function Runner
-4. **Live Character Preview** - Instant visual updates across all clients
-5. **Quality-Tiered Consistency** - Three levels of character quality
-6. **Version History** - Complete character evolution tracking
-7. **Cross-Project Templates** - Share characters across productions
-8. **Team Annotations** - Collaborative notes and feedback on characters
-9. **Batch Variation Generation** - Create multiple poses/expressions in parallel
-10. **API Access** - Integrate character assets with external tools
-11. **Git LFS Integration** - Version control for character assets
-12. **File Structure Compliance** - Organized in project hierarchy
+1. **Collaborative Character Gallery** - Real-time shared character asset library with SvelteKit frontend
+2. **Cloud-Based Model Training** - Distributed LoRA training on GPU workers via Celery queues
+3. **Advanced Model Integration** - Latest models via standardized Docker containers
+4. **Live Character Preview** - Instant visual updates across all clients via WebSocket
+5. **Quality-Tiered Consistency** - Three levels aligned with VRAM requirements
+6. **Version History** - Complete character evolution tracking with Git integration
+7. **Cross-Project Templates** - Share characters across productions via S3 storage
+8. **Team Annotations** - Collaborative notes with operational transformation
+9. **Batch Variation Generation** - Parallel processing across worker pools
+10. **Asset Manager Interface** - Dedicated UI for character LoRA training
+11. **Git LFS Integration** - Automatic tracking of model files (.safetensors, .ckpt)
+12. **Progressive Result Streaming** - See characters as they generate
 
-**Quality Tier Specifications:**
-- **Low Quality**: Basic character consistency with IPAdapter, fast generation
-- **Standard Quality**: Enhanced consistency with LoRA or InstantID, balanced
-- **High Quality**: Maximum consistency with InfiniteYou/DreamO, best results
+**Quality Tier Specifications (VRAM-Aligned):**
+- **Low Quality (~12GB VRAM)**: Basic consistency with SD 1.5 or FLUX.1-schnell, resolution capped at 768px
+- **Standard Quality (~16GB VRAM)**: Enhanced consistency with FLUX.1-dev (FP8 quantized) at 1024px
+- **High Quality (24GB+ VRAM)**: Maximum consistency with FLUX.1-dev (FP16) at up to 2048px
 
-### Integration with Advanced Models
-**Function Runner Model Support:**
-- **InfiniteYou**: Zero-shot identity preservation on FLUX
-- **DreamO**: Unified identity, try-on, and style transfer
-- **OmniGen2**: Multi-modal character generation from complex prompts
-- **Traditional Models**: LoRA training, IPAdapter, InstantID as fallbacks
+### Integration with Focused Model Stack
+**FLUX-Based Character Generation:**
+- **FLUX.1-schnell**: Fast character drafts for rapid iteration (Low Quality)
+- **FLUX.1-dev (FP8)**: Production-quality characters with good performance (Standard)
+- **FLUX.1-dev (FP16)**: Maximum quality character generation (High Quality)
+- **FLUX.1 Kontext**: Instruction-based character editing capabilities
+
+**Advanced Model Integration via Function Runner:**
+- **DreamO**: Identity preservation and try-on capabilities
+- **OmniGen2**: Complex, instruction-based character modifications
+- **Fantasy-Talking**: Talking head generation from character images
+- **FlexiAct**: Motion transfer for character animation
+- **Custom LoRA Training**: Fine-tuned character models via fluxgym-inspired UI
 
 **Distributed Processing Benefits:**
 - Parallel character training across multiple GPU workers
@@ -162,19 +171,19 @@ The Character Consistency Engine leverages the distributed web architecture to p
 ### Epic 2: Cloud-Based Advanced Model Integration
 **As a filmmaker, I want to use cutting-edge character consistency models without local setup so that I can achieve the best possible results.**
 
-#### User Story 2.1: InfiniteYou Integration
+#### User Story 2.1: FLUX Character Generation
 - **Given** I have character reference images
-- **When** I select InfiniteYou for character generation
-- **Then** the system uses Function Runner to execute the model
-- **And** maintains character identity with zero-shot learning
+- **When** I select a quality tier for character generation
+- **Then** the system routes to appropriate FLUX model variant
+- **And** maintains character identity based on selected quality
 - **And** streams results back to all team members
-- **And** handles the complex model dependencies automatically
+- **And** handles model selection automatically based on VRAM
 
 **Acceptance Criteria:**
-- Successful InfiniteYou model execution via Function Runner
-- >90% identity preservation accuracy
+- Successful FLUX model execution via ComfyUI integration
+- Quality-based model routing (schnell/dev FP8/dev FP16)
 - Results streaming to all connected clients
-- Automatic dependency management
+- Automatic VRAM-aware model selection
 
 #### User Story 2.2: Intelligent Model Selection
 - **Given** different characters with varying importance levels
@@ -193,19 +202,20 @@ The Character Consistency Engine leverages the distributed web architecture to p
 ### Epic 3: Distributed Character Training
 **As a production team, we want to train custom character models in the cloud so that we don't need expensive local hardware.**
 
-#### User Story 3.1: Cloud LoRA Training
+#### User Story 3.1: Asset Manager LoRA Training UI
 - **Given** I have collected character reference images
-- **When** I initiate LoRA training
-- **Then** the job is distributed to available GPU workers
-- **And** progress updates stream to all team members
-- **And** the trained model is automatically available upon completion
-- **And** training can be monitored from any device
+- **When** I access the Asset Manager interface at `/assets`
+- **Then** I can create a new Character asset
+- **And** upload reference images with validation
+- **And** specify character name and trigger word
+- **And** click "Train Model" to start distributed training
+- **And** see real-time progress updates
 
 **Acceptance Criteria:**
-- Distributed training across GPU workers
-- Real-time progress updates via WebSocket
-- Automatic model deployment on completion
-- Cross-device monitoring capability
+- Dedicated Asset Manager UI route
+- Image upload with count validation per quality tier
+- WebSocket progress streaming (Queued → Training: X% → Complete)
+- Trained asset appears in character gallery upon completion
 
 #### User Story 3.2: Training Queue Management
 - **Given** multiple team members submitting training jobs
@@ -301,16 +311,24 @@ The Character Consistency Engine leverages the distributed web architecture to p
 - Drag-and-drop to Production Canvas
 - Reference characters by ID only
 
-**Character Creation Interface Requirements:**
-- Multiple reference image upload
-- Automatic image validation
-- Quality tier selection:
-  - Low: Basic consistency, 5+ images
-  - Standard: Enhanced consistency, 10+ images
-  - High: Maximum consistency, 20+ images
-- Metadata input (name, age, traits)
-- Real-time preview generation
-- Team collaboration features
+**Asset Manager Interface Requirements (New from draft5_refinement):**
+- Accessible from main navigation route `/assets`
+- Character creation workflow:
+  - Create new "Character" asset button
+  - Multiple reference image upload interface
+  - Character name and unique trigger word inputs
+  - Prominent "Train Model" button
+- Quality tier selection with image requirements:
+  - Low: Basic consistency, 5+ images (SD 1.5/FLUX schnell)
+  - Standard: Enhanced consistency, 10+ images (FLUX.1-dev FP8)
+  - High: Maximum consistency, 20+ images (FLUX.1-dev FP16)
+- Training progress visualization:
+  - WebSocket subscription for real-time updates
+  - Status display: "Queued", "Training: 25%", "Complete"
+  - Progress bar with ETA
+- Post-training integration:
+  - Automatic availability in character gallery
+  - Draggable AssetNode creation for canvas
 
 **Training Monitor Requirements:**
 - Live progress tracking for all training jobs
@@ -339,46 +357,61 @@ The Character Consistency Engine leverages the distributed web architecture to p
 - Return job ID and estimated time
 
 **Advanced Model Generation Endpoints:**
-- Support multiple model backends:
-  - InfiniteYou for zero-shot consistency
-  - DreamO for unified identity operations
-  - OmniGen2 for multi-modal generation
-- Quality-based model selection:
-  - Low: IPAdapter or basic LoRA
-  - Standard: Fine-tuned LoRA or InstantID
-  - High: InfiniteYou or DreamO
-- Handle fallback when models unavailable
-- Stream progress updates via WebSocket following draft4_canvas.md protocol
-- Route tasks to appropriate quality-based worker pools
-- Handle model fallback automatically
-- Support batch character generation
+- FLUX model routing based on quality tier:
+  - Low: FLUX.1-schnell or SD 1.5 for fast drafts
+  - Standard: FLUX.1-dev (FP8 quantized) for production
+  - High: FLUX.1-dev (FP16) for maximum quality
+- Function Runner integration for specialized models:
+  - DreamO for identity preservation (via Docker container)
+  - OmniGen2 for instruction-based editing (via Docker container)
+  - Fantasy-Talking for talking heads (via Docker container)
+  - FlexiAct for motion transfer (via Docker container)
+- VRAM-aware routing:
+  - 12GB workers: Low quality queue
+  - 16GB workers: Standard quality queue
+  - 24GB+ workers: High quality queue
+- Stream progress updates via WebSocket per Table 4 spec
+- Automatic fallback when premium workers unavailable
+- Support batch character variation generation
 
 #### 3. Function Runner Integration Requirements
 
-**Advanced Model Execution:**
-- Execute models in isolated Docker containers
-- Support for multiple model repositories:
-  - InfiniteYou for zero-shot consistency
-  - DreamO for unified identity operations
-  - OmniGen2 for multi-modal generation
-- Quality-based container selection
-- Workflow orchestration for multi-step processes
+**Containerized Model Execution (Strategic Moat Architecture):**
+Per draft6's architectural analysis, the Function Runner pattern represents the Character Consistency Engine's most significant competitive advantage. By treating each AI model as a self-contained Docker microservice, the platform can rapidly integrate breakthrough character technologies without system disruption.
 
-**Container Configuration per Quality:**
-- **Low Quality**:
-  - Basic models container
-  - Minimal resource allocation
-  - Fast execution priority
+**Strategic Benefits for Character Consistency:**
+- **Zero-Day Model Integration**: New character models available within days of release
+- **Dependency Isolation**: Each model's specific requirements contained within Docker
+- **Parallel Evolution**: Multiple character models can coexist without conflicts
+- **Community Innovation**: Enable third-party character model integration
+- **Future-Proofing**: Automatically benefit from model improvements
+
+**Container Registry per Model Type:**
+- **character-dreamO:latest** - Identity preservation and try-on capabilities
+- **character-omnigen2:latest** - Instruction-based character editing ("make the character smile")
+- **character-fantasy-talking:latest** - Talking head generation from static images
+- **character-flexiact:latest** - Motion transfer for character animation
+- **character-infiniteyou:latest** - Zero-shot character consistency on FLUX
+- **character-lora-trainer:latest** - Custom LoRA training with fluxgym-inspired UI
+
+**Quality-Based Resource Allocation:**
+- **Low Quality (12GB VRAM)**:
+  - ComfyUI with --lowvram mode
+  - FLUX.1-schnell or SD 1.5 models
+  - Resolution limited to 768px
+  - Single ControlNet maximum
   
-- **Standard Quality**:
-  - Balanced models container
-  - Standard resource allocation
-  - Normal execution priority
+- **Standard Quality (16GB VRAM)**:
+  - ComfyUI with --medvram-sdxl mode
+  - FLUX.1-dev (FP8 quantized)
+  - Resolution up to 1024px
+  - Multiple ControlNets supported
   
-- **High Quality**:
-  - Premium models container
-  - Maximum resource allocation
-  - Extended execution timeouts
+- **High Quality (24GB+ VRAM)**:
+  - Full GPU memory access
+  - FLUX.1-dev (FP16) models
+  - Resolution up to 2048px
+  - Complex multi-model workflows
 
 **Distributed Training Architecture:**
 - Multi-GPU support for large models
@@ -472,18 +505,29 @@ The Character Consistency Engine leverages the distributed web architecture to p
 - `character.deploy_model` - Deploy trained models to storage
 
 #### 2. Function Runner Integration
-**Advanced Model Execution:**
-- InfiniteYou for zero-shot character consistency
-- DreamO for unified identity and style transfer
-- OmniGen2 for multi-modal character generation
-- Automatic model selection based on quality tier
-- Graceful fallback to traditional models
+**Containerized Model Architecture:**
+The Function Runner executes each model as an isolated Docker container, eliminating dependency conflicts and enabling rapid model integration:
 
-**Container Architecture per Quality Tier:**
-- Isolated Docker environments for each model
-- Quality-specific resource allocation
-- Automatic dependency management
-- Progress streaming via WebSocket events
+**Model Execution Workflow:**
+1. Celery worker receives character task with quality tier
+2. Worker determines appropriate Docker container based on task type
+3. Container is started with volume mounts for input/output
+4. Worker monitors execution via container API
+5. Progress streams to frontend via WebSocket
+6. Results stored in S3-compatible storage
+
+**Container-to-Task Mapping:**
+- `character.generate_base` → FLUX models via ComfyUI
+- `character.train_lora` → fluxgym-inspired trainer container
+- `character.generate_talking` → fantasy-talking container
+- `character.transfer_motion` → flexiact container
+- `character.edit_instruction` → omnigen2 container
+
+**Error Handling and Fallback:**
+- Automatic retry with exponential backoff
+- Fallback to lower quality tier if resources unavailable
+- Clear error messages propagated to UI
+- Container health checks and auto-restart
 
 #### 3. Performance and Scalability
 **Training Optimization:**
@@ -542,11 +586,13 @@ The Character Consistency Engine leverages the distributed web architecture to p
 - **Style Integration** (PRD-004): Consistent style application across characters
 - **Storage Integration** (PRD-008): 100% path resolution compliance
 
-**Advanced Model Integration:**
-- **Function Runner Success**: >90% successful advanced model execution
-- **Model Selection Accuracy**: >95% optimal model choice for quality tier
-- **Container Performance**: <30 second startup for advanced models
-- **Resource Management**: Proper VRAM allocation per draft4_filestructure.md
+**Function Runner Performance Metrics:**
+- **Container Startup Time**: <10 seconds for pre-warmed containers
+- **Model Loading**: <30 seconds for FLUX.1-dev models
+- **Task Success Rate**: >95% for properly configured containers
+- **Resource Isolation**: 100% dependency conflict prevention
+- **Concurrent Execution**: Support 50+ simultaneous containers
+- **Auto-scaling Response**: <2 minutes to provision new workers
 
 ---
 
@@ -592,25 +638,25 @@ The Character Consistency Engine leverages the distributed web architecture to p
 
 ### Core Architecture Validation
 **Celery Task Integration:**
-- Validate quality-tier queue routing works correctly
-- Test distributed LoRA training across multiple GPU workers
-- Ensure training progress streams properly via WebSocket
-- Verify automatic model deployment to storage service
-- Test graceful fallback when advanced models unavailable
+- Validate quality-tier queue routing (12GB/16GB/24GB workers)
+- Test distributed LoRA training via dedicated container
+- Ensure training progress streams per WebSocket Table 4 spec
+- Verify automatic model deployment to S3 storage
+- Test graceful quality tier fallback mechanism
 
-**WebSocket Protocol Compliance:**
-- Implement character-specific events extending draft4_canvas.md Table 4
-- Test real-time character gallery synchronization
-- Validate training progress streaming to all connected clients
-- Ensure conflict resolution for simultaneous character edits
-- Test automatic reconnection with state synchronization
+**WebSocket Protocol Compliance (draft5_refinement Table 6):**
+- Implement exact event schema from architectural specification
+- Test character-specific event extensions work correctly
+- Validate sub-500ms latency for gallery synchronization
+- Ensure operational transformation prevents edit conflicts
+- Test reconnection with `client:sync_request`/`server:full_sync`
 
-**Function Runner Integration:**
-- Validate InfiniteYou, DreamO, OmniGen2 execution via containers
-- Test automatic model selection based on quality tier
-- Ensure proper resource allocation per VRAM requirements
-- Validate progress tracking across heterogeneous models
-- Test error handling and fallback mechanisms
+**Function Runner Validation:**
+- Test each Docker container starts and executes correctly
+- Validate volume mounting for input/output data transfer
+- Ensure ComfyUI JSON workflow generation for FLUX models
+- Test progress monitoring via container API
+- Validate error propagation and retry mechanisms
 
 ### Cross-System Integration Testing
 **Character Creation Pipeline:**
@@ -678,9 +724,62 @@ The Character Consistency Engine leverages the distributed web architecture to p
 
 ---
 
-**Character Engine Foundation:**
-This PRD successfully establishes the Character Consistency Engine as a distributed, collaborative system that integrates seamlessly with the Movie Director platform architecture while providing professional-grade character development capabilities through advanced AI models and real-time team coordination.
+## New Technical Specifications from Draft5
+
+### FLUX Model Integration Details
+**ComfyUI Workflow Generation:**
+The backend dynamically constructs ComfyUI API-formatted JSON workflows based on quality tier:
+- **Low**: Load FLUX.1-schnell.safetensors, set resolution to 768px
+- **Standard**: Load FLUX.1-dev-fp8.safetensors, set resolution to 1024px  
+- **High**: Load FLUX.1-dev.safetensors (FP16), set resolution up to 2048px
+
+### Performance Benchmarks (from draft5_refinement)
+**Response Time Requirements:**
+- API Endpoints: <200ms for 95th percentile
+- WebSocket Events: <100ms for character updates
+- File Operations: <500ms for asset resolution
+- Database Queries: <50ms for metadata operations
+
+**Throughput Requirements:**
+- Concurrent Users: Support 1,000+ simultaneous users
+- Generation Tasks: Process 10,000+ character tasks per day
+- WebSocket Connections: Handle 5,000+ real-time connections
+- Worker Efficiency: Maintain >80% GPU utilization
 
 ---
 
-*Character consistency evolves from desktop limitation to cloud-powered collaboration, enabling global teams to create and maintain professional digital actors through distributed AI processing and real-time synchronization.*
+**Character Engine Evolution:**
+This PRD v3.0 transforms the Character Consistency Engine into a fully web-native, containerized system leveraging the FLUX model family as its core generation backbone, while providing a strategic architecture that enables rapid integration of cutting-edge character models through standardized Docker containers. The addition of the Asset Manager UI makes professional character training accessible to non-technical artists through an intuitive web interface.
+
+---
+
+## Strategic Architecture Evolution (Draft6 Alignment)
+
+### Function Runner as Character Innovation Platform
+The Character Consistency Engine exemplifies how the Function Runner pattern creates sustainable competitive advantage:
+
+**Rapid Model Adoption Timeline:**
+- Day 1: New character model released by research community
+- Day 2-3: Docker container created with model dependencies
+- Day 4-5: Integration testing and parameter mapping
+- Day 6-7: Available to all platform users
+
+This 7-day integration cycle compares to months of development in traditional architectures, ensuring the platform always offers state-of-the-art character consistency.
+
+### Three-Tier Character Quality System
+Aligned with draft6's hardware reality:
+- **Low (12GB)**: Basic consistency for rapid iteration
+- **Standard (16GB)**: Production-ready character generation
+- **High (24GB+)**: Film-quality with multiple consistency models
+
+### Future Character Technologies Enabled
+The Function Runner architecture positions the platform to immediately adopt:
+- Next-generation identity preservation models
+- Real-time character animation systems
+- Neural character voice synthesis
+- Holographic character representation
+- AI-driven character behavior models
+
+---
+
+*The containerized Function Runner architecture serves as a strategic moat, transforming the challenge of heterogeneous model integration into a competitive advantage through standardized Docker microservices. This ensures Movie Director remains the premier platform for character-driven generative filmmaking.*

@@ -1,9 +1,9 @@
 # Product Requirements Document: Style Consistency Framework
 
-**Version:** 2.0  
-**Date:** 2025-01-29  
+**Version:** 4.0  
+**Date:** 2025-07-01  
 **Owner:** BMAD Business Analyst  
-**Status:** Web Architecture Pivot  
+**Status:** Web Architecture Complete - Professional Color Science  
 **PRD ID:** PRD-004  
 **Dependencies:** Backend Integration Service Layer (PRD-001), Intelligent Script-to-Shot Breakdown System (PRD-002), Character Consistency Engine (PRD-003), Environment Management System (PRD-005), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007), File-Based Project Structure (PRD-008)
 
@@ -17,6 +17,8 @@ The Style Consistency Framework represents the critical visual coherence layer t
 This framework addresses the fundamental challenge that prevents generative AI from competing with traditional film production: maintaining a consistent visual language throughout a project. In a web-based collaborative environment, this challenge is amplified as multiple team members work simultaneously on different aspects of the production. The Style Consistency Framework ensures visual coherence regardless of who generates content or which backend processes it.
 
 The system operates on the regenerative content model: teams define style parameters once in the PostgreSQL database as project definitions, and the system maintains that aesthetic across unlimited generations, iterations, and revisions. Style assets exist as parametric definitions with S3 file references to generated content (style LoRAs, color LUTs, reference images), enabling complete style regeneration and modification at any time while supporting real-time collaborative workflows.
+
+As detailed in draft6, the containerized "Function Runner" backend serves as the platform's strategic moat for style consistency. This architecture allows the integration of professional color grading engines, advanced style transfer models, and future aesthetic AI technologies as isolated Docker microservices. The ability to rapidly adopt new style models ensures the platform can deliver broadcast-quality visual consistency that meets evolving industry standards.
 
 ### Target User Personas
 - **Distributed Creative Teams** - Maintaining brand aesthetic across global team members
@@ -62,33 +64,40 @@ The system operates on the regenerative content model: teams define style parame
 ## Solution Overview
 
 ### Feature Description within Web Architecture
-The Style Consistency Framework leverages the distributed web architecture to provide collaborative style development with advanced AI models. Using Function Runner for heterogeneous model execution and Celery for distributed processing, teams can develop, maintain, and apply consistent visual styles across entire productions with real-time synchronization.
+The Style Consistency Framework leverages the distributed web architecture to provide collaborative style development with advanced AI models. Using the containerized Function Runner backend for heterogeneous model execution and Celery for distributed processing, teams can develop, maintain, and apply consistent visual styles across entire productions with real-time synchronization.
 
 **Core Capabilities:**
-1. **Collaborative Style Gallery** - Real-time shared style asset library
-2. **Cloud-Based Style Training** - Distributed style LoRA training on GPU workers
-3. **Advanced Model Integration** - Style Alliance, Apply Style Model via Function Runner
-4. **Live Style Preview** - Instant visual updates across all clients
-5. **Quality-Tiered Style Application** - Three levels of style quality
-6. **Version History** - Complete style evolution tracking
-7. **Cross-Project Templates** - Share styles across productions
-8. **Team Annotations** - Collaborative notes on style development
-9. **Batch Application** - Apply styles to multiple assets in parallel
-10. **API Access** - Integrate style system with external tools
-11. **Git LFS Integration** - Version control for style assets
-12. **File Structure Compliance** - Organized in project hierarchy
+1. **Collaborative Style Gallery** - Real-time shared style asset library with SvelteKit frontend
+2. **Cloud-Based Style Training** - Distributed style LoRA training on GPU workers via Celery queues
+3. **FLUX-Powered Style Engine** - Native integration with FLUX models for style application
+4. **Live Style Preview** - Instant visual updates across all clients via WebSocket
+5. **Quality-Tiered Processing** - Three levels aligned with VRAM requirements
+6. **Version History** - Complete style evolution tracking with Git integration
+7. **Cross-Project Templates** - Share styles across productions via S3 storage
+8. **Team Annotations** - Collaborative notes with operational transformation
+9. **Batch Application** - Parallel processing across worker pools
+10. **Asset Manager Integration** - Unified interface for style creation and training
+11. **Git LFS Integration** - Automatic tracking of style models (.safetensors)
+12. **Progressive Result Streaming** - See styled content as it generates
 
-**Quality Tier Specifications:**
-- **Low Quality**: Basic style transfer, fast application, minimal VRAM
-- **Standard Quality**: Enhanced style consistency, balanced performance
-- **High Quality**: Maximum style fidelity with advanced models
+**Quality Tier Specifications (VRAM-Aligned):**
+- **Low Quality (~12GB VRAM)**: FLUX.1-schnell with style LoRA, resolution capped at 768px
+- **Standard Quality (~16GB VRAM)**: FLUX.1-dev (FP8 quantized) with enhanced style models at 1024px
+- **High Quality (24GB+ VRAM)**: FLUX.1-dev (FP16) with multiple style LoRAs at up to 2048px
 
-### Integration with Advanced Style Models
-**Function Runner Model Support:**
-- **Style Alliance**: Coordinated parameter management across shots
-- **Apply Style Model (Adjusted)**: FLUX-optimized style application
-- **Custom Style LoRAs**: Team-trained style models
-- **Color Science Models**: Advanced color grading algorithms
+### Integration with Focused Model Stack
+**FLUX-Based Style Generation:**
+- **FLUX.1-schnell**: Fast style drafts for rapid iteration (Low Quality)
+- **FLUX.1-dev (FP8)**: Production-quality styling with good performance (Standard)
+- **FLUX.1-dev (FP16)**: Maximum quality style generation (High Quality)
+- **FLUX.1 Kontext**: Instruction-based style editing ("make it more cinematic")
+
+**Advanced Model Integration via Function Runner:**
+- **Style Transfer Models**: Containerized execution of specialized style models
+- **Color Grading Engines**: Professional LUT generation via dedicated containers
+- **Multi-Style Fusion**: Blend multiple style LoRAs for unique aesthetics
+- **Temporal Consistency**: Style coherence across video sequences
+- **Custom Style Training**: Team-specific style LoRA creation
 
 **Distributed Processing Benefits:**
 - Parallel style application across multiple shots
@@ -160,19 +169,20 @@ The Style Consistency Framework leverages the distributed web architecture to pr
 ### Epic 2: Cloud-Based Style Processing
 **As a filmmaker, I want to use powerful style models without local hardware requirements so that I can achieve professional visual consistency.**
 
-#### User Story 2.1: Distributed Style Training
+#### User Story 2.1: FLUX-Based Style Training
 - **Given** I have style reference materials
-- **When** I initiate style LoRA training
-- **Then** the job is distributed to GPU workers
+- **When** I access the Asset Manager to train a style
+- **Then** I can select quality tier (Low/Standard/High)
+- **And** the system routes to appropriate FLUX variant
 - **And** progress updates stream to all team members
-- **And** the trained model is available immediately
+- **And** the trained style LoRA is available immediately
 - **And** can be applied from any browser
 
 **Acceptance Criteria:**
-- Distributed training across GPU workers
+- Asset Manager UI at `/assets` route
+- Quality-based FLUX model selection
 - Real-time progress via WebSocket
-- Automatic model deployment
-- Cross-device accessibility
+- Automatic LoRA deployment to gallery
 
 #### User Story 2.2: Intelligent Style Application
 - **Given** different shots with varying content
@@ -290,12 +300,16 @@ The Style Consistency Framework leverages the distributed web architecture to pr
 #### 1. SvelteKit Frontend Requirements
 
 **Style Gallery Component Requirements:**
-- Real-time synchronization via WebSocket following draft4_canvas.md protocol
-- Display style assets with quality tier indicators
-- Drag-and-drop integration with Production Canvas (PRD-006)
-- Team collaboration features with presence indicators
-- Version history visualization with rollback capability
-- Asset references by ID only (no file path exposure)
+- Real-time synchronization via WebSocket following Table 4 event schema
+- Display style assets with quality tier indicators (Low/Standard/High)
+- Grid view with 4 example images per style (as per draft5_refinement)
+- Drag-and-drop to create Style nodes in Production Canvas
+- Team presence indicators showing who's viewing/editing
+- Version history with visual diff capability
+- Style references by ID only (no file path exposure)
+- Style name with palette icon display
+- Top 3 style keywords shown as tags
+- Hoverable preview for larger image view
 
 **Style Application Interface Requirements:**
 - Quality tier selection (Low/Standard/High)
@@ -317,15 +331,21 @@ The Style Consistency Framework leverages the distributed web architecture to pr
 
 **Style Training Endpoints:**
 - Accept style ID and quality tier parameters
+- Quality-based FLUX model routing:
+  - Low: FLUX.1-schnell for fast style learning
+  - Standard: FLUX.1-dev (FP8) for balanced quality
+  - High: FLUX.1-dev (FP16) for maximum fidelity
 - Validate reference image requirements per quality tier:
   - Low: Minimum 5 reference images
   - Standard: Minimum 10 reference images  
   - High: Minimum 20 reference images
-- Queue to appropriate worker pool based on quality
-- Calculate priority based on user tier and project urgency
+- Queue to VRAM-appropriate worker pool:
+  - 12GB workers: Low quality queue
+  - 16GB workers: Standard quality queue
+  - 24GB+ workers: High quality queue
 - Store training job metadata in PostgreSQL
-- Broadcast training start notification via WebSocket
-- Return job ID and estimated completion time
+- Stream progress via WebSocket per Table 4 spec
+- Return job ID with ETA based on queue depth
 
 **Style Application Endpoints:**
 - Support batch style application to multiple shots
@@ -350,11 +370,12 @@ The Style Consistency Framework leverages the distributed web architecture to pr
 - **High Quality Queue** (`style_high`): Advanced style models and professional LUTs
 
 **Style-Specific Celery Tasks:**
-- `style.train_lora` - Distributed style LoRA training on GPU workers
-- `style.apply_coordinated` - Apply style with character/environment coordination
-- `style.generate_lut` - Professional color grading LUT generation
-- `style.validate_consistency` - Cross-shot style consistency validation
-- `style.batch_apply` - Parallel style application to multiple shots
+- `style.train_lora` - FLUX-based style LoRA training via ComfyUI
+- `style.apply_flux` - Apply style using FLUX models with quality routing
+- `style.generate_lut` - Professional LUT generation via color grading container
+- `style.apply_kontext` - Instruction-based style editing with FLUX Kontext
+- `style.batch_apply` - Parallel style application across shot queue
+- `style.validate_consistency` - Cross-shot coherence scoring
 
 **Progress Streaming Requirements:**
 - Real-time training progress via WebSocket events per draft4_canvas.md
@@ -447,16 +468,30 @@ The Style Consistency Framework leverages the distributed web architecture to pr
 ### Style Consistency Framework Integration
 
 #### 1. Quality-Tiered Processing Architecture
-**Style Processing Queues (following draft4_filestructure.md VRAM tiers):**
-- **Low Quality**: Basic style transfer with minimal VRAM requirements
-- **Standard Quality**: LoRA training and enhanced style models
-- **High Quality**: Advanced style models with maximum fidelity
+**VRAM-Based Queue Configuration:**
+- **Low Quality (12GB VRAM)**:
+  - ComfyUI with --lowvram mode enabled
+  - FLUX.1-schnell for fast style generation
+  - Single style LoRA application maximum
+  - Resolution limited to 768px
+  
+- **Standard Quality (16GB VRAM)**:
+  - ComfyUI with --medvram-sdxl mode
+  - FLUX.1-dev (FP8 quantized) models
+  - Multiple style LoRA combinations
+  - Resolution up to 1024px
+  
+- **High Quality (24GB+ VRAM)**:
+  - Full GPU memory access
+  - FLUX.1-dev (FP16) models
+  - Complex multi-style workflows
+  - Resolution up to 2048px
 
-**Function Runner Integration:**
-- Style Alliance for coordinated parameter management
-- Apply Style Model (Adjusted) for FLUX-optimized application
-- Custom style LoRAs with team training capabilities
-- Professional color science models for broadcast compliance
+**Function Runner Container Registry:**
+- **style-lut-generator:latest** - Professional color grading
+- **style-transfer:latest** - Advanced style transfer models
+- **style-temporal:latest** - Video style consistency
+- **style-fusion:latest** - Multi-style blending engine
 
 #### 2. Cross-System Asset Management
 **Asset Integration Requirements:**
@@ -664,9 +699,71 @@ The Style Consistency Framework leverages the distributed web architecture to pr
 
 ---
 
-**Style Framework Foundation:**
-This PRD successfully establishes the Style Consistency Framework as a professional-grade, collaborative system that integrates seamlessly with the Movie Director platform architecture while providing broadcast-quality visual consistency through distributed AI processing and real-time team coordination.
+## New Technical Specifications from Draft5
+
+### FLUX Model Integration Details
+**ComfyUI Workflow Generation for Styles:**
+The backend dynamically constructs ComfyUI API-formatted JSON workflows:
+- **Low**: Load FLUX.1-schnell + style LoRA, set resolution to 768px
+- **Standard**: Load FLUX.1-dev-fp8 + enhanced style model, set to 1024px
+- **High**: Load FLUX.1-dev (FP16) + multiple style LoRAs, up to 2048px
+
+### FLUX Kontext for Style Instructions
+The system includes support for FLUX.1 Kontext, enabling instruction-based style modifications:
+- "Make the scene more cinematic"
+- "Apply a noir aesthetic" 
+- "Enhance the color vibrancy"
+- "Create a vintage film look"
+
+### Performance Benchmarks (from draft5_refinement)
+**Processing Requirements:**
+- Style training: <60 minutes for production-quality LoRA
+- Batch application: Process 100+ shots per hour
+- LUT generation: <20 seconds per professional grade
+- Real-time preview: <3 seconds per style variation
+
+**Scalability Targets:**
+- Support 500+ concurrent style operations
+- Maintain 10,000+ styles in gallery
+- Process 50,000+ style applications daily
+- Scale to 100+ GPU workers dynamically
 
 ---
 
-*Style consistency evolves from desktop limitation to cloud-powered professional collaboration, enabling global teams to maintain broadcast-quality visual coherence through distributed AI processing and industry-standard color science.*
+**Style Framework Evolution:**
+This PRD v3.0 transforms the Style Consistency Framework into a fully web-native system centered on the FLUX model family, while the containerized Function Runner architecture enables rapid integration of specialized style models. The focus on FLUX provides a consistent, high-quality foundation for style generation, while containers allow experimentation with cutting-edge style transfer techniques.
+
+---
+
+---
+
+## Strategic Style Architecture (Draft6 Alignment)
+
+### Professional Color Science Integration
+The Style Consistency Framework demonstrates how the Function Runner pattern enables professional-grade capabilities:
+
+**Broadcast Standards Compliance:**
+- Industry-standard color spaces (Rec709, P3, Rec2020)
+- Professional LUT generation matching DaVinci Resolve
+- Automated color grading via containerized engines
+- Real-time collaborative color review
+
+### Style Innovation Pipeline
+The containerized architecture enables rapid adoption of:
+- Next-generation style transfer models
+- AI-powered color grading systems
+- Neural style preservation during editing
+- Cross-media style consistency (video, audio, text)
+- Brand compliance automation
+
+### Three-Tier Style Quality
+Aligned with real-world production needs:
+- **Low (12GB)**: Fast style exploration
+- **Standard (16GB)**: Production-ready styling
+- **High (24GB+)**: Broadcast-quality with multiple style models
+
+This architecture ensures Movie Director delivers professional visual consistency while remaining agile enough to adopt breakthrough style technologies as they emerge.
+
+---
+
+*The combination of FLUX's superior prompt adherence with containerized specialized models creates a style consistency system that balances reliability with innovation, all accessible through collaborative web interfaces. The Function Runner pattern ensures sustained competitive advantage in visual quality.*

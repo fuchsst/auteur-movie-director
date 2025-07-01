@@ -1,11 +1,11 @@
 # Product Requirements Document: Backend Integration Service Layer
 
-**Version:** 2.1  
-**Date:** 2025-01-29  
+**Version:** 3.0  
+**Date:** 2025-07-01  
 **Owner:** BMAD Business Analyst  
-**Status:** Web Architecture Pivot  
+**Status:** Web Architecture Complete - Function Runner Strategic Moat  
 **PRD ID:** PRD-001  
-**Dependencies:** PRD-008 (File-Based Project Structure)  
+**Dependencies:** PRD-008 (File-Based Project Structure), Draft6 (Generative Media Studio Architecture)  
 
 ---
 
@@ -15,6 +15,8 @@
 The Backend Integration Service Layer transforms the Movie Director from a conceptual framework into a fully functional web-based generative film studio. This layer serves as the critical bridge between the browser-based user interface and powerful AI generation backends (ComfyUI, Wan2GP, heterogeneous model repositories), enabling users to create professional-quality video content through any modern web browser without installation barriers.
 
 This foundation layer directly enables the regenerative content model that defines the entire platform: users define project parameters once in the database, while the backend service layer orchestrates unlimited content generation and regeneration from those stored definitions. This architectural approach ensures project portability, collaborative workflows, and eliminates the traditional file management burden of generative workflows.
+
+As identified in the draft6 architectural review, the backend's "Function Runner" pattern serves as a strategic moat: containerized AI models execute as modular, interchangeable microservices within Docker containers. This decoupling of core infrastructure from specific AI models enables rapid integration of cutting-edge technologies without system disruption, providing a sustainable competitive advantage through technological agility.
 
 ### Target User Personas
 - **Independent Filmmakers** - Creating short films and concept videos collaboratively from anywhere
@@ -334,10 +336,17 @@ def generate_video_task(self, project_id, node_id, params):
     return result
 ```
 
-#### 4. Function Runner System
+#### 4. Function Runner System (Strategic Moat Architecture)
+
+Per draft6_review.md, the Function Runner pattern is the platform's primary competitive advantage, treating each AI model as a self-contained Docker microservice. This architecture eliminates dependency conflicts and enables rapid model integration without core infrastructure changes.
+
 ```python
 class FunctionRunner:
-    """Execute arbitrary model repositories in isolated environments"""
+    """
+    Execute heterogeneous AI models in isolated Docker containers.
+    This pattern serves as our strategic moat, enabling rapid integration
+    of new models without system disruption.
+    """
     
     def __init__(self, docker_client):
         self.docker = docker_client
@@ -785,4 +794,33 @@ This PRD successfully integrates all architectural specifications from the three
 
 ---
 
-*Implementation must follow all specifications exactly as defined in the concept files to ensure architectural consistency across the entire platform.*
+## Strategic Architecture Summary (Draft6 Alignment)
+
+### Function Runner as Strategic Moat
+As identified in the draft6 architectural analysis, the Function Runner pattern represents the platform's most significant competitive advantage:
+
+**Key Strategic Benefits:**
+- **Rapid Model Integration**: New AI models can be integrated in days, not months
+- **Zero Dependency Conflicts**: Each model runs in an isolated Docker container
+- **Technology Agility**: Platform remains current with minimal engineering effort
+- **Scalable Innovation**: Community models can be added without core changes
+
+**Example Model Integrations Enabled:**
+- InfiniteYou (character consistency)
+- DreamO (identity preservation)
+- FlexiAct (motion control)
+- LayerFlow (video generation)
+- Fantasy-Talking (avatar generation)
+- LTX-Video (text-to-video)
+
+### Three-Tier Quality Architecture
+The platform implements intelligent quality-based routing aligned with real-world hardware constraints:
+- **Low Quality (12GB VRAM)**: Fast iteration with reduced models
+- **Standard Quality (16GB VRAM)**: Production-ready with balanced resources
+- **High Quality (24GB+ VRAM)**: Maximum fidelity with full model capabilities
+
+This tiered approach ensures accessibility while enabling professional results, supporting both SaaS subscription models and on-premise deployments.
+
+---
+
+*Implementation must follow all specifications exactly as defined in the concept files to ensure architectural consistency across the entire platform. The Function Runner pattern is non-negotiable as it represents the core strategic differentiator of the Movie Director platform.*

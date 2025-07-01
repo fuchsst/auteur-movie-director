@@ -1,9 +1,9 @@
 # Product Requirements Document: Node-Based Production Canvas
 
-**Version:** 2.1  
-**Date:** 2025-01-29  
+**Version:** 3.0  
+**Date:** 2025-07-01  
 **Owner:** BMAD Business Analyst  
-**Status:** Web Architecture Pivot  
+**Status:** Web Architecture Complete - Visual Orchestration  
 **PRD ID:** PRD-006  
 **Dependencies:** Backend Integration Service Layer (PRD-001), Intelligent Script-to-Shot Breakdown System (PRD-002), Character Consistency Engine (PRD-003), Style Consistency Framework (PRD-004), Environment Management System (PRD-005), File-Based Project Structure (PRD-008)
 
@@ -15,6 +15,8 @@
 The Node-Based Production Canvas transforms Movie Director from a traditional interface into a visual, intuitive production environment accessible through any web browser. This feature addresses the fundamental challenge of managing complex film production hierarchies by providing a visual graph representation of the entire filmmaking process, from high-level story structure down to individual shot generation, all with real-time collaboration capabilities.
 
 By leveraging Svelte Flow's proven node-based interface paradigm, this system makes the complex relationships between story elements, assets, scenes, and shots immediately visible and manipulable to distributed teams. The visual nature of the canvas dramatically reduces the cognitive load of managing multi-layered film production workflows while enabling seamless collaboration between team members working from different locations.
+
+As analyzed in draft6, the Production Canvas serves as the user's command center for visual programming of generative workflows. This interface abstracts the complexity of the underlying Function Runner architecture while providing intuitive access to the platform's full capabilities. The hierarchical node system with subflows enables professional-grade production organization that scales from simple projects to feature-length films.
 
 The web-based node canvas serves as the central nervous system of the regenerative content model, where all project definitions are visualized as nodes with connections stored in PostgreSQL, while generated content remains as S3 file references that can be regenerated based on the node parameters at any time. Real-time synchronization ensures all team members see the same production state.
 
@@ -922,3 +924,41 @@ This PRD successfully establishes the Node-Based Production Canvas as a professi
 ---
 
 *This PRD represents the transformation of the production canvas from a desktop-only tool to a collaborative web-based visual interface, enabling global teams to work together in real-time on complex film productions through the power of modern web technologies.*
+
+---
+
+## Strategic Canvas Architecture (Draft6 Alignment)
+
+### Visual Orchestration of AI Models
+The Production Canvas demonstrates how visual programming interfaces democratize access to complex AI orchestration:
+
+**Hierarchical Production Organization:**
+- Project level: Overview of entire film structure
+- Scene level: Expanded view with shot relationships
+- Shot level: Detailed configuration and generation
+- Subflow navigation: Industry-standard organization
+
+### Pipeline Node Innovation
+The canvas makes the Function Runner architecture accessible:
+- Visual pipeline configuration without coding
+- Drag-and-drop model selection and routing
+- Quality tier visualization on each node
+- Real-time resource usage indicators
+- Progress visualization during generation
+
+### WebSocket Protocol Excellence
+Draft6's Table 4 event schema enables:
+- Sub-300ms synchronization across global teams
+- Conflict-free collaborative editing
+- Optimistic updates with server reconciliation
+- Automatic reconnection with state recovery
+- Granular progress updates per node
+
+### Professional Integration Features
+- EDL compilation for NLE compatibility
+- Template system for workflow reuse
+- API access for external tool integration
+- Version control with visual diff
+- Cross-project node library sharing
+
+The Production Canvas transforms Movie Director from a tool into a visual production environment, where the complexity of AI orchestration becomes as intuitive as connecting nodes on a graph.

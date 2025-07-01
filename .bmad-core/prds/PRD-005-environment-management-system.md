@@ -1,9 +1,9 @@
 # Product Requirements Document: Environment Management & Background Generation System
 
-**Version:** 2.0  
-**Date:** 2025-01-29  
+**Version:** 4.0  
+**Date:** 2025-07-01  
 **Owner:** BMAD Business Analyst  
-**Status:** Web Architecture Pivot  
+**Status:** Web Architecture Complete - Multi-Angle Consistency  
 **PRD ID:** PRD-005  
 **Dependencies:** Backend Integration Service Layer (PRD-001), Intelligent Script-to-Shot Breakdown System (PRD-002), Character Consistency Engine (PRD-003), Style Consistency Framework (PRD-004), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007), File-Based Project Structure (PRD-008)
 
@@ -17,6 +17,8 @@ The Environment Management & Background Generation System addresses a critical g
 Environment consistency is essential for professional filmmaking, as location discontinuity immediately breaks audience immersion. By providing cloud-based environment generation with multi-angle consistency, style coordination, and real-time collaboration, this feature transforms Movie Director into a complete world-building platform capable of creating immersive, believable film environments without hardware limitations.
 
 The system operates on the regenerative content model: teams define environment parameters once in the PostgreSQL database as project definitions, and the system maintains that visual identity across unlimited generations, angles, and variations. Environment assets exist as parametric definitions with S3 file references to generated content (background images, 360° environments, depth maps), enabling complete environment regeneration and modification at any time while supporting real-time collaborative workflows.
+
+As emphasized in draft6, the containerized "Function Runner" backend serves as a strategic moat for environment generation. This architecture enables the integration of specialized models like LayerFlow for layer-aware video environments, depth estimation models for multi-angle consistency, and future spatial AI technologies as isolated Docker microservices. The platform can rapidly adopt breakthrough environment technologies that maintain spatial coherence across multiple camera angles—a critical requirement for professional filmmaking.
 
 ### Target User Personas
 - **Distributed Production Teams** - Creating diverse locations with remote team members
@@ -62,33 +64,40 @@ The system operates on the regenerative content model: teams define environment 
 ## Solution Overview
 
 ### Feature Description within Web Architecture
-The Environment Management & Background Generation System leverages the distributed web architecture to provide collaborative environment development with advanced AI models. Using Function Runner for heterogeneous model execution and Celery for distributed processing, teams can develop, maintain, and apply consistent environments across entire productions with real-time synchronization.
+The Environment Management & Background Generation System leverages the distributed web architecture to provide collaborative environment development with advanced AI models. Using the containerized Function Runner backend for heterogeneous model execution and Celery for distributed processing, teams can develop, maintain, and apply consistent environments across entire productions with real-time synchronization.
 
 **Core Capabilities:**
-1. **Collaborative Environment Gallery** - Real-time shared environment asset library
-2. **Cloud-Based Environment Generation** - Distributed processing on GPU workers
-3. **Multi-Angle Camera Coverage** - Automatic generation of consistent viewpoints
-4. **Live Environment Preview** - Instant visual updates across all clients
-5. **Quality-Tiered Generation** - Three levels of environment quality
-6. **Version History** - Complete environment evolution tracking
-7. **Cross-Project Templates** - Share environments across productions
-8. **Team Annotations** - Collaborative notes on environment development
-9. **Batch Generation** - Create multiple environment variations in parallel
-10. **API Access** - Integrate environment system with external tools
-11. **Git LFS Integration** - Version control for environment assets
-12. **File Structure Compliance** - Organized in project hierarchy
+1. **Collaborative Environment Gallery** - Real-time shared environment asset library with SvelteKit frontend
+2. **Cloud-Based FLUX Generation** - Distributed environment creation on GPU workers via Celery queues
+3. **Multi-Angle Camera Coverage** - Automatic generation of consistent viewpoints with depth awareness
+4. **Live Environment Preview** - Instant visual updates across all clients via WebSocket
+5. **Quality-Tiered Processing** - Three levels aligned with VRAM requirements
+6. **Version History** - Complete environment evolution tracking with Git integration
+7. **Cross-Project Templates** - Share environments across productions via S3 storage
+8. **Team Annotations** - Collaborative notes with operational transformation
+9. **Batch Variation Engine** - Time/weather/seasonal variations in parallel
+10. **Asset Manager Integration** - Unified interface for environment creation
+11. **Git LFS Integration** - Automatic tracking of HDR maps and large assets
+12. **Progressive Result Streaming** - See environments as they generate
 
-**Quality Tier Specifications:**
-- **Low Quality**: Basic environments, 512x512, fast generation
-- **Standard Quality**: Detailed environments, 768x768, balanced
-- **High Quality**: Premium environments, 1024x1024+, maximum detail
+**Quality Tier Specifications (VRAM-Aligned):**
+- **Low Quality (~12GB VRAM)**: FLUX.1-schnell environments, resolution capped at 768px
+- **Standard Quality (~16GB VRAM)**: FLUX.1-dev (FP8) environments at 1024px
+- **High Quality (24GB+ VRAM)**: FLUX.1-dev (FP16) environments at up to 2048px
 
-### Integration with Advanced Models
-**Function Runner Model Support:**
-- **FLUX Environment Models**: High-quality environment generation
-- **360° Environment Generation**: Immersive world creation capabilities
-- **Depth-Aware Models**: Multi-layer environment composition
-- **Style-Adaptive Environment Models**: Automatic style integration
+### Integration with Focused Model Stack
+**FLUX-Based Environment Generation:**
+- **FLUX.1-schnell**: Fast environment drafts for rapid iteration (Low Quality)
+- **FLUX.1-dev (FP8)**: Production-quality environments with good performance (Standard)
+- **FLUX.1-dev (FP16)**: Maximum quality environment generation (High Quality)
+- **FLUX.1 Kontext**: Instruction-based environment editing ("add fog", "make it sunset")
+
+**Advanced Model Integration via Function Runner:**
+- **LayerFlow**: Layer-aware video environments with foreground/background separation
+- **Depth Estimation Models**: Generate depth maps for multi-angle consistency
+- **HDR Environment Generation**: 360° environment creation via specialized containers
+- **Temporal Consistency Models**: Maintain environment coherence across video sequences
+- **Environment LoRA Training**: Custom environment styles for specific projects
 
 **Distributed Processing Benefits:**
 - Parallel environment generation across multiple GPU workers
@@ -162,19 +171,19 @@ The Environment Management & Background Generation System leverages the distribu
 ### Epic 2: Cloud-Based Multi-Angle Generation
 **As a filmmaker, I want to generate multiple camera angles automatically so that I can maintain environment consistency across shots.**
 
-#### User Story 2.1: Automatic Angle Generation
+#### User Story 2.1: FLUX-Powered Angle Generation
 - **Given** I have a base environment established
 - **When** I request multi-angle generation
-- **Then** the system generates 6+ standard camera angles
-- **And** maintains visual and spatial consistency
-- **And** streams results to all team members
-- **And** preserves lighting and atmospheric elements
+- **Then** the system uses FLUX models to generate 6+ camera angles
+- **And** maintains depth consistency via depth maps
+- **And** streams results to all team members via WebSocket
+- **And** preserves lighting and atmospheric elements across angles
 
 **Acceptance Criteria:**
-- Standard angle set generation (wide, medium, close, etc.)
-- >85% spatial consistency across angles
-- Real-time result streaming
-- Atmospheric preservation
+- FLUX model execution with quality-based routing
+- Depth map generation for spatial consistency
+- >85% spatial accuracy across angles
+- Real-time streaming per Table 4 specification
 
 #### User Story 2.2: Custom Camera Positions
 - **Given** specific shot requirements
@@ -292,25 +301,30 @@ The Environment Management & Background Generation System leverages the distribu
 #### 1. SvelteKit Frontend Requirements
 
 **Environment Gallery Component Requirements:**
-- Real-time synchronization via WebSocket following draft4_canvas.md protocol
-- Display environment assets with quality tier indicators
-- Drag-and-drop integration with Production Canvas (PRD-006)
-- Team collaboration features with presence indicators
-- Version history visualization with rollback capability
-- Asset references by ID only (no file path exposure)
-- Multi-angle view switching with consistency validation
-- Batch generation controls for variations
+- Real-time synchronization via WebSocket following Table 4 event schema
+- Display environment assets with quality tier indicators (Low/Standard/High)
+- Grid view with environment thumbnail display (as per draft5_refinement)
+- Drag-and-drop to create Environment nodes in Production Canvas
+- Team presence indicators showing who's viewing/editing
+- Version history with visual diff capability
+- Environment references by ID only (no file path exposure)
+- Environment name with location type metadata display
+- Mood/atmosphere tags for quick identification
+- Multi-angle view switcher with depth map preview
+- Batch generation controls for time/weather variations
 
 **Environment Creation Interface Requirements:**
+- Asset Manager integration at `/assets` route
 - Multiple reference image upload with validation
-- Quality tier selection (Low/Standard/High):
-  - Low: Basic environments, 512x512, fast generation
-  - Standard: Detailed environments, 768x768, balanced
-  - High: Premium environments, 1024x1024+, maximum detail
-- Location type classification interface
-- Metadata input (name, description, context)
-- Real-time preview generation and updates
-- Team collaboration features with annotations
+- Quality tier selection with FLUX model mapping:
+  - Low: FLUX.1-schnell, 768px max, ~12GB VRAM
+  - Standard: FLUX.1-dev (FP8), 1024px, ~16GB VRAM
+  - High: FLUX.1-dev (FP16), 2048px, 24GB+ VRAM
+- Location type classification (interior/exterior/abstract)
+- Metadata input (name, description, mood, time of day)
+- Real-time preview generation via WebSocket
+- Team collaboration with presence indicators
+- Instruction-based editing with FLUX Kontext
 
 **Multi-Angle Generation Interface:**
 - Standard angle set controls (wide, medium, close, etc.)
@@ -324,16 +338,18 @@ The Environment Management & Background Generation System leverages the distribu
 
 **Environment Generation Endpoint Requirements:**
 - Accept environment ID and quality tier parameters
-- Validate reference image requirements per quality tier:
-  - Low: Basic validation, minimal resources
-  - Standard: Balanced validation, moderate resources
-  - High: Comprehensive validation, maximum resources
-- Queue to appropriate worker pool based on quality
-- Calculate priority based on user tier and project urgency
+- Quality-based FLUX model routing:
+  - Low: FLUX.1-schnell for fast environment drafts
+  - Standard: FLUX.1-dev (FP8) for production quality
+  - High: FLUX.1-dev (FP16) for maximum fidelity
+- Queue to VRAM-appropriate worker pool:
+  - 12GB workers: Low quality queue
+  - 16GB workers: Standard quality queue
+  - 24GB+ workers: High quality queue
 - Store generation job metadata in PostgreSQL
-- Broadcast generation start notification via WebSocket
-- Return job ID and estimated completion time
-- Coordinate with style consistency framework (PRD-004)
+- Stream progress via WebSocket per Table 4 spec
+- Return job ID with ETA based on queue depth
+- Coordinate with style framework for consistent aesthetics
 
 **Multi-Angle Generation Endpoints:**
 - Support batch angle generation (6+ standard angles)
@@ -361,18 +377,38 @@ The Environment Management & Background Generation System leverages the distribu
 - **High Quality Queue** (`environment_high`): Premium environments, maximum resources
 
 **Environment-Specific Celery Tasks:**
-- `environment.generate` - Distributed environment generation on GPU workers
-- `environment.generate_multi_angle` - Coordinated multi-angle generation
-- `environment.generate_variations` - Time/weather/seasonal variations
-- `environment.validate_consistency` - Cross-angle consistency validation
-- `environment.optimize_output` - Post-generation optimization and compression
+- `environment.generate_flux` - FLUX-based environment generation via ComfyUI
+- `environment.generate_multi_angle` - Coordinated angle set with depth maps
+- `environment.generate_variations` - Time/weather/seasonal via FLUX Kontext
+- `environment.generate_depth` - Depth map creation for spatial consistency
+- `environment.apply_layerflow` - Layer-aware video environment generation
+- `environment.generate_hdr` - 360° HDR environment via Function Runner
 
-**Function Runner Integration Requirements:**
-- FLUX Environment Models for high-quality generation
-- 360° Environment Generation for immersive worlds
-- Depth-Aware Models for multi-layer composition
-- Style-Adaptive Environment Models for automatic integration
-- Advanced variation models for complex transformations
+**Function Runner Container Registry:**
+- **environment-layerflow:latest** - Layer-aware video environments
+- **environment-depth:latest** - Depth estimation for multi-angle consistency
+- **environment-hdr:latest** - 360° HDR environment generation
+- **environment-temporal:latest** - Video environment consistency
+- **environment-variation:latest** - Time/weather/seasonal transformations
+
+**VRAM-Based Resource Allocation:**
+- **Low Quality (12GB VRAM)**:
+  - ComfyUI with --lowvram mode
+  - FLUX.1-schnell models
+  - Single environment generation
+  - Resolution limited to 768px
+  
+- **Standard Quality (16GB VRAM)**:
+  - ComfyUI with --medvram-sdxl mode
+  - FLUX.1-dev (FP8) models
+  - Multi-angle generation support
+  - Resolution up to 1024px
+  
+- **High Quality (24GB+ VRAM)**:
+  - Full GPU memory access
+  - FLUX.1-dev (FP16) models
+  - Complex environment workflows
+  - Resolution up to 2048px
 
 **Progress Streaming Requirements:**
 - Real-time generation progress via WebSocket events per draft4_canvas.md
@@ -676,10 +712,87 @@ The Environment Management & Background Generation System leverages the distribu
 
 ---
 
-**Environment Management Foundation:**
-This PRD successfully establishes the Environment Management & Background Generation System as a professional-grade, collaborative system that integrates seamlessly with the Movie Director platform architecture while providing broadcast-quality environment consistency through distributed AI processing and real-time team coordination.
+## New Technical Specifications from Draft5
+
+### FLUX Model Integration Details
+**ComfyUI Workflow Generation for Environments:**
+The backend dynamically constructs ComfyUI API-formatted JSON workflows:
+- **Low**: Load FLUX.1-schnell, set resolution to 768px, basic prompts
+- **Standard**: Load FLUX.1-dev-fp8, set to 1024px, enhanced prompts
+- **High**: Load FLUX.1-dev (FP16), up to 2048px, complex scene descriptions
+
+### Multi-Angle Generation with Depth Maps
+The system generates consistent camera angles by:
+1. Creating base environment with FLUX
+2. Generating depth map via specialized container
+3. Using depth information to maintain spatial consistency
+4. Applying same lighting/atmosphere across angles
+
+### FLUX Kontext for Environment Instructions
+Support for instruction-based environment modifications:
+- "Add morning fog to the valley"
+- "Make it rain with puddles"
+- "Convert to winter with snow"
+- "Create a sunset atmosphere"
+
+### Performance Benchmarks (from draft5_refinement)
+**Processing Requirements:**
+- Environment generation: <3 minutes per high-quality scene
+- Multi-angle set: <10 minutes for 6 camera angles
+- Variation generation: <2 minutes per time/weather variant
+- Depth map creation: <30 seconds per environment
+
+**Scalability Targets:**
+- Support 1,000+ concurrent environment operations
+- Maintain 50,000+ environments in gallery
+- Process 100,000+ generations daily
+- Scale to 200+ GPU workers dynamically
 
 ---
+
+**Environment System Evolution:**
+This PRD v3.0 transforms the Environment Management System into a fully web-native platform centered on the FLUX model family for consistent, high-quality environment generation. The containerized Function Runner architecture enables integration of specialized models like LayerFlow for video environments and depth estimation for multi-angle consistency, all accessible through collaborative web interfaces.
+
+---
+
+*The combination of FLUX's superior environment generation with containerized specialized models creates a world-building system that balances quality with innovation, enabling distributed teams to create immersive film environments collaboratively.*
+
+---
+
+## Strategic Environment Architecture (Draft6 Alignment)
+
+### Multi-Angle Consistency Innovation
+The Environment Management System showcases how the Function Runner pattern solves complex spatial challenges:
+
+**Depth-Aware Generation Pipeline:**
+1. Base environment creation with FLUX models
+2. Depth map generation via specialized containers
+3. Multi-angle consistency validation algorithms
+4. Spatial reference point preservation
+5. Automatic lighting coherence across angles
+
+### LayerFlow Integration
+The containerized architecture enables advanced capabilities:
+- Foreground/background separation for compositing
+- Dynamic depth-based effects
+- Camera movement planning with spatial awareness
+- Parallax-correct multi-angle generation
+- Video environment temporal consistency
+
+### Environmental Variation Engine
+Rapid adoption of variation models:
+- Time-of-day transformation models
+- Weather simulation systems
+- Seasonal adaptation algorithms
+- Atmospheric effects generators
+- HDR environment creation
+
+### Three-Tier Environment Quality
+- **Low (12GB)**: Quick environment sketches
+- **Standard (16GB)**: Multi-angle production environments
+- **High (24GB+)**: Film-quality with HDR and variations
+
+This architecture positions Movie Director as the premier platform for creating spatially consistent, multi-angle environments that meet the demanding requirements of professional film production.
 
 ## Risk Assessment & Mitigation
 

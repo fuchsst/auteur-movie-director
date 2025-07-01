@@ -1,9 +1,9 @@
 # Product Requirements Document: File-Based Project Structure & Version Control System
 
-**Version:** 1.0  
-**Date:** 2025-01-29  
+**Version:** 2.0  
+**Date:** 2025-07-01  
 **Owner:** BMAD Business Analyst  
-**Status:** Web Architecture Foundation  
+**Status:** Web Architecture Foundation - Git LFS Excellence  
 **PRD ID:** PRD-008  
 **Dependencies:** PRD-001 (Backend Integration), PRD-006 (Node Canvas), PRD-007 (Regenerative Model)
 
@@ -15,6 +15,8 @@
 The File-Based Project Structure & Version Control System establishes the foundational storage architecture that enables Movie Director to function as a professional, collaborative filmmaking platform. This system provides a standardized, self-contained project organization that seamlessly integrates with Git version control, enabling complete project portability, team collaboration, and the regenerative content model that defines the platform.
 
 By implementing a rigorous separation between shared workspace resources and self-contained projects, combined with Git Large File Storage (LFS) for efficient media handling, this architecture enables artists to work naturally with high-level creative concepts (Characters, Styles, Locations) while maintaining complete version history and preparing for future cloud deployment.
+
+As detailed in draft6, the "Project-as-Repository" model with mandatory Git LFS integration represents a sophisticated approach to managing large media files in collaborative environments. This architecture solves the fundamental challenge of version controlling binary media files while maintaining repository performance. The atomic versioning system (SHOT-XXX_vYY_takeZZ.mp4) ensures complete traceability while the "Takes" system enables unlimited creative variations without storage bloat.
 
 ### Target User Personas
 - **Independent Filmmakers** - Managing complex projects with clear organization
@@ -759,3 +761,43 @@ class ProjectScaffolder:
 ---
 
 *This PRD establishes the foundational file structure that enables all other platform features, providing a professional, scalable, and future-proof organization system for generative filmmaking projects.*
+
+---
+
+## Strategic File Architecture (Draft6 Alignment)
+
+### Project-as-Repository Excellence
+The file structure demonstrates how proper organization enables enterprise-grade capabilities:
+
+**Git LFS Mastery:**
+- Automatic media file tracking via .gitattributes
+- Pointer-based storage keeping repos lightweight
+- Selective pull for bandwidth optimization
+- Cross-region replication support
+- S3 backend compatibility for cloud scaling
+
+### Atomic Versioning System
+The immutable naming convention ensures:
+- Complete version history without conflicts
+- Parallel creative exploration (takes)
+- Clear progression tracking (versions)
+- Non-destructive iteration workflow
+- Professional asset management standards
+
+### Workspace/Project Separation
+Strategic benefits of the two-tier model:
+- Shared resources without duplication
+- Self-contained project portability
+- Clean separation of concerns
+- Efficient storage utilization
+- Enterprise-ready organization
+
+### Cloud Migration Readiness
+The structure maps directly to cloud architectures:
+- S3-compatible path organization
+- Multi-tenant prefix support
+- CDN-ready asset distribution
+- Serverless function compatibility
+- Container-friendly file access
+
+This file structure serves as the foundation that enables all of Movie Director's advanced features while maintaining compatibility with professional production workflows and future cloud scaling.

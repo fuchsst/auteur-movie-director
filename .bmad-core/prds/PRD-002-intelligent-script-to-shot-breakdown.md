@@ -1,9 +1,9 @@
 # Product Requirements Document: Intelligent Script-to-Shot Breakdown System
 
-**Version:** 2.0  
-**Date:** 2025-01-29  
+**Version:** 3.0  
+**Date:** 2025-07-01  
 **Owner:** BMAD Business Analyst  
-**Status:** Web Architecture Pivot  
+**Status:** Web Architecture Complete - AI-Powered Collaboration  
 **PRD ID:** PRD-002  
 **Dependencies:** Backend Integration Service Layer (PRD-001), Character Consistency Engine (PRD-003), Style Consistency Framework (PRD-004), Environment Management System (PRD-005), Node-Based Production Canvas (PRD-006), Regenerative Content Model (PRD-007), File-Based Project Structure (PRD-008)
 
@@ -15,6 +15,8 @@
 The Intelligent Script-to-Shot Breakdown System represents the critical entry point into the Movie Director web-based generative film studio. This feature transforms the fundamental bottleneck of film pre-production—manually breaking down scripts into actionable scenes and shots—into an automated, AI-driven process accessible from any web browser. By enabling filmmakers to begin with raw screenplay text and automatically generate the complete narrative structure as an interactive node graph, this system eliminates the most time-consuming and error-prone aspect of pre-production planning.
 
 This feature directly addresses the primary user journey barrier: the complexity gap between creative intent (a script idea) and technical execution (structured generative workflows). It democratizes film pre-production by making professional-grade script analysis and shot planning accessible to creators without extensive film school training or industry experience, all through an intuitive web interface.
+
+Aligned with the draft6 architectural blueprint, this system leverages cloud-based LLMs for sophisticated script analysis, utilizing the distributed Celery worker architecture to process scripts of any length efficiently. The WebSocket protocol ensures real-time collaborative editing with operational transformation, enabling multiple team members to refine the breakdown simultaneously.
 
 The system operates on the regenerative content model foundation: script analysis parameters and breakdown structures are stored as project definitions in the PostgreSQL database, while the actual content generation (character assets, environment references, shot videos) exists as S3 file references that can be regenerated at any time. This approach ensures project portability and enables unlimited iteration without file management complexity.
 
@@ -333,16 +335,18 @@ The Intelligent Script-to-Shot Breakdown System leverages the web platform to pr
 
 #### 3. WebSocket Event Extensions for Script Collaboration
 
-**Script-Specific Events (extending draft4_canvas.md protocol):**
+**Script-Specific Events (extending draft4_canvas.md protocol per draft6 Table 4):**
 
 | Event Name | Direction | Payload Schema | Description |
 |------------|-----------|----------------|-------------|
-| `client:script.edit` | C → S | `{"script_id": "...", "operation": {...}, "cursor": {...}}` | Script editing operations |
+| `client:script.edit` | C → S | `{"script_id": "...", "operation": {...}, "cursor": {...}}` | Script editing operations with OT |
 | `client:script.analyze` | C → S | `{"script_id": "...", "quality": "standard"}` | Trigger script analysis |
+| `client:update_node_data` | C → S | `{"node_id": "...", "data": {...}}` | Standard node updates per draft6 |
 | `server:script.change` | S → C | `{"script_id": "...", "operation": {...}, "user_id": "..."}` | Broadcast script changes |
-| `server:analysis.progress` | S → C | `{"script_id": "...", "progress": 45, "scene": "..."}` | Analysis progress updates |
+| `server:analysis.progress` | S → C | `{"script_id": "...", "progress": 45, "scene": "..."}` | Streaming analysis progress |
 | `server:analysis.scene_complete` | S → C | `{"script_id": "...", "scene_id": "...", "data": {...}}` | Scene analysis completion |
-| `server:analysis.complete` | S → C | `{"script_id": "...", "graph": {...}}` | Complete analysis with node graph |
+| `server:node_state_updated` | S → C | `{"node_id": "...", "state": "analyzing"}` | Node state per draft6 |
+| `server:task_progress` | S → C | `{"task_id": "...", "node_id": "...", "progress": 50}` | Granular progress per draft6 |
 
 **Operational Transformation Requirements:**
 - Implement conflict-free collaborative editing
@@ -675,4 +679,26 @@ This PRD successfully transforms script breakdown into a collaborative, web-base
 
 ---
 
-*Script-to-shot breakdown becomes the collaborative foundation that enables distributed teams to transform narratives into production-ready node graphs through real-time web interfaces.*
+## Strategic Architecture Alignment (Draft6 Compliance)
+
+### AI-Powered Collaborative Analysis
+As outlined in draft6, the script breakdown system exemplifies the platform's approach to distributed AI processing:
+
+**Key Architectural Elements:**
+- **Cloud-Based LLM Processing**: Leverages powerful backend servers for analysis
+- **Streaming Results Architecture**: Progressive delivery as scenes are analyzed
+- **Operational Transformation**: Conflict-free collaborative script editing
+- **Quality-Tiered Analysis**: Routes to appropriate LLM models based on tier
+
+### Integration with Production Canvas
+The script breakdown directly generates the node graph structure that forms the foundation of the Production Canvas:
+- Automatic creation of Scene and Shot nodes
+- Character/Environment extraction populates Asset nodes
+- Style suggestions based on genre analysis
+- Hierarchical organization with subflows
+
+This seamless flow from script to visual production planning demonstrates the platform's unified architecture, where each component builds upon the previous to create a cohesive filmmaking environment.
+
+---
+
+*Script-to-shot breakdown becomes the collaborative foundation that enables distributed teams to transform narratives into production-ready node graphs through real-time web interfaces, setting the stage for the entire regenerative production workflow.*
