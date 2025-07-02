@@ -1,8 +1,30 @@
-# Generative Media Studio
+# Auteur Movie Director
+
+A web-based platform that transforms narrative concepts into cinematic sequences using AI agents and distributed generative engines.
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/auteur-movie-director.git
+cd auteur-movie-director
+
+# Run automated setup
+npm run setup
+
+# Start development servers
+npm run dev
+
+# Open in browser
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000/docs
+```
+
+For detailed setup instructions, see [docs/SETUP.md](./docs/SETUP.md).
 
 ## Overview
 
-**Generative Media Studio** is a revolutionary web-based platform that transforms narrative concepts into cinematic sequences using AI agents and distributed processing. Built on modern web technologies and the regenerative content model, it enables global teams to collaborate in real-time on professional film production without hardware limitations.
+**Auteur Movie Director** is a revolutionary web-based platform that empowers directors to transform their narrative visions into cinematic sequences using AI agents and distributed processing. Built on modern web technologies and the regenerative content model, it provides a director-centric workflow that enables creative visionaries to maintain artistic control while leveraging AI-powered production capabilities. Global teams can collaborate in real-time on professional film production without hardware limitations.
 
 ### Key Features
 
@@ -48,7 +70,7 @@ All generation tasks support three quality levels:
 ## Project Structure
 
 ```
-generative-media-studio/
+auteur-movie-director/
 ├── backend/
 │   ├── api/                    # FastAPI application
 │   │   ├── endpoints/          # REST endpoints

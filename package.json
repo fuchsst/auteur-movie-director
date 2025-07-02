@@ -1,18 +1,20 @@
 {
-  "name": "generative-media-studio",
+  "name": "auteur-movie-director",
   "version": "1.0.0",
-  "description": "Web-based platform for AI-powered film production",
+  "description": "Web-based platform for AI-powered film production with director-centric workflow",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/generative-media-studio.git"
+    "url": "https://github.com/yourusername/auteur-movie-director.git"
   },
   "scripts": {
-    "setup": "npm run setup:check && npm run setup:backend && npm run setup:frontend && npm run setup:env",
+    "setup": "node scripts/setup.js",
     "setup:check": "node scripts/check-prerequisites.js",
+    "setup:deps": "node scripts/setup-deps.js",
     "setup:backend": "cd backend && pip install -r requirements.txt",
     "setup:frontend": "cd frontend && npm install",
     "setup:env": "node scripts/setup-env.js",
+    "validate": "node scripts/validate-env.js",
     
     "dev": "concurrently -n \"backend,frontend\" -c \"yellow,cyan\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",

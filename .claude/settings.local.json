@@ -6,7 +6,8 @@
       "Bash(find:*)",
       "WebFetch(domain:docs.blender.org)",
       "Bash(uv run pytest:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(npm run lint)"
     ],
     "deny": []
   }

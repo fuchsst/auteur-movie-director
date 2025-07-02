@@ -1,6 +1,6 @@
-# Generative Media Studio - Frontend
+# Auteur Movie Director - Frontend
 
-SvelteKit frontend application for the Generative Media Studio platform.
+SvelteKit frontend application for the Auteur Movie Director platform.
 
 ## Setup
 

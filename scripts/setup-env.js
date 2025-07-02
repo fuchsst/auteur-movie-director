@@ -10,7 +10,7 @@ const path = require('path');
 const ENV_EXAMPLE = `.env.example`;
 const ENV_FILE = `.env`;
 
-const envTemplate = `# Generative Media Studio Configuration
+const envTemplate = `# Auteur Movie Director Configuration
 
 # Backend Configuration
 BACKEND_HOST=0.0.0.0

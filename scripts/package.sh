@@ -1,5 +1,5 @@
 #!/bin/bash
-# Package the Generative Media Studio for distribution
+# Package the Auteur Movie Director for distribution
 
 set -e  # Exit on error
 
@@ -8,7 +8,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # Application name and version
-APP_NAME="generative-media-studio"
+APP_NAME="auteur-movie-director"
 VERSION=$(node -p "require('./package.json').version")
 
 # Output directory
@@ -24,7 +24,7 @@ fi
 
 OUTPUT_PATH="$OUTPUT_DIR/$PACKAGE_NAME"
 
-echo "📦 Packaging Generative Media Studio..."
+echo "📦 Packaging Auteur Movie Director..."
 echo "  Version: $VERSION"
 echo "  Output: $OUTPUT_PATH"
 echo ""

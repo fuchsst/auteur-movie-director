@@ -1,1 +1,1 @@
-"""Tests package for Generative Media Studio."""
+"""Tests package for Auteur Movie Director."""

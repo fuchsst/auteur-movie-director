@@ -1,10 +1,10 @@
-# Makefile for Generative Media Studio
+# Makefile for Auteur Movie Director
 
 .PHONY: help setup test lint format clean package docs dev
 
 # Default target
 help:
-	@echo "Generative Media Studio - Development Commands"
+	@echo "Auteur Movie Director - Development Commands"
 	@echo "============================================="
 	@echo ""
 	@echo "🚀 Quick Start (Web Platform):"

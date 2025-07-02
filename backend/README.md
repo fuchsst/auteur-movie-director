@@ -1,6 +1,6 @@
-# Generative Media Studio - Backend
+# Auteur Movie Director - Backend
 
-FastAPI backend service for the Generative Media Studio platform.
+FastAPI backend service for the Auteur Movie Director platform.
 
 ## Setup
 

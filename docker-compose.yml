@@ -1,11 +1,11 @@
-# Docker Compose configuration for Generative Media Studio services
+# Docker Compose configuration for Auteur Movie Director services
 # For local development - production should use Kubernetes or similar
 version: '3.8'
 
 services:
   comfyui:
     image: ${COMFYUI_IMAGE:-comfyui/comfyui:latest}
-    container_name: gms-comfyui
+    container_name: amd-comfyui
     ports:
       - "${COMFYUI_PORT:-8188}:8188"
     volumes:
@@ -23,7 +23,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     networks:
-      - gms-network
+      - amd-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
       interval: 30s
@@ -32,7 +32,7 @@ services:
 
   wan2gp:
     image: ${WAN2GP_IMAGE:-wan2gp/wan2gp:latest}
-    container_name: gms-wan2gp
+    container_name: amd-wan2gp
     ports:
       - "${WAN2GP_PORT:-7860}:7860"
     volumes:
@@ -49,7 +49,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     networks:
-      - gms-network
+      - amd-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7860/api/health"]
       interval: 30s
@@ -58,7 +58,7 @@ services:
 
   rvc:
     image: ${RVC_IMAGE:-rvc/rvc:latest}
-    container_name: gms-rvc
+    container_name: amd-rvc
     ports:
       - "${RVC_PORT:-7865}:7865"
     volumes:
@@ -75,7 +75,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     networks:
-      - gms-network
+      - amd-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7865/api/status"]
       interval: 30s
@@ -84,7 +84,7 @@ services:
 
   audioldm:
     image: ${AUDIOLDM_IMAGE:-audioldm/audioldm:latest}
-    container_name: gms-audioldm
+    container_name: amd-audioldm
     ports:
       - "${AUDIOLDM_PORT:-7863}:7863"
     volumes:
@@ -101,7 +101,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     networks:
-      - gms-network
+      - amd-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7863/api/ready"]
       interval: 30s
@@ -109,8 +109,8 @@ services:
       retries: 3
 
 networks:
-  gms-network:
-    name: ${DOCKER_NETWORK:-gms-network}
+  amd-network:
+    name: ${DOCKER_NETWORK:-amd-network}
     driver: bridge
 
 volumes:

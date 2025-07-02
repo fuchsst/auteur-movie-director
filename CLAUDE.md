@@ -12,11 +12,11 @@ use `npm run` commands as the primary way to run project tasks
 
 Follow the BMAD method as defined in `.bmad-core/tasks/`
 
-# Generative Media Studio - Project Guide
+# Auteur Movie Director - Project Guide
 
 ## Project Overview
 
-A web-based platform that transforms narrative concepts into cinematic sequences using AI agents and distributed generative engines. Built on the BMAD (Breakthrough Method of Agile AI-Driven Development) framework for modern web development.
+A web-based platform that empowers directors to transform their creative visions into cinematic sequences using AI agents and distributed generative engines. Built on the BMAD (Breakthrough Method of Agile AI-Driven Development) framework for modern web development, with a focus on director-centric workflows and artistic control.
 
 ### Core Architecture
 
@@ -57,8 +57,8 @@ A web-based platform that transforms narrative concepts into cinematic sequences
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/generative-media-studio.git
-cd generative-media-studio
+git clone https://github.com/yourusername/auteur-movie-director.git
+cd auteur-movie-director
 
 # Install npm dependencies (includes concurrently)
 npm install
@@ -85,7 +85,7 @@ This project uses modern dependency management:
 ### Project Structure
 
 ```
-generative-media-studio/
+auteur-movie-director/
 ├── backend/                 # FastAPI application
 │   ├── app/                # Application code
 │   ├── services/           # Business logic

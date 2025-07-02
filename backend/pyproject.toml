@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "generative-media-studio-backend"
+name = "auteur-movie-director-backend"
 version = "0.1.0"
-description = "Backend API for the Generative Media Studio web platform"
+description = "Backend API for the Auteur Movie Director web platform"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 authors = [
@@ -23,8 +23,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
+    "fastapi>=0.115.14",
+    "uvicorn[standard]>=0.35.0",
     "pydantic>=2.5.0",
     "python-multipart>=0.0.6",
     "aiofiles>=23.2.0",
@@ -46,8 +46,8 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/generative-media-studio"
-"Bug Tracker" = "https://github.com/yourusername/generative-media-studio/issues"
+"Homepage" = "https://github.com/yourusername/auteur-movie-director"
+"Bug Tracker" = "https://github.com/yourusername/auteur-movie-director/issues"
 
 [tool.black]
 line-length = 100
