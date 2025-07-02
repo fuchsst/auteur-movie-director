@@ -1,0 +1,66 @@
+{
+  "name": "generative-media-studio",
+  "version": "1.0.0",
+  "description": "Web-based platform for AI-powered film production",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/generative-media-studio.git"
+  },
+  "scripts": {
+    "setup": "npm run setup:check && npm run setup:backend && npm run setup:frontend && npm run setup:env",
+    "setup:check": "node scripts/check-prerequisites.js",
+    "setup:backend": "cd backend && pip install -r requirements.txt",
+    "setup:frontend": "cd frontend && npm install",
+    "setup:env": "node scripts/setup-env.js",
+    
+    "dev": "concurrently -n \"backend,frontend\" -c \"yellow,cyan\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:frontend": "cd frontend && npm run dev -- --host 0.0.0.0 --port 3000",
+    
+    "start": "concurrently -n \"backend,frontend\" -c \"yellow,cyan\" \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "start:frontend": "cd frontend && npm run preview",
+    
+    "build": "npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && pytest",
+    "test:frontend": "cd frontend && npm test",
+    "test:integration": "npm run test:backend -- tests/integration && npm run test:frontend -- --integration",
+    
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && ruff check .",
+    "lint:frontend": "cd frontend && npm run lint",
+    
+    "format": "npm run format:backend && npm run format:frontend",
+    "format:backend": "cd backend && ruff format .",
+    "format:frontend": "cd frontend && npm run format",
+    
+    "clean": "npm run clean:backend && npm run clean:frontend",
+    "clean:backend": "cd backend && rm -rf __pycache__ .pytest_cache .ruff_cache",
+    "clean:frontend": "cd frontend && rm -rf .svelte-kit build node_modules/.vite",
+    
+    "workspace:init": "cd backend && python -m app.services.workspace init",
+    "project:create": "cd backend && python -m app.services.workspace create-project",
+    
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    
+    "docs:dev": "cd docs && npm run dev",
+    "docs:build": "cd docs && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "workspaces": [
+    "frontend"
+  ]
+}

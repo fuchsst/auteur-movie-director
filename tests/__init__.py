@@ -1,1 +1,1 @@
-"""Tests package for Blender Movie Director addon."""
+"""Tests package for Generative Media Studio."""

@@ -1,6 +1,6 @@
 # Development Scripts
 
-Quick reference for Blender Movie Director development scripts.
+Quick reference for Generative Media Studio development scripts.
 
 ## Script Usage Guide
 
@@ -11,17 +11,8 @@ Quick reference for Blender Movie Director development scripts.
 - **When to use**: First time setup or when dependencies change
 - `dev` (default): Install all dependencies including dev/test tools
 - `test`: Install only test dependencies
-- `--clean`: Remove existing venv and start fresh
-- **Example**: `./scripts/setup.sh dev --clean` after Python version issues
-
-### Running Blender
-```bash
-./scripts/run-blender.sh [blend_file]
-```
-- **When to use**: Test addon in Blender with automatic loading
-- Loads addon in development mode
-- Optional: Pass .blend file to open
-- **Example**: `./scripts/run-blender.sh my_project.blend`
+- `--clean`: Remove existing environments and start fresh
+- **Example**: `./scripts/setup.sh dev --clean` after dependency issues
 
 ### Running Tests
 ```bash
@@ -37,105 +28,96 @@ Quick reference for Blender Movie Director development scripts.
 - `quick`: Fast tests without integration
 - **Example**: `./scripts/test.sh quick` for rapid feedback
 
-### Running Python Scripts
-```bash
-./scripts/run-script.sh <script.py> [args]
-```
-- **When to use**: Run Python scripts with project environment
-- Activates venv and sets PYTHONPATH
-- **Example**: `./scripts/run-script.sh tests/manual_test_discovery.py`
-
-### Blender Python Access
-```bash
-./scripts/blender-python.sh [-i|-c 'code'|script.py]
-```
-- **When to use**: Debug or test Blender Python API
-- `-i`: Interactive Blender Python console
-- `-c`: Run Python command
-- `script.py`: Run script in Blender
-- **Example**: `./scripts/blender-python.sh -c 'import bpy; print(bpy.app.version)'`
-
 ### Backend Services
 ```bash
-./scripts/dev-server.sh [all|stop|status|comfyui|wan2gp|rvc|audioldm]
+./scripts/services.sh [start|stop|status|restart|logs] [service_name|all]
 ```
-- **When to use**: Start/stop backend AI services
-- `all` (default): Start all services
-- `stop`: Stop all services
-- `status`: Check service status
-- Service names: Start specific service
-- **Example**: `./scripts/dev-server.sh status`
+- **When to use**: Managing AI backend services (ComfyUI, etc.)
+- `start`: Start services
+- `stop`: Stop services
+- `status`: Check service health
+- `restart`: Restart services
+- `logs`: View service logs
+- **Example**: `./scripts/services.sh start comfyui`
 
-### Packaging Addon
+### Package Creation
 ```bash
-./scripts/package.sh [filename]
+./scripts/package.sh
 ```
-- **When to use**: Create distribution .zip file
-- Packages addon with proper structure
-- Excludes development files
-- **Example**: `./scripts/package.sh blender-movie-director-v1.0.0`
+- **When to use**: Create distribution package
+- Creates a deployable package of the application
+- **Example**: `./scripts/package.sh` before release
 
 ## Common Workflows
 
 ### Initial Setup
 ```bash
-git clone <repo>
-cd blender-movie-director
-./scripts/setup.sh dev
+# Clone repository
+git clone <repo-url>
+cd generative-media-studio
+
+# Install dependencies and setup
+npm install
+npm run setup
 ```
 
-### Daily Development
+### Development Workflow
 ```bash
-# Start backend services
-./scripts/dev-server.sh all
+# Start development servers
+npm run dev
 
-# Run Blender with addon
-./scripts/run-blender.sh
+# In another terminal, run tests in watch mode
+npm run test:watch
 
-# Quick test after changes
-./scripts/test.sh quick
-
-# Full test before commit
-./scripts/test.sh all
+# Before committing
+npm run lint
+npm run format
+npm run test
 ```
 
-### Troubleshooting
+### Service Management
 ```bash
-# Python version issues
+# Start all backend services
+./scripts/services.sh start all
+
+# Check status
+./scripts/services.sh status
+
+# View logs
+./scripts/services.sh logs
+
+# Stop when done
+./scripts/services.sh stop all
+```
+
+## Script Details
+
+All scripts include:
+- Error handling with clear messages
+- Help text (`--help` flag)
+- Cross-platform compatibility
+- Automatic environment activation
+- Color-coded output for clarity
+
+## Troubleshooting
+
+### Permission Denied
+```bash
+chmod +x scripts/*.sh
+```
+
+### Script Not Found
+Ensure you're in the project root directory.
+
+### Environment Issues
+```bash
+# Clean reinstall
 ./scripts/setup.sh dev --clean
-
-# Test specific functionality
-./scripts/run-script.sh tests/manual_test_discovery.py
-
-# Check Blender integration
-./scripts/blender-python.sh -i
 ```
 
-### Release Preparation
+### Service Won't Start
+Check logs and ensure ports are available:
 ```bash
-# Format and lint
-./scripts/test.sh format
-./scripts/test.sh lint
-
-# Full test suite
-./scripts/test.sh all
-
-# Create package
-./scripts/package.sh
+./scripts/services.sh logs <service_name>
+lsof -i :8188  # Check if port is in use
 ```
-
-## Environment Variables
-
-Set in `.env` file:
-- `BLENDER_PATH`: Custom Blender executable path
-- `COMFYUI_PORT`: ComfyUI service port (default: 8188)
-- `WAN2GP_PORT`: Wan2GP service port (default: 7860)
-- `DEBUG`: Enable debug mode (true/false)
-
-## Tips
-
-1. Always run `setup.sh` after pulling new changes
-2. Use `--clean` flag if encountering dependency conflicts
-3. Run `test.sh quick` frequently during development
-4. Use `blender-python.sh` to debug Blender API issues
-5. Check service status before running integration tests

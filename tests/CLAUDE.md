@@ -2,160 +2,160 @@
 
 ## Overview
 
-This directory contains the test suite for the Blender Movie Director addon. The folder structure mirrors the `blender_movie_director` module for easy navigation.
+This directory contains the test suite for the Generative Media Studio platform. Tests are organized by component (backend, frontend, integration).
 
 ## Test Organization
 
 ```
 tests/
 ├── __init__.py                    # Test package root
-├── manual_test_discovery.py       # Manual test script for service discovery
-├── test_agents/                   # Agent-specific tests (mirrors agents/)
-│   └── __init__.py
-├── test_backend/                  # Backend integration tests
+├── test_backend/                  # Backend API tests
 │   ├── __init__.py
-│   ├── test_service_discovery.py           # Tests for backend/service_discovery.py
-│   ├── test_service_discovery_simple.py    # Simplified tests without async complexity
-│   └── test_service_discovery_integration.py # Integration tests for service discovery
-└── test_ui/                       # UI component tests
-    └── __init__.py
+│   ├── test_api.py               # FastAPI endpoint tests
+│   ├── test_websocket.py         # WebSocket handler tests
+│   └── test_services.py          # Service layer tests
+├── test_frontend/                 # Frontend tests
+│   ├── __init__.py
+│   ├── test_components.py        # Svelte component tests
+│   └── test_stores.py            # Store logic tests
+└── test_integration/              # End-to-end tests
+    ├── __init__.py
+    └── test_workflows.py          # Complete workflow tests
 ```
 
 ## Running Tests
 
-### Using Makefile (Recommended)
+### Using NPM Scripts (Recommended)
 
-All test commands should be run through the project's Makefile for consistency:
+All test commands should be run through npm scripts:
 
 ```bash
-# Run all tests with linting and coverage
-make test
+# Run all tests
+npm run test
 
-# Run quick tests (unit tests only, no integration)
-make test-quick
+# Run backend tests only
+npm run test:backend
 
-# Generate coverage report
-make test-coverage
+# Run frontend tests only  
+npm run test:frontend
 
-# Run code quality checks only
-make lint
+# Run integration tests
+npm run test:integration
+
+# Run with coverage
+npm run test:backend -- --cov
+
+# Run linting
+npm run lint
 
 # Auto-format code
-make format
-
-# Clean test artifacts
-make clean
+npm run format
 ```
 
-### Direct Script Usage (Alternative)
+### Direct Test Execution
 
-If needed, you can also use the scripts directly:
-```bash
-./scripts/test.sh all        # All tests
-./scripts/test.sh unit       # Unit tests only
-./scripts/test.sh integration # Integration tests only
-./scripts/test.sh quick      # Fast tests
-```
-
-**`./scripts/run-script.sh`** - Run Python scripts with project environment
-```bash
-# Run pytest on specific test file
-./scripts/run-script.sh tests/test_backend/test_service_discovery.py -m pytest -v
-
-# Note: For pytest, the script name comes first, then -m pytest and its args
-```
-
-**Direct pytest usage** (from project root with venv activated)
+For backend tests (Python/pytest):
 ```bash
 # Run all backend tests
-pytest tests/test_backend/ -v
+cd backend && pytest
 
 # Run specific test file
-pytest tests/test_backend/test_service_discovery.py -v
+cd backend && pytest tests/test_api.py -v
 
-# Run with specific test name pattern
-pytest -k "test_service" -v
+# Run with coverage
+cd backend && pytest --cov=app --cov-report=html
+```
+
+For frontend tests (JavaScript/Vitest):
+```bash
+# Run all frontend tests
+cd frontend && npm test
+
+# Run in watch mode
+cd frontend && npm run test:watch
+
+# Run with UI
+cd frontend && npm run test:ui
 ```
 
 ### Manual Testing
 
-Before running manual tests, ensure backend services are running:
+Start the development servers:
 ```bash
-# Start all backend services
-make services
+# Start both frontend and backend
+npm run dev
 
-# Check service status
-make services-status
+# Or start individually:
+npm run dev:backend   # Backend on port 8000
+npm run dev:frontend  # Frontend on port 3000
 ```
 
-Then run manual test scripts:
-```bash
-# Test service discovery without Blender
-./scripts/run-script.sh tests/manual_test_discovery.py
-
-# Test specific service with custom port
-./scripts/run-script.sh tests/manual_test_discovery.py --service comfyui --port 8188
-
-# Stop services when done
-make services-stop
-```
+Access the application:
+- Frontend: http://localhost:3000
+- API docs: http://localhost:8000/docs
+- Health check: http://localhost:8000/health
 
 ## Test Requirements
 
-### Python Environment
-- Tests run outside of Blender using mocked `bpy` module
-- Requires Python 3.11+ (matching Blender 4.0+ Python version)
-- All test dependencies in `requirements-test.txt`
+### Backend (Python)
+- Python 3.11+ required
+- Test dependencies in `backend/requirements-dev.txt`
+- Uses pytest for test runner
+- FastAPI TestClient for API testing
 
-### Mocking Strategy
-- `bpy` module is mocked for unit tests
-- Blender-specific functionality tested with integration tests
-- Manual test scripts for real service discovery
+### Frontend (JavaScript)
+- Node.js 18+ required
+- Test dependencies in `frontend/package.json`
+- Uses Vitest for test runner
+- Svelte Testing Library for component tests
 
 ## Writing Tests
 
-### Unit Test Pattern
+### Backend Test Pattern (Python)
 ```python
-import unittest
-from unittest.mock import Mock, patch
+from fastapi.testclient import TestClient
+from app.main import app
 
-class TestMyComponent(unittest.TestCase):
-    def setUp(self):
-        # Mock Blender context if needed
-        self.context = Mock()
-        
-    def test_functionality(self):
-        # Test implementation
-        pass
-```
+client = TestClient(app)
 
-### Async Test Pattern
-```python
-import asyncio
-import pytest
+def test_read_root():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"message": "Generative Media Studio API"}
 
 @pytest.mark.asyncio
-async def test_async_function():
-    result = await async_function()
-    assert result == expected
+async def test_websocket():
+    async with client.websocket_connect("/ws") as websocket:
+        await websocket.send_json({"type": "ping"})
+        data = await websocket.receive_json()
+        assert data["type"] == "pong"
 ```
 
-### Integration Test Pattern
-- Use `blender-python.sh` script for tests requiring real Blender
-- Create separate integration test files
-- Run with Blender's Python interpreter
+### Frontend Test Pattern (JavaScript)
+```javascript
+import { render, screen } from '@testing-library/svelte'
+import { describe, it, expect } from 'vitest'
+import MyComponent from './MyComponent.svelte'
+
+describe('MyComponent', () => {
+  it('renders correctly', () => {
+    render(MyComponent, { props: { name: 'Test' } })
+    expect(screen.getByText('Test')).toBeInTheDocument()
+  })
+})
+```
 
 ## Coverage Goals
 
-- Minimum 80% coverage for core functionality
-- 100% coverage for critical paths (service discovery, agent orchestration)
-- UI components tested for operator execution
-- Backend integrations tested with mocks
+- Minimum 80% coverage for API endpoints
+- 100% coverage for critical paths (project management, WebSocket handling)
+- Frontend components tested for user interactions
+- Integration tests for complete workflows
 
 ## Continuous Integration
 
 Tests are designed to run in CI/CD pipelines:
-- No GUI dependencies for unit tests
-- Configurable timeouts for network operations
+- No browser dependencies for unit tests
+- Configurable timeouts for async operations
 - Mock external services by default
-- Environment variables for integration testing
+- Environment variables for configuration

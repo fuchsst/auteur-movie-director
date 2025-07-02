@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "generative-media-studio-backend"
+version = "0.1.0"
+description = "Backend API for the Generative Media Studio web platform"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+authors = [
+    {name = "Stefan Fuchs", email = "admin@stefanfuchs.net"},
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Topic :: Multimedia :: Video",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "python-multipart>=0.0.6",
+    "aiofiles>=23.2.0",
+    "websockets>=12.0",
+    "pyyaml>=6.0.1",
+    "gitpython>=3.1.40",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.25.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/generative-media-studio"
+"Bug Tracker" = "https://github.com/yourusername/generative-media-studio/issues"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = ["-ra", "--strict-markers"]
+testpaths = ["tests"]
+asyncio_mode = "auto"

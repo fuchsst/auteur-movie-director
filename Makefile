@@ -1,11 +1,16 @@
-# Makefile for Blender Movie Director
+# Makefile for Generative Media Studio
 
-.PHONY: help setup test lint format clean run package docs
+.PHONY: help setup test lint format clean package docs dev
 
 # Default target
 help:
-	@echo "Blender Movie Director - Development Commands"
-	@echo "============================================"
+	@echo "Generative Media Studio - Development Commands"
+	@echo "============================================="
+	@echo ""
+	@echo "🚀 Quick Start (Web Platform):"
+	@echo "  npm install      - Install npm dependencies"
+	@echo "  npm run setup    - Complete project setup"
+	@echo "  npm run dev      - Start development servers"
 	@echo ""
 	@echo "Setup & Installation:"
 	@echo "  make setup       - Full dev setup (installs UV if needed)"
@@ -14,7 +19,7 @@ help:
 	@echo "  make setup-prod  - Production environment only"
 	@echo ""
 	@echo "Development:"
-	@echo "  make run         - Run Blender with addon loaded"
+	@echo "  make dev         - Start web platform dev servers (frontend + backend)"
 	@echo "  make test        - Run all tests"
 	@echo "  make test-quick  - Run quick tests (no integration)"
 	@echo "  make test-coverage - Generate coverage report"
@@ -45,11 +50,8 @@ help:
 	@echo "  make docker-status - Check docker-compose status"
 	@echo ""
 	@echo "Distribution:"
-	@echo "  make package     - Create addon .zip file"
+	@echo "  make package     - Create distribution package"
 	@echo "  make clean       - Clean build artifacts"
-	@echo ""
-	@echo "Blender Integration:"
-	@echo "  make blender-deps - Install deps in Blender's Python"
 
 # Setup commands - always use setup.sh which handles UV installation
 setup:
@@ -65,23 +67,23 @@ setup-prod:
 	@./scripts/setup.sh prod
 
 # Development commands
-run:
-	@./scripts/run-blender.sh
+dev:
+	@npm run dev
 
 test:
-	@./scripts/test.sh all
+	@npm run test
 
 test-quick:
-	@./scripts/test.sh quick
+	@npm run test:backend -- -k "not integration" && npm run test:frontend -- --quick
 
 test-coverage:
-	@./scripts/test.sh coverage
+	@npm run test:backend -- --cov && npm run test:frontend -- --coverage
 
 lint:
-	@./scripts/test.sh lint
+	@npm run lint
 
 format:
-	@./scripts/test.sh format
+	@npm run format
 
 # Backend services
 services:
@@ -161,26 +163,18 @@ install: setup
 install-dev: setup
 
 install-hooks:
-	@uv run pre-commit install
+	@npm run setup:hooks
 
-# Blender integration
-blender-deps:
-	@./scripts/blender-python.sh --install-addon-deps
-
-# CI/CD helpers - use UV commands
+# CI/CD helpers
 ci-test:
-	@uv run pytest --cov=blender_movie_director --cov-report=xml
+	@npm run test:backend -- --cov --cov-report=xml
 
 ci-lint:
-	@uv run ruff check blender_movie_director tests
-	@uv run black --check blender_movie_director tests
-	@uv run mypy blender_movie_director
+	@npm run lint
 
-# UV specific commands
-uv-update:
-	@echo "📦 Updating UV to latest version..."
-	@curl -LsSf https://astral.sh/uv/install.sh | sh
+# Python dependency management
+pip-update:
+	@cd backend && pip install --upgrade pip setuptools wheel
 
-uv-lock:
-	@echo "🔒 Regenerating lock file..."
-	@uv pip compile pyproject.toml -o uv.lock
+pip-lock:
+	@cd backend && pip freeze > requirements.lock

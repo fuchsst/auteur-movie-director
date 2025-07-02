@@ -137,6 +137,16 @@ dmypy.json
 # Consolidated cache directory for all tools
 .cache/
 
+# Workspace directory (contains user projects)
+workspace/
+!workspace/.gitkeep
+
+# Environment files
+.env
+.env.local
+backend/.env
+frontend/.env.local
+
 # Blender specific
 *.blend1
 *.blend2

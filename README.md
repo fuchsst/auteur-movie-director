@@ -1,8 +1,8 @@
-# Movie Director (BMAD)
+# Generative Media Studio
 
 ## Overview
 
-**Movie Director (BMAD)** is a revolutionary web-based generative film studio that transforms narrative concepts into cinematic sequences using AI agents and distributed processing. Built on modern web technologies and the regenerative content model, BMAD enables global teams to collaborate in real-time on professional film production without hardware limitations.
+**Generative Media Studio** is a revolutionary web-based platform that transforms narrative concepts into cinematic sequences using AI agents and distributed processing. Built on modern web technologies and the regenerative content model, it enables global teams to collaborate in real-time on professional film production without hardware limitations.
 
 ### Key Features
 
@@ -48,7 +48,7 @@ All generation tasks support three quality levels:
 ## Project Structure
 
 ```
-blender-movie-director/
+generative-media-studio/
 ├── backend/
 │   ├── api/                    # FastAPI application
 │   │   ├── endpoints/          # REST endpoints
@@ -107,68 +107,117 @@ blender-movie-director/
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- Node.js 18+ (for frontend development)
-- Python 3.11+ (for backend development)
+- Node.js 18+ and npm 9+
+- Python 3.11+
 - Git & Git LFS
-- Make (for running commands)
+- Docker (optional, for containerized services)
+- FFmpeg (optional, for video processing)
 
 ### Quick Start
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/blender-movie-director.git
-   cd blender-movie-director
+   git clone https://github.com/your-org/generative-media-studio.git
+   cd generative-media-studio
    ```
 
-2. **Set up environment**
+2. **Install npm dependencies**
    ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+   npm install
    ```
 
-3. **Configure Docker volumes**
+3. **Run automated setup**
    ```bash
-   # Create directories for persistent data
-   mkdir -p ./models ./projects ./postgres_data
+   npm run setup
+   # This will:
+   # - Check prerequisites (Node, Python, Git)
+   # - Install backend Python dependencies
+   # - Install frontend npm dependencies
+   # - Create .env files from templates
+   # - Set up workspace directories
    ```
 
-4. **Start development environment**
+4. **Start development servers**
    ```bash
-   make dev
-   # This starts all services with docker-compose
+   npm run dev
+   # Starts both frontend (port 3000) and backend (port 8000) concurrently
    ```
 
 5. **Access the application**
    - Frontend: http://localhost:3000
    - API Docs: http://localhost:8000/docs
-   - Flower (Celery): http://localhost:5555
+   - WebSocket: ws://localhost:8000/ws
+
+### Alternative: Using Make
+
+If you prefer, you can also use the traditional Makefile:
+```bash
+make help     # View all available commands
+make dev      # Start development servers
+make test     # Run tests
+make lint     # Run linters
+```
+
+### NPM Scripts
+
+All project tasks are managed through npm scripts:
+
+```bash
+# Setup & Installation
+npm run setup              # Complete project setup
+npm run setup:check        # Check prerequisites only
+npm run setup:env          # Create environment files
+
+# Development
+npm run dev                # Start frontend + backend concurrently
+npm run dev:backend        # Start backend only
+npm run dev:frontend       # Start frontend only
+
+# Testing
+npm run test               # Run all tests
+npm run test:backend       # Backend tests only
+npm run test:frontend      # Frontend tests only
+npm run test:integration   # Integration tests
+
+# Code Quality
+npm run lint               # Run linters
+npm run format             # Auto-format code
+
+# Utilities
+npm run clean              # Clean build artifacts
+npm run workspace:init     # Initialize workspace
+npm run project:create     # Create new project
+
+# Docker (optional)
+npm run docker:build       # Build containers
+npm run docker:up          # Start with docker-compose
+npm run docker:down        # Stop containers
+```
 
 ### Environment Variables
 
 Key configuration in `.env`:
 
 ```bash
-# Database
-DATABASE_URL=postgresql://user:password@postgres:5432/bmad
+# Backend Configuration
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
 
-# Redis
-REDIS_URL=redis://redis:6379
+# Frontend Configuration
+FRONTEND_HOST=0.0.0.0
+FRONTEND_PORT=3000
 
-# S3/Storage
-STORAGE_TYPE=local  # or 's3'
-STORAGE_PATH=/app/storage
-
-# GPU Configuration
-GPU_WORKERS_LOW=2
-GPU_WORKERS_STANDARD=1
-GPU_WORKERS_HIGH=1
-
-# Quality Settings
+# Workspace Configuration
+WORKSPACE_ROOT=./workspace
 DEFAULT_QUALITY=standard
 
-# Authentication
-JWT_SECRET=your-secret-key
+# Development Settings
+DEBUG=true
+LOG_LEVEL=INFO
+
+# Git Configuration
+GIT_AUTO_COMMIT=false
+GIT_LFS_ENABLED=true
 ```
 
 ## Container Architecture
