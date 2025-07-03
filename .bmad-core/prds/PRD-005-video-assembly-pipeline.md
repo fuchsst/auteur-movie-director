@@ -139,6 +139,34 @@ Implement a visual assembly system where shots connect directly to a final rende
 
 ## Technical Requirements
 
+### VSEAssemblerNode Specification
+
+#### Node Interface Details
+- **Description**: Terminal node for sequence compilation and final video rendering
+- **Input Ports**: 
+  - Sequence In (EDL) - Receives Edit Decision List data from connected sequence
+- **On-Node Parameters**: 
+  - "Render Final Video" button - Primary action trigger
+  - Status display - Shows current rendering state
+- **Output Ports**: 
+  - Final Video (Video) - Path to rendered video file
+- **Properties Panel (Right Side)**:
+  - Output Format dropdown (MP4, MOV, ProRes, WebM)
+  - Resolution selector (720p, 1080p, 4K, Original)
+  - Bitrate control (Auto, Custom with slider)
+  - Frame rate options (24fps, 30fps, 60fps, Match Source)
+  - Audio settings (codec, bitrate, channels)
+  - Color space handling (sRGB, Rec.709, P3)
+  - Render progress bar with time estimate
+  - Preview link when complete
+
+#### Visual Placement
+The VSEAssemblerNode serves as the visual endpoint of any sequence:
+- Positioned at the far right of the canvas
+- Larger size than standard nodes to indicate importance
+- Distinctive icon/color to mark as terminal node
+- Cannot have outgoing connections (terminal only)
+
 ### VSEAssemblerNode Implementation
 ```javascript
 class VSEAssemblerNode extends BaseNode {
@@ -147,29 +175,46 @@ class VSEAssemblerNode extends BaseNode {
         this.type = 'VSEAssembler';
         this.inputs = {
             sequence: { 
-                type: 'shot-sequence', 
-                multiple: true,
-                ordered: true 
+                type: 'EDL',
+                required: true,
+                description: 'Edit Decision List from sequence'
             }
         };
         this.outputs = {
-            video: { type: 'file-path' },
-            edl: { type: 'file-path' },
-            preview: { type: 'preview-url' }
+            video: { type: 'Video', description: 'Final rendered video' }
+        };
+        this.parameters = {
+            format: {
+                type: 'select',
+                options: ['MP4', 'MOV', 'ProRes', 'WebM'],
+                default: 'MP4',
+                inPropertiesPanel: true
+            },
+            resolution: {
+                type: 'select',
+                options: ['Original', '720p', '1080p', '4K'],
+                default: '1080p',
+                inPropertiesPanel: true
+            },
+            bitrate: {
+                type: 'slider',
+                min: 1, max: 50, default: 10,
+                unit: 'Mbps',
+                inPropertiesPanel: true
+            }
         };
         this.ui = {
-            renderButton: {
-                label: 'Render Final Video',
-                icon: 'film',
-                primary: true
-            },
-            formatSelector: {
-                options: ['MP4', 'MOV', 'ProRes'],
-                default: 'MP4'
-            },
-            qualitySelector: {
-                options: ['Draft', 'Standard', 'High'],
-                default: 'Standard'
+            onNodeDisplay: {
+                button: {
+                    label: 'Render Final Video',
+                    icon: 'film',
+                    size: 'large',
+                    primary: true
+                },
+                status: {
+                    type: 'text',
+                    position: 'below-button'
+                }
             }
         };
     }
@@ -284,6 +329,25 @@ class AssemblyProgress {
     }
 }
 ```
+
+### Progress Area Integration
+The VSEAssemblerNode provides detailed feedback in the right panel's Progress Area:
+
+#### During Rendering
+- **Stage Indicators**: "Analyzing shots", "Building timeline", "Encoding video"
+- **Progress Bar**: Real-time percentage with smooth animations
+- **Time Display**: "2:45 elapsed, ~1:30 remaining"
+- **Throughput Metrics**: "Processing 24 fps, 15 Mbps"
+- **Cancel Option**: Stop rendering with cleanup
+
+#### Post-Rendering
+- **Completion Notification**: "Video rendered successfully!"
+- **Preview Thumbnail**: First frame of final video
+- **Quick Actions**: 
+  - "Open in Player" - Launch system video player
+  - "Show in Folder" - Navigate to export location
+  - "Copy Path" - For external use
+- **File Details**: Size, duration, format, location
 
 ## File Structure Integration
 

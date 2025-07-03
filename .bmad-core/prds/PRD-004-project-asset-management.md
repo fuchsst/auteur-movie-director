@@ -171,6 +171,28 @@ SHOT-010_v01_take04.mp4  ← Choose the best
     └── Locations/
 ```
 
+### Asset Browser Implementation
+The left panel's Asset Browser provides intuitive organization and discovery:
+
+#### Asset Categories
+- **Locations**: Environmental settings and backgrounds
+- **Characters**: Reusable character definitions with AI models
+- **Music**: Audio tracks and sound libraries
+- **Styles**: Visual style definitions for consistent aesthetics
+
+#### Asset Abstraction
+Each asset in the browser represents a collection of related files:
+- User sees: "Alex" (character)
+- System manages: character.json, reference images, LoRA files, voice models
+- This abstraction simplifies creative workflows by hiding technical complexity
+
+#### Browser Features
+- Hierarchical folder structure within each category
+- Visual previews for all asset types
+- Drag-and-drop to Production Canvas creates AssetNodes
+- Right-click context menu with "Find Usages" option
+- Search and filter capabilities across all assets
+
 ### Project Manifest Specification
 ```json
 {
@@ -230,6 +252,39 @@ SHOT-010_v01_take04.mp4  ← Choose the best
 *.safetensors filter=lfs diff=lfs merge=lfs -text
 *.ckpt filter=lfs diff=lfs merge=lfs -text
 ```
+
+### Dependency Tracking System
+
+#### Find Usages Workflow
+Enables users to track where assets are used across the project:
+
+1. **Initiation Points**:
+   - Right-click asset in Asset Browser → "Find Usages"
+   - Right-click AssetNode on canvas → "Find Usages"
+
+2. **Processing**:
+   - Client-side search through project.json graph data
+   - Identifies all edges originating from asset's UUID
+   - No backend round-trip required for instant results
+
+3. **UI Response**:
+   - Canvas: Highlights all dependent ShotNodes with visual effect
+   - Properties Panel: Lists all usages with clickable navigation
+   - Cross-scene navigation: Click to jump to any usage location
+
+#### Reverse Navigation
+From any shot back to its constituent assets:
+
+1. **Shot Selection**: Click ShotNode or Project Browser item
+2. **Properties Display**: Right panel shows all connected assets
+3. **Asset Links**: Interactive list of Characters, Styles, etc.
+4. **Navigation**: Click asset link to select its node on canvas
+
+#### Dependency Benefits
+- **Impact Analysis**: See what's affected before changing an asset
+- **Reuse Tracking**: Identify commonly used assets
+- **Cleanup**: Find unused assets in the project
+- **Collaboration**: Understand asset relationships across team work
 
 ### Automated Git Operations
 ```javascript

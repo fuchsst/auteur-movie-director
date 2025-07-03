@@ -292,6 +292,24 @@ class ResourceMonitor:
 
 ## User Interface Design
 
+### Integration with Three-Panel Layout
+The quality management system integrates seamlessly with the platform's UI architecture:
+
+#### Project Browser Integration (Left Panel)
+- Quality indicator badge on project items
+- Visual icon showing current quality setting (⚡/⚖️/✨)
+- Quick quality switcher in project context menu
+
+#### Node Canvas Integration (Center Panel)
+- Quality-aware node behavior
+- Visual indicators on nodes when running at fallback quality
+- Estimated time display on generate buttons based on quality
+
+#### Properties Panel Integration (Right Panel)
+- Quality selector widget in project properties
+- Per-node quality override option for specific operations
+- Resource usage indicator showing VRAM availability
+
 ### Quality Selector Widget
 ```javascript
 // QualitySelector.svelte
@@ -299,36 +317,77 @@ class ResourceMonitor:
     <h3>Project Quality</h3>
     <div class="quality-options">
         {#each qualities as quality}
-            <label class="quality-option">
+            <label class="quality-option" class:available={quality.available}>
                 <input 
                     type="radio" 
                     bind:group={$projectStore.quality}
                     value={quality.id}
+                    disabled={!quality.available}
                 />
                 <div class="quality-details">
                     <span class="icon">{quality.icon}</span>
                     <span class="name">{quality.name}</span>
                     <span class="time">{quality.time}</span>
                     <p class="description">{quality.description}</p>
+                    {#if !quality.available}
+                        <p class="unavailable-reason">{quality.reason}</p>
+                    {/if}
                 </div>
             </label>
         {/each}
     </div>
+    <div class="resource-indicator">
+        <span>Available VRAM: {availableVRAM}GB / {totalVRAM}GB</span>
+        <progress value={availableVRAM} max={totalVRAM}></progress>
+    </div>
 </div>
 ```
 
+### Progress Area Integration
+Quality-related notifications appear in the right panel's Progress and Notification Area:
+
+#### Pre-Generation Warnings
+- Resource availability check before starting
+- Estimated wait time if resources are constrained
+- Suggestion to use lower quality for faster results
+
+#### During Generation
+- Quality tier displayed with generation progress
+- Fallback notification if quality was adjusted
+- Real-time resource usage graph
+
+#### Post-Generation
+- Actual time taken vs. estimate
+- Quality achieved indicator
+- Suggestion for next generation based on performance
+
 ### Fallback Notification
 ```javascript
-// FallbackNotification.svelte
+// FallbackNotification.svelte - Appears in Progress Area
 <div class="notification fallback" transition:slide>
-    <div class="icon">ℹ️</div>
-    <div class="content">
+    <div class="notification-header">
+        <div class="icon">ℹ️</div>
         <h4>Quality Adjusted</h4>
+        <button class="close" on:click={dismiss}>×</button>
+    </div>
+    <div class="content">
         <p>{message}</p>
+        <div class="quality-comparison">
+            <div class="requested">
+                <span class="label">Requested:</span>
+                <span class="quality-badge">{requestedQuality.icon} {requestedQuality.name}</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="actual">
+                <span class="label">Using:</span>
+                <span class="quality-badge">{actualQuality.icon} {actualQuality.name}</span>
+            </div>
+        </div>
+        <p class="reason">{reason}</p>
         <div class="actions">
-            <button on:click={proceed}>Continue</button>
-            <button on:click={cancel}>Cancel</button>
-            <a href="/help/quality">Learn More</a>
+            <button class="primary" on:click={proceed}>Continue with {actualQuality.name}</button>
+            <button class="secondary" on:click={cancel}>Cancel</button>
+            <a href="#" on:click={showTips}>Tips to Enable {requestedQuality.name}</a>
         </div>
     </div>
 </div>

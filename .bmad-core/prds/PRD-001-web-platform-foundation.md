@@ -109,6 +109,11 @@ Implement a decoupled client-server architecture for maximum flexibility:
 - [ ] Visual indicators for other users' activities
 - [ ] Intelligent conflict resolution
 - [ ] Activity history with user attribution
+- [ ] Real-time cursor tracking on node canvas
+- [ ] Live property updates in right panel
+- [ ] Collaborative node selection highlighting
+- [ ] User presence indicators in all three panels
+- [ ] Conflict-free simultaneous parameter editing
 
 ### Epic 4: Transparent Operations
 **As a** user  
@@ -132,6 +137,14 @@ Implement a decoupled client-server architecture for maximum flexibility:
 - **Responsive Design**: Mobile-first approach
 - **Offline Capabilities**: Service workers for resilience
 
+### User Interface Architecture
+- **Three-Panel Layout**: Professional creative software paradigm
+  - **Left Panel**: Project Browser (hierarchical tree view) and Asset Browser (categorized assets)
+  - **Center Panel**: Main View with context-dependent tabs (Scene View for node canvas, Asset View for asset details)
+  - **Right Panel**: Properties Inspector (context-sensitive controls) and Progress/Notification Area
+- **Panel Behavior**: Collapsible sections, resizable boundaries, persistent layout preferences
+- **Visual Hierarchy**: Clear distinction between navigation, workspace, and properties
+
 ### Backend Architecture
 - **API Layer**: FastAPI with async support
 - **Task Processing**: Celery with Redis backend
@@ -139,6 +152,20 @@ Implement a decoupled client-server architecture for maximum flexibility:
 - **Storage**: Flexible file-based system
 - **Communication**: WebSocket for real-time features
 - **Orchestration**: Kubernetes-ready design
+
+### WebSocket Event Architecture
+- **UI State Synchronization**: Real-time updates for collaborative editing
+  - Node position changes, parameter updates, connection modifications
+  - User cursor positions and selection states
+  - Project structure changes (add/remove scenes, shots)
+- **Progress Notifications**: Structured event format for backend operations
+  - Task initiation, progress updates (percentage), completion/error states
+  - Queue position for resource-constrained operations
+  - Time estimates and performance metrics
+- **Asset Updates**: Live asset status changes
+  - Training progress for AI models
+  - File upload/processing status
+  - Dependency change notifications
 
 ### Performance Requirements
 - **API Latency**: < 100ms for standard operations

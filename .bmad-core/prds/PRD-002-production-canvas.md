@@ -221,6 +221,129 @@ class GenerativeNode {
 - **Take Indicator**: Badge showing take count
 - **Connection Points**: Color-coded by data type
 
+### Node Anatomy
+Each node is a self-contained component with standardized UI elements:
+- **Header**: Node title and type identification
+- **Connection Ports (Sockets)**: Circular points on left (inputs) and right (outputs)
+- **Preview Area**: Thumbnail display showing node output
+- **Input Fields**: Direct parameter editing on the node
+- **Toggles and Buttons**: Interactive elements (e.g., "Generate" button, feature toggles)
+
+### Typed Socket System
+Connections enforce type safety at the UI level:
+
+| Socket Data Type | Description | Underlying Data | Example Use Case |
+|-----------------|-------------|-----------------|------------------|
+| **String** | Standard text string | string | Text prompts, labels, parameters |
+| **Integer** | Whole number | number | Seed values, step counts, frame numbers |
+| **Float** | Floating-point number | number | Weights, scale factors |
+| **Boolean** | True/false value | boolean | Feature toggles, flags |
+| **Image** | Raster image reference | string (file path) | Image processing pipelines |
+| **Video** | Video file reference | string (file path) | Video editing workflows |
+| **Audio** | Audio file reference | string (file path) | Dialogue, music, sound effects |
+| **AssetReference** | Unique asset identifier | string (UUID) | Character, Style connections |
+| **ControlMap** | Conditioning image | string (file path) | Depth maps, edge detection |
+| **Mask** | Grayscale mask image | string (file path) | Inpainting, selective edits |
+| **EDL** | Edit Decision List | string (CMX3600) | Final assembly data |
+
+### Core Node Interfaces
+
+#### Fixed Canvas Nodes
+- **Input Node**
+  - **Description**: Non-deletable entry point providing context from parent/previous element
+  - **Input Ports**: None
+  - **Parameters**: Toggle for last frame (Image) vs full video (Video) from previous shot
+  - **Output Ports**: Previous Output (Image/Video), Scene Context (Data), Project Context (Data)
+  - **Properties Panel**: Shows source information (previous shot/scene name)
+
+- **Output Node**
+  - **Description**: Non-deletable exit point collecting final workflow result
+  - **Input Ports**: Final Result (Video/Image/Audio)
+  - **Parameters**: None
+  - **Output Ports**: None
+  - **Properties Panel**: Displays output destination in project hierarchy
+
+#### Content Generation Nodes
+- **Shot Node**
+  - **Description**: Container representing single shot within scene
+  - **Input Ports**: Sequence In
+  - **Parameters**: Thumbnail of final output
+  - **Output Ports**: Sequence Out
+  - **Properties Panel**: Shot info, description, Takes gallery with active take selection
+
+- **Generate Video from Image Node**
+  - **Description**: Animates source image based on text prompt
+  - **Input Ports**: Source Image (Image), Prompt (String), Style (AssetReference)
+  - **Parameters**: Generate button, progress indicator, thumbnail
+  - **Output Ports**: Output (Video)
+  - **Properties Panel**: Expanded prompt, generation settings (motion strength, seed), Takes gallery
+
+#### Asset Management Nodes
+- **Asset Node**
+  - **Description**: Reusable creative entity (Character, Style, Location)
+  - **Input Ports**: None
+  - **Parameters**: Preview image, name label
+  - **Output Ports**: Asset (AssetReference)
+  - **Properties Panel**: Large preview, metadata, link to Asset Browser source
+
+#### Processing Nodes
+- **Bokeh Node**
+  - **Description**: Applies depth-of-field effect
+  - **Input Ports**: Source (Image/Video)
+  - **Parameters**: None on-node
+  - **Output Ports**: Output (Image/Video)
+  - **Properties Panel**: Focal Point, Blur Amount, Aperture Shape sliders, Takes gallery
+
+- **Layer Node**
+  - **Description**: Composites multiple layers
+  - **Input Ports**: Background (Image/Video), Foreground 1-N (dynamic)
+  - **Parameters**: None on-node
+  - **Output Ports**: Output (Image/Video)
+  - **Properties Panel**: Layer list with Blend Mode, Opacity, Position, Scale per layer
+
+- **Upscale Node**
+  - **Description**: AI-powered resolution increase
+  - **Input Ports**: Source (Image/Video)
+  - **Parameters**: Upscale button
+  - **Output Ports**: Output (Image/Video)
+  - **Properties Panel**: Scale Factor (2x, 4x), Model Selection, Takes gallery
+
+- **Improve Quality Node**
+  - **Description**: AI enhancement (denoise, artifacts, color)
+  - **Input Ports**: Source (Image/Video)
+  - **Parameters**: Enhance button
+  - **Output Ports**: Output (Image/Video)
+  - **Properties Panel**: Denoise Strength, Sharpness, Color Model selection
+
+#### Assembly Nodes
+- **Transition Node**
+  - **Description**: Creates transitions between clips
+  - **Input Ports**: Clip A (Video), Clip B (Video)
+  - **Parameters**: Transition type icon
+  - **Output Ports**: Output (Video)
+  - **Properties Panel**: Transition Type dropdown, Duration field
+
+- **Combine Audio Node**
+  - **Description**: Mixes video with audio tracks
+  - **Input Ports**: Video In (Video), Audio 1-N (Audio)
+  - **Parameters**: None on-node
+  - **Output Ports**: Video Out (Video)
+  - **Properties Panel**: Volume sliders, mute toggles, pan controls per track
+
+- **VSE Assembler Node**
+  - **Description**: Terminal node for sequence compilation
+  - **Input Ports**: Sequence In (EDL)
+  - **Parameters**: Render Final Video button, status display
+  - **Output Ports**: Final Video (Video)
+  - **Properties Panel**: Output format, resolution, bitrate, render progress
+
+### Chatbar Interface
+Located at bottom of Scene View, provides CLI for power users:
+- Text-based node graph editing
+- Batch operations (create multiple nodes, bulk parameter changes)
+- Rapid workflow construction via commands
+- Combines visual intuitiveness with text-based speed
+
 ## Success Metrics
 
 ### Adoption Metrics

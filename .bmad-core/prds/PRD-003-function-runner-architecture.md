@@ -87,6 +87,9 @@ User Request → Platform Routes → Container Executes → Results Return
 - [ ] Seamless fallback when preferred model unavailable
 - [ ] Progress updates use creative language
 - [ ] Zero exposure to technical errors
+- [ ] Progress notifications show user-friendly messages ("Creating your image..." not "Loading FLUX model")
+- [ ] Error messages abstracted to actionable guidance ("Try reducing quality" not "CUDA OOM")
+- [ ] UI displays estimated time remaining based on quality selection
 
 ### Epic 2: Instant Model Adoption
 **As a** platform operator  
@@ -216,6 +219,58 @@ class FunctionRunner:
 ```
 
 ## Implementation Details
+
+### UI Abstraction Layer
+The Function Runner provides complete abstraction between technical implementation and user experience:
+
+#### Progress Notification Format
+```javascript
+// Backend sends technical progress
+{
+  "event": "model_loading",
+  "model": "flux-dev-fp16",
+  "progress": 45,
+  "stage": "loading_weights"
+}
+
+// UI translates to user-friendly message
+{
+  "message": "Preparing your creation...",
+  "progress": 45,
+  "timeRemaining": "30 seconds"
+}
+```
+
+#### Error Message Translation
+```javascript
+const errorMap = {
+  "CUDA_OUT_OF_MEMORY": {
+    "message": "This quality setting requires more resources than available",
+    "suggestion": "Try using 'Standard' quality instead",
+    "action": "REDUCE_QUALITY"
+  },
+  "MODEL_TIMEOUT": {
+    "message": "Taking longer than expected",
+    "suggestion": "We're working on it - your creation will complete soon",
+    "action": "WAIT"
+  }
+};
+```
+
+#### Quality Settings UI
+- **Low Quality**: "Fast Preview" - 10-30 seconds
+- **Standard Quality**: "Balanced" - 30-60 seconds  
+- **High Quality**: "Maximum Detail" - 1-3 minutes
+
+Each quality level automatically selects the appropriate container based on available resources.
+
+#### Progress Area Integration
+Progress notifications display in the collapsible Progress and Notification Area in the right panel:
+- Real-time progress bars with percentage complete
+- Estimated time remaining based on historical performance
+- Queue position when resources are constrained
+- Status messages in plain language
+- Completed task notifications with preview thumbnails
 
 ### Container Lifecycle Management
 - **Cold Start**: < 10 seconds with pre-loaded weights
