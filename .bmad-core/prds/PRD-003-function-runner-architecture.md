@@ -129,6 +129,73 @@ User Request → Platform Routes → Container Executes → Results Return
 
 ## Technical Requirements
 
+### Container Infrastructure Setup
+#### Prerequisites
+- **Docker Engine**: Version 20.10+ with GPU support
+- **NVIDIA Container Toolkit**: For GPU acceleration
+  ```bash
+  # Install NVIDIA Container Toolkit
+  distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+  curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+  curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
+    sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+  sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+  ```
+- **Container Registry**: Local registry or cloud (ECR, Docker Hub)
+- **Monitoring Stack**: Prometheus + Grafana for container metrics
+
+#### Development Environment
+```yaml
+# docker-compose.comfyui.yml - Example model service
+version: '3.8'
+services:
+  comfyui:
+    image: studio/comfyui:latest
+    container_name: gms_comfyui
+    ports:
+      - "8188:8188"
+    volumes:
+      - ./models:/models:ro        # Read-only model weights
+      - comfyui_cache:/cache       # Shared cache
+    environment:
+      - MODEL_PATH=/models
+      - CACHE_PATH=/cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - gms_network
+
+volumes:
+  comfyui_cache:
+```
+
+#### Makefile Commands for Model Management
+```makefile
+# Model-specific targets
+up-with-flux:        # Start with FLUX image generation
+	docker compose -f docker-compose.yml -f docker-compose.flux.yml up -d
+
+up-with-video:       # Start with video generation models
+	docker compose -f docker-compose.yml -f docker-compose.video.yml up -d
+
+build-model:         # Build a specific model container
+	@read -p "Model name: " model; \
+	docker build -f models/$$model/Dockerfile -t studio/$$model:latest .
+
+push-model:          # Push model to registry
+	@read -p "Model name: " model; \
+	docker push studio/$$model:latest
+
+model-shell:         # Debug a model container
+	@read -p "Model name: " model; \
+	docker compose exec $$model /bin/bash
+```
+
 ### Container Architecture
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -279,6 +346,55 @@ Progress notifications display in the collapsible Progress and Notification Area
 - **Graceful Shutdown**: Complete active jobs before stopping
 - **Resource Limits**: Enforce GPU/CPU/Memory quotas
 
+### VRAM Budgeting System
+#### Resource-Aware Container Management
+```python
+class VRAMBudgetManager:
+    def __init__(self, total_vram=24000):  # 24GB in MB
+        self.total_vram = total_vram
+        self.allocated = {}
+        
+    def can_start_container(self, model_id, required_vram):
+        available = self.total_vram - sum(self.allocated.values())
+        return available >= required_vram
+        
+    def allocate(self, model_id, vram):
+        if self.can_start_container(model_id, vram):
+            self.allocated[model_id] = vram
+            return True
+        return False
+        
+    def release(self, model_id):
+        if model_id in self.allocated:
+            del self.allocated[model_id]
+```
+
+#### Dynamic Model Swapping
+```yaml
+# Container swap configuration
+swap_strategy:
+  mode: "least_recently_used"
+  grace_period: 300  # 5 minutes
+  priorities:
+    - high_quality_active_job
+    - standard_quality_active_job
+    - recently_used
+    - preloaded
+```
+
+#### Development Resource Profiles
+```makefile
+# Resource-constrained development modes
+dev-lowmem:          # Run with 8GB VRAM limit
+	VRAM_LIMIT=8000 docker compose up -d
+
+dev-mediummem:       # Run with 16GB VRAM limit
+	VRAM_LIMIT=16000 docker compose up -d
+
+dev-highmem:         # Run with 24GB+ VRAM
+	VRAM_LIMIT=24000 docker compose up -d
+```
+
 ### API Standardization
 Every container implements the ComfyUI API:
 ```
@@ -302,6 +418,74 @@ const modelMap = {
     "high": "flux-dev-fp16"      // 24GB VRAM
   }
 };
+```
+
+### Testing Infrastructure
+#### Container Testing Framework
+```python
+# tests/test_function_runner.py
+import pytest
+from unittest.mock import Mock, patch
+
+@pytest.fixture
+def mock_container():
+    container = Mock()
+    container.is_running.return_value = False
+    container.start = Mock(return_value=True)
+    return container
+
+async def test_container_cold_start(function_runner, mock_container):
+    # Test container starts when not running
+    result = await function_runner.execute(
+        function="Create Image",
+        quality="standard",
+        params={"prompt": "test"}
+    )
+    
+    mock_container.start.assert_called_once()
+    assert result.status == "completed"
+
+async def test_vram_budget_enforcement(vram_manager):
+    # Test VRAM allocation limits
+    assert vram_manager.allocate("model1", 20000) == True
+    assert vram_manager.allocate("model2", 10000) == False  # Exceeds budget
+    
+    vram_manager.release("model1")
+    assert vram_manager.allocate("model2", 10000) == True
+```
+
+#### Integration Testing
+```makefile
+# Test commands
+test-containers:     # Test all model containers
+	./scripts/test-containers.sh
+
+test-gpu:           # Test GPU allocation
+	docker compose exec worker pytest tests/test_gpu.py
+
+test-fallback:      # Test model fallback scenarios
+	docker compose exec worker pytest tests/test_fallback.py
+```
+
+#### Load Testing
+```yaml
+# locust/locustfile.py configuration
+class ModelLoadTest(HttpUser):
+    @task
+    def create_image_standard(self):
+        self.client.post("/api/generate", json={
+            "function": "Create Image",
+            "quality": "standard",
+            "params": {"prompt": "test image"}
+        })
+    
+    @task
+    def create_video_low(self):
+        self.client.post("/api/generate", json={
+            "function": "Create Video",
+            "quality": "low",
+            "params": {"prompt": "test video"}
+        })
 ```
 
 ## Success Metrics

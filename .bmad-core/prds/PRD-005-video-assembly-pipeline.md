@@ -139,6 +139,35 @@ Implement a visual assembly system where shots connect directly to a final rende
 
 ## Technical Requirements
 
+### Render Output Management Requirements
+#### Directory Structure Integration
+- **03_Renders/**: All intermediate shot renders stored with take versioning
+  - Naming convention: `SHOT-XXX_vYY_takeZZ.ext`
+  - Automatic take numbering on each generation
+  - Metadata sidecar files for generation parameters
+- **05_Cache/**: Temporary assembly files and previews
+  - Frame sequences for scrubbing
+  - Low-resolution proxy files
+  - Thumbnail generation for UI
+- **06_Exports/**: Final assembled videos
+  - Subfolder structure: `drafts/` and `final/`
+  - Automatic naming with timestamp
+  - Multiple format exports side-by-side
+
+#### Take Management System
+- **Non-Destructive Workflow**: All takes preserved indefinitely
+- **Active Take Tracking**: project.json stores active take per shot
+- **Take Metadata**: Generation parameters, timestamp, quality settings
+- **Comparison Tools**: Side-by-side take viewing in UI
+- **Bulk Operations**: Change active takes across multiple shots
+
+#### Cache Management
+- **Automatic Cleanup**: Configurable cache size limits
+- **Smart Retention**: Keep frequently accessed previews
+- **Regeneration**: Rebuild cache on demand
+- **Performance**: Background thumbnail generation
+- **Git Integration**: Cache directory excluded from version control
+
 ### VSEAssemblerNode Specification
 
 #### Node Interface Details
@@ -348,6 +377,27 @@ The VSEAssemblerNode provides detailed feedback in the right panel's Progress Ar
   - "Show in Folder" - Navigate to export location
   - "Copy Path" - For external use
 - **File Details**: Size, duration, format, location
+
+### Development and Testing Requirements
+#### Media Processing Setup
+- **FFmpeg**: Core requirement for video encoding and format conversion
+- **MoviePy Dependencies**: NumPy, ImageIO, Decorator packages
+- **Codec Support**: H.264, H.265, ProRes, WebM
+- **Container Formats**: MP4, MOV, MKV, WebM
+- **Development Profiles**: Low/Medium/High quality presets
+
+#### Testing Infrastructure
+- **Unit Tests**: EDL parsing, timecode calculations, file naming
+- **Integration Tests**: Full assembly pipeline with test media
+- **Performance Tests**: Assembly speed for various sequence lengths
+- **Format Tests**: Verify output compatibility with major NLEs
+- **Regression Tests**: Take selection and ordering accuracy
+
+#### Development Commands
+- **Makefile Targets**: 
+  - `make test-assembly` - Run assembly pipeline tests
+  - `make test-edl` - Validate EDL generation
+  - `make render-sample` - Generate test video from sample project
 
 ## File Structure Integration
 

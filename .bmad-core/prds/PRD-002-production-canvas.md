@@ -136,6 +136,54 @@ Implement Svelte Flow-based node editor with custom nodes designed specifically 
 
 ## Technical Requirements
 
+### Development Container Setup
+#### Frontend Dockerfile (Multi-Stage Build)
+```dockerfile
+# Builder Stage - Development dependencies
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+RUN npm prune --production
+
+# Final Stage - Production runtime
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+EXPOSE 4173
+ENV NODE_ENV=production
+CMD ["node", "build"]
+```
+
+#### Development Environment Configuration
+```yaml
+# docker-compose.yml frontend service
+frontend:
+  build:
+    context: ./frontend
+    dockerfile: Dockerfile
+  container_name: gms_frontend
+  ports:
+    - "5173:5173"  # Vite HMR port
+    - "4173:4173"  # Preview port
+  volumes:
+    - ./frontend:/app
+    - /app/node_modules  # Prevent host override
+  environment:
+    - VITE_BACKEND_URL=http://backend:8000
+    - VITE_WS_URL=ws://backend:8000/ws
+```
+
+#### Performance Optimization
+- **Hot Module Replacement**: Vite configuration for instant updates
+- **Volume Mounts**: Source code changes reflect immediately
+- **Node Modules Isolation**: Container-specific dependencies
+- **Build Caching**: Layer optimization for faster rebuilds
+
 ### Canvas Implementation
 - **Framework**: SvelteKit with @xyflow/svelte
 - **State Management**: 
@@ -188,6 +236,67 @@ class GenerativeNode {
 - **State Sync**: < 200ms for remote updates
 - **Memory Usage**: < 1GB for large projects
 - **Load Time**: < 2s for 500-node graph
+
+### Testing Infrastructure
+#### Unit Testing Setup
+```javascript
+// Canvas component testing with Vitest
+import { render, fireEvent } from '@testing-library/svelte';
+import { vi } from 'vitest';
+import ProductionCanvas from '$lib/components/ProductionCanvas.svelte';
+
+test('node creation', async () => {
+  const { container } = render(ProductionCanvas);
+  const canvas = container.querySelector('.svelte-flow');
+  
+  // Simulate drag from library
+  await fireEvent.drop(canvas, {
+    dataTransfer: { getData: () => 'shotNode' }
+  });
+  
+  expect(container.querySelectorAll('.node')).toHaveLength(1);
+});
+```
+
+#### Integration Testing
+- **WebSocket Mock Server**: Test real-time synchronization
+- **State Management Tests**: Verify store updates and persistence
+- **Collision Detection**: Test simultaneous edit resolution
+- **Performance Benchmarks**: Canvas rendering with large graphs
+
+#### End-to-End Testing
+```javascript
+// Playwright test for complete workflow
+test('create shot workflow', async ({ page }) => {
+  await page.goto('/project/123/canvas');
+  
+  // Drag Shot node
+  await page.dragAndDrop('.node-library .shot-node', '.canvas');
+  
+  // Connect nodes
+  await page.dragAndDrop('.output-socket', '.input-socket');
+  
+  // Generate content
+  await page.click('.generate-button');
+  await page.waitForSelector('.progress-complete');
+  
+  // Verify take created
+  await expect(page.locator('.takes-gallery .take')).toHaveCount(1);
+});
+```
+
+#### Development Testing Commands
+```makefile
+# Makefile additions for canvas testing
+test-canvas:        # Run canvas-specific tests
+	docker compose exec frontend npm run test:canvas
+
+test-canvas-e2e:    # Run E2E canvas tests
+	docker compose exec frontend npx playwright test canvas/
+
+test-performance:   # Run performance benchmarks
+	docker compose exec frontend npm run test:perf
+```
 
 ## User Interface Design
 

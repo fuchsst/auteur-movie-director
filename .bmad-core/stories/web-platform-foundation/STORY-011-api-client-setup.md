@@ -3,11 +3,11 @@
 **Story ID**: STORY-011  
 **Epic**: EPIC-001-web-platform-foundation  
 **Type**: Frontend  
-**Points**: 2 (Small)  
+**Points**: 3 (Medium)  
 **Priority**: High  
 
 ## Story Description
-As a frontend developer, I need a well-structured TypeScript API client that handles all HTTP requests to the backend with proper error handling, type safety, and interceptors for common functionality like authentication and request tracking.
+As a frontend developer, I need a well-structured TypeScript API client that handles all HTTP requests to the backend with proper error handling, type safety, container-aware configuration, and interceptors for common functionality like authentication and request tracking.
 
 ## Acceptance Criteria
 
@@ -18,30 +18,67 @@ As a frontend developer, I need a well-structured TypeScript API client that han
 - [ ] Add automatic retry logic for failed requests
 - [ ] Transform error responses to consistent format
 - [ ] Support request cancellation
+- [ ] Support Celery task tracking with polling
+- [ ] Handle container-aware API URL resolution
 
 ### Technical Requirements
 - [ ] Use native Fetch API or lightweight wrapper
 - [ ] Full TypeScript type coverage
-- [ ] Configurable base URL from environment
+- [ ] Container-aware base URL configuration
 - [ ] Request timeout handling
 - [ ] CSRF token management if needed
 - [ ] Progress tracking for file uploads
+- [ ] WebSocket fallback for long-running operations
+- [ ] Support for Git LFS operations
 
 ### API Methods
-- Projects: create, list, get, update, delete
-- Files: upload, list, download, delete
-- Workspace: getConfig, updateSettings
-- Git: commit, getStatus, getHistory
+- **Projects**: create, list, get, update, delete, validate structure
+- **Files**: upload, list, download, delete, bulk operations
+- **Workspace**: getConfig, updateSettings, initialize, validate
+- **Git**: commit, getStatus, getHistory, push, pull, LFS track/untrack
+- **Tasks**: submit, getStatus, getResult, cancel, list active
+- **Docker**: health check, service status, container logs
+- **Quality**: lint, format, test, validate structure
 
 ## Implementation Notes
+
+### Container-Aware Configuration
+```typescript
+// src/lib/api/config.ts
+function getApiUrl(): string {
+  // Check if running in container environment
+  if (typeof window !== 'undefined') {
+    // Browser environment - use relative URL or env var
+    return import.meta.env.PUBLIC_API_URL || '/api/v1';
+  }
+  
+  // SSR environment - use container service name or localhost
+  const isDocker = process.env.DOCKER_ENV === 'true';
+  const backendHost = isDocker ? 'backend' : 'localhost';
+  const backendPort = process.env.BACKEND_PORT || '8000';
+  
+  return `http://${backendHost}:${backendPort}/api/v1`;
+}
+
+export const apiConfig = {
+  baseUrl: getApiUrl(),
+  timeout: 30000,
+  retryAttempts: 3,
+  retryDelay: 1000
+};
+```
 
 ### Base API Client
 ```typescript
 // src/lib/api/client.ts
+import { apiConfig } from './config';
+
 interface ApiConfig {
   baseUrl: string;
   timeout?: number;
   headers?: Record<string, string>;
+  retryAttempts?: number;
+  retryDelay?: number;
 }
 
 interface ApiError {
@@ -52,6 +89,14 @@ interface ApiError {
   timestamp?: string;
 }
 
+interface TaskStatus {
+  task_id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress?: number;
+  result?: any;
+  error?: string;
+}
+
 class ApiClient {
   private config: ApiConfig;
   private abortControllers = new Map<string, AbortController>();
@@ -59,6 +104,8 @@ class ApiClient {
   constructor(config: ApiConfig) {
     this.config = {
       timeout: 30000,
+      retryAttempts: 3,
+      retryDelay: 1000,
       ...config
     };
   }
@@ -66,7 +113,8 @@ class ApiClient {
   private async request<T>(
     method: string,
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retryCount = 0
   ): Promise<T> {
     const url = `${this.config.baseUrl}${path}`;
     const requestId = crypto.randomUUID();
@@ -99,6 +147,13 @@ class ApiClient {
       // Handle response
       if (!response.ok) {
         const error = await this.parseError(response);
+        
+        // Retry on certain errors
+        if (retryCount < this.config.retryAttempts && this.shouldRetry(response.status)) {
+          await this.delay(this.config.retryDelay * Math.pow(2, retryCount));
+          return this.request<T>(method, path, options, retryCount + 1);
+        }
+        
         throw error;
       }
       
@@ -118,8 +173,22 @@ class ApiClient {
         throw new ApiError('REQUEST_TIMEOUT', 'Request timed out');
       }
       
+      // Retry on network errors
+      if (retryCount < this.config.retryAttempts && error.name === 'TypeError') {
+        await this.delay(this.config.retryDelay * Math.pow(2, retryCount));
+        return this.request<T>(method, path, options, retryCount + 1);
+      }
+      
       throw error;
     }
+  }
+  
+  private shouldRetry(status: number): boolean {
+    return status === 502 || status === 503 || status === 504;
+  }
+  
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
   
   private async parseError(response: Response): Promise<ApiError> {
@@ -205,6 +274,31 @@ class ApiClient {
     });
   }
   
+  // Celery task tracking
+  async pollTask<T>(
+    taskId: string,
+    onProgress?: (status: TaskStatus) => void,
+    pollInterval = 1000
+  ): Promise<T> {
+    while (true) {
+      const status = await this.get<TaskStatus>(`/tasks/${taskId}`);
+      
+      if (onProgress) {
+        onProgress(status);
+      }
+      
+      if (status.status === 'completed') {
+        return status.result as T;
+      }
+      
+      if (status.status === 'failed') {
+        throw new ApiError('TASK_FAILED', status.error || 'Task execution failed');
+      }
+      
+      await this.delay(pollInterval);
+    }
+  }
+  
   cancelRequest(requestId: string) {
     const controller = this.abortControllers.get(requestId);
     if (controller) {
@@ -228,16 +322,14 @@ class ApiError extends Error {
 }
 
 // Create singleton instance
-export const api = new ApiClient({
-  baseUrl: import.meta.env.PUBLIC_API_URL || 'http://localhost:8000/api/v1'
-});
+export const api = new ApiClient(apiConfig);
 ```
 
 ### Typed API Services
 ```typescript
 // src/lib/api/projects.ts
 import { api } from './client';
-import type { Project, ProjectCreate, ProjectUpdate } from '$types';
+import type { Project, ProjectCreate, ProjectUpdate, ProjectStructure } from '$types';
 
 export const projectsApi = {
   async list(): Promise<Project[]> {
@@ -260,6 +352,10 @@ export const projectsApi = {
     return api.delete<void>(`/projects/${id}`);
   },
   
+  async validateStructure(id: string): Promise<ProjectStructure> {
+    return api.get<ProjectStructure>(`/projects/${id}/validate`);
+  },
+  
   async getFiles(id: string, assetType?: string): Promise<FileInfo[]> {
     const params = assetType ? { asset_type: assetType } : undefined;
     return api.get<FileInfo[]>(`/projects/${id}/assets`, params);
@@ -276,17 +372,29 @@ export const projectsApi = {
       files,
       onProgress
     );
+  },
+  
+  async deleteFiles(id: string, filePaths: string[]): Promise<void> {
+    return api.post<void>(`/projects/${id}/assets/delete`, { paths: filePaths });
   }
 };
 
 // src/lib/api/workspace.ts
 export const workspaceApi = {
+  async initialize(): Promise<WorkspaceConfig> {
+    return api.post<WorkspaceConfig>('/workspace/initialize');
+  },
+  
   async getConfig(): Promise<WorkspaceConfig> {
     return api.get<WorkspaceConfig>('/workspace/config');
   },
   
   async updateConfig(config: Partial<WorkspaceConfig>): Promise<WorkspaceConfig> {
     return api.put<WorkspaceConfig>('/workspace/config', config);
+  },
+  
+  async validate(): Promise<WorkspaceValidation> {
+    return api.get<WorkspaceValidation>('/workspace/validate');
   }
 };
 
@@ -299,12 +407,119 @@ export const gitApi = {
     });
   },
   
+  async push(projectId: string, remote = 'origin', branch = 'main'): Promise<PushResponse> {
+    return api.post<PushResponse>(`/projects/${projectId}/git/push`, {
+      remote,
+      branch
+    });
+  },
+  
+  async pull(projectId: string, remote = 'origin', branch = 'main'): Promise<PullResponse> {
+    return api.post<PullResponse>(`/projects/${projectId}/git/pull`, {
+      remote,
+      branch
+    });
+  },
+  
   async getStatus(projectId: string): Promise<GitStatus> {
     return api.get<GitStatus>(`/projects/${projectId}/git/status`);
   },
   
   async getHistory(projectId: string, limit = 10): Promise<CommitHistory> {
     return api.get<CommitHistory>(`/projects/${projectId}/git/history`, { limit });
+  },
+  
+  // Git LFS operations
+  async lfsTrack(projectId: string, pattern: string): Promise<LFSResponse> {
+    return api.post<LFSResponse>(`/projects/${projectId}/git/lfs/track`, { pattern });
+  },
+  
+  async lfsUntrack(projectId: string, pattern: string): Promise<LFSResponse> {
+    return api.post<LFSResponse>(`/projects/${projectId}/git/lfs/untrack`, { pattern });
+  },
+  
+  async lfsStatus(projectId: string): Promise<LFSStatus> {
+    return api.get<LFSStatus>(`/projects/${projectId}/git/lfs/status`);
+  }
+};
+
+// src/lib/api/tasks.ts
+export const tasksApi = {
+  async submit(taskType: string, params: any): Promise<TaskSubmission> {
+    const response = await api.post<TaskSubmission>('/tasks/submit', {
+      task_type: taskType,
+      params
+    });
+    
+    // Return enhanced response with polling helper
+    return {
+      ...response,
+      poll: (onProgress?: (status: TaskStatus) => void) => 
+        api.pollTask(response.task_id, onProgress)
+    };
+  },
+  
+  async getStatus(taskId: string): Promise<TaskStatus> {
+    return api.get<TaskStatus>(`/tasks/${taskId}`);
+  },
+  
+  async getResult(taskId: string): Promise<any> {
+    return api.get<any>(`/tasks/${taskId}/result`);
+  },
+  
+  async cancel(taskId: string): Promise<void> {
+    return api.post<void>(`/tasks/${taskId}/cancel`);
+  },
+  
+  async listActive(): Promise<TaskStatus[]> {
+    return api.get<TaskStatus[]>('/tasks/active');
+  }
+};
+
+// src/lib/api/docker.ts
+export const dockerApi = {
+  async healthCheck(): Promise<HealthStatus> {
+    return api.get<HealthStatus>('/docker/health');
+  },
+  
+  async getServiceStatus(): Promise<ServiceStatus[]> {
+    return api.get<ServiceStatus[]>('/docker/services');
+  },
+  
+  async getContainerLogs(service: string, lines = 100): Promise<ContainerLogs> {
+    return api.get<ContainerLogs>(`/docker/services/${service}/logs`, { lines });
+  },
+  
+  async restartService(service: string): Promise<ServiceStatus> {
+    return api.post<ServiceStatus>(`/docker/services/${service}/restart`);
+  }
+};
+
+// src/lib/api/quality.ts
+export const qualityApi = {
+  async lint(projectId: string, paths?: string[]): Promise<QualityResult> {
+    const taskSubmission = await api.post<TaskSubmission>(`/projects/${projectId}/quality/lint`, {
+      paths
+    });
+    return taskSubmission.poll();
+  },
+  
+  async format(projectId: string, paths?: string[]): Promise<QualityResult> {
+    const taskSubmission = await api.post<TaskSubmission>(`/projects/${projectId}/quality/format`, {
+      paths
+    });
+    return taskSubmission.poll();
+  },
+  
+  async test(projectId: string, testPath?: string): Promise<TestResult> {
+    const taskSubmission = await api.post<TaskSubmission>(`/projects/${projectId}/quality/test`, {
+      test_path: testPath
+    });
+    return taskSubmission.poll();
+  },
+  
+  async validateStructure(projectId: string): Promise<StructureValidation> {
+    return api.get<StructureValidation>(`/projects/${projectId}/quality/validate`);
   }
 };
 ```
@@ -348,12 +563,97 @@ api.interceptors.response.use(
 );
 ```
 
+### Type Definitions
+```typescript
+// src/lib/types/api.ts
+export interface WorkspaceConfig {
+  workspace_root: string;
+  default_quality: string;
+  git_lfs_enabled: boolean;
+  container_mode: boolean;
+}
+
+export interface WorkspaceValidation {
+  is_valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface ProjectStructure {
+  is_valid: boolean;
+  missing_directories: string[];
+  invalid_files: string[];
+}
+
+export interface TaskSubmission {
+  task_id: string;
+  status: 'pending' | 'running';
+  poll: <T>(onProgress?: (status: TaskStatus) => void) => Promise<T>;
+}
+
+export interface ServiceStatus {
+  name: string;
+  status: 'running' | 'stopped' | 'error';
+  health: 'healthy' | 'unhealthy' | 'unknown';
+  ports: number[];
+  logs_preview?: string;
+}
+
+export interface HealthStatus {
+  overall: 'healthy' | 'degraded' | 'unhealthy';
+  services: ServiceStatus[];
+  timestamp: string;
+}
+
+export interface ContainerLogs {
+  service: string;
+  logs: string[];
+  timestamp: string;
+}
+
+export interface LFSStatus {
+  tracked_patterns: string[];
+  tracked_files: Array<{
+    path: string;
+    size: number;
+    oid: string;
+  }>;
+}
+
+export interface QualityResult {
+  success: boolean;
+  changes_made: boolean;
+  files_affected: string[];
+  output: string;
+}
+
+export interface TestResult {
+  success: boolean;
+  tests_run: number;
+  tests_passed: number;
+  tests_failed: number;
+  coverage?: number;
+  output: string;
+}
+
+export interface StructureValidation {
+  is_valid: boolean;
+  structure: Record<string, any>;
+  issues: Array<{
+    path: string;
+    issue: string;
+    severity: 'error' | 'warning';
+  }>;
+}
+```
+
 ### Usage Example
 ```typescript
 // Using the API client in a component
-import { projectsApi } from '$lib/api/projects';
+import { projectsApi, tasksApi } from '$lib/api';
 import { handleApiError } from '$lib/utils/errors';
 
+// Simple API call
 try {
   const projects = await projectsApi.list();
   // Handle success
@@ -365,6 +665,30 @@ try {
     }
   }
   handleApiError(error);
+}
+
+// Long-running task with progress
+try {
+  const task = await tasksApi.submit('video_render', {
+    project_id: '123',
+    scenes: ['scene1', 'scene2']
+  });
+  
+  const result = await task.poll((status) => {
+    console.log(`Progress: ${status.progress}%`);
+  });
+  
+  console.log('Render complete:', result);
+} catch (error) {
+  handleApiError(error);
+}
+
+// Container-aware health check
+import { dockerApi } from '$lib/api';
+
+const health = await dockerApi.healthCheck();
+if (health.overall !== 'healthy') {
+  // Show service status warning
 }
 ```
 
@@ -380,14 +704,25 @@ try {
 - [ ] File upload progress tracking works
 - [ ] Request cancellation functions properly
 - [ ] Interceptors process all requests
+- [ ] Container-aware URL resolution works in both environments
+- [ ] Retry logic triggers on appropriate errors
+- [ ] Task polling mechanism works correctly
+- [ ] Git LFS operations handle large files properly
+- [ ] Docker health checks return accurate status
+- [ ] Quality checks integrate with task system
 
 ## Definition of Done
 - [ ] API client implemented with all methods
 - [ ] Full TypeScript coverage with no any types
 - [ ] Error handling standardized across all calls
 - [ ] Request/response interceptors working
+- [ ] Container-aware configuration implemented
+- [ ] Celery task polling with progress tracking
+- [ ] All new endpoints (workspace, git, tasks, docker, quality) implemented
+- [ ] Retry logic with exponential backoff
 - [ ] Documentation includes usage examples
-- [ ] Unit tests cover main functionality
+- [ ] Unit tests cover main functionality including retries and polling
+- [ ] Integration tests verify container networking
 
 ## Story Links
 - **Depends On**: STORY-004-file-management-api

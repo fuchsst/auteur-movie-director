@@ -129,6 +129,35 @@ Implement a decoupled client-server architecture for maximum flexibility:
 
 ## Technical Requirements
 
+### Development Environment Setup
+#### Prerequisites Checklist
+- **Git**: Version 2.30+ with distributed version control
+- **Git LFS**: Mandatory for large binary file management
+- **Docker Engine**: Version 20.10+ for containerization
+- **Docker Compose**: Version 2.0+ for multi-container orchestration
+- **Node.js**: Version 20+ for frontend tooling and IDE support
+- **Python**: Version 3.12+ for backend development tools
+- **Make**: GNU Make for workflow automation
+
+#### Core Services Architecture
+```yaml
+# docker-compose.yml structure
+services:
+  frontend:    # SvelteKit Production Canvas (port 5173)
+  backend:     # FastAPI API Gateway (port 8000)
+  worker:      # Celery Task Processor
+  redis:       # Message Broker (port 6379)
+```
+
+#### Environment Configuration
+```bash
+# .env.example
+VITE_BACKEND_URL=http://localhost:8000
+CELERY_BROKER_URL=redis://redis:6379/0
+WORKSPACE_ROOT=/Generative_Studio_Workspace
+PUBLIC_WS_URL=ws://localhost:8000/ws
+```
+
 ### Frontend Architecture
 - **Framework**: SvelteKit 2.0+ for optimal performance
 - **UI Components**: Modern, accessible component library
@@ -136,6 +165,7 @@ Implement a decoupled client-server architecture for maximum flexibility:
 - **Browser Support**: All modern browsers (2 years back)
 - **Responsive Design**: Mobile-first approach
 - **Offline Capabilities**: Service workers for resilience
+- **Build Process**: Multi-stage Docker builds for security and optimization
 
 ### User Interface Architecture
 - **Three-Panel Layout**: Professional creative software paradigm
@@ -152,6 +182,37 @@ Implement a decoupled client-server architecture for maximum flexibility:
 - **Storage**: Flexible file-based system
 - **Communication**: WebSocket for real-time features
 - **Orchestration**: Kubernetes-ready design
+
+### Project Structure Requirements
+#### Workspace and Project-as-Repository Model
+- **Workspace Root**: `/Generative_Studio_Workspace/` - shared resources across projects
+  - `/Library/` - Global assets (Pipeline_Templates, Stock_Media, Branding)
+  - `/Projects/` - Individual project repositories
+- **Project Structure**: Each project is an independent Git repository
+  ```
+  PROJECT_NAME/
+  ├── project.json          # Project manifest (UUID, metadata, canvas state)
+  ├── .gitignore           # Excludes cache and exports
+  ├── .gitattributes       # Git LFS rules for media files
+  ├── 01_Assets/           # Raw source materials
+  │   └── Generative_Assets/  # Characters, Styles, Locations
+  ├── 02_Source_Creative/  # Human-edited files
+  │   └── Canvases/        # Production Canvas JSON files
+  ├── 03_Renders/          # Generated media (versioned takes)
+  ├── 04_Project_Files/    # App-specific files
+  ├── 05_Cache/            # Transient data (ignored by Git)
+  └── 06_Exports/          # Final deliverables (ignored by Git)
+  ```
+
+#### Git LFS Configuration
+```gitattributes
+# .gitattributes template
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.wav filter=lfs diff=lfs merge=lfs -text
+*.safetensors filter=lfs diff=lfs merge=lfs -text
+```
 
 ### WebSocket Event Architecture
 - **UI State Synchronization**: Real-time updates for collaborative editing
@@ -182,6 +243,46 @@ Implement a decoupled client-server architecture for maximum flexibility:
 - **Rate Limiting**: Adaptive per-user limits
 - **Encryption**: TLS 1.3 for all communications
 - **Compliance**: GDPR and SOC 2 ready
+
+### Local Development Lifecycle
+#### Makefile Commands
+```makefile
+# Core workflow commands
+make build         # Build all Docker images
+make up           # Start core services
+make down         # Stop and cleanup
+make logs         # Follow service logs
+make test         # Run test suite
+make new-project  # Create project scaffold
+make shell-backend # Debug backend
+make shell-frontend # Debug frontend
+
+# Function Runner integration
+make up-with-comfyui  # Start with ComfyUI model
+```
+
+#### Testing Strategy
+- **Unit Tests**:
+  - Frontend: Vitest + Svelte Testing Library for components
+  - Backend: pytest + httpx for API endpoints
+  - Isolated Celery task testing
+- **Integration Tests**:
+  - Full API/WebSocket communication flows
+  - Backend service integration with Redis
+  - Git LFS file handling verification
+- **End-to-End Tests**:
+  - Playwright for browser automation
+  - Complete user journeys (login → create project → generate content)
+  - File system verification (correct directory placement)
+
+#### Development Workflow
+1. **Initial Setup**: `git clone && make build`
+2. **Daily Start**: `make up` (starts all services)
+3. **Create Project**: `make new-project` (scaffolds structure)
+4. **Code Changes**: Hot-reload via mounted volumes
+5. **Run Tests**: `make test` before commits
+6. **Debug**: `make shell-backend` for one-off commands
+7. **Cleanup**: `make down` at end of session
 
 ## Success Metrics
 
@@ -296,6 +397,28 @@ Implement a decoupled client-server architecture for maximum flexibility:
 - Federated architecture
 - Blockchain for rights management
 - Quantum-ready encryption
+
+### Local-to-Cloud Migration Strategy
+#### Architectural Parity
+- **Container Portability**: Same Docker images run locally and in cloud
+- **Configuration Management**: Environment variables for all service endpoints
+- **Storage Abstraction**: File paths work identically with S3 backends
+- **Service Discovery**: DNS-based resolution for microservices
+
+#### AWS Migration Mapping
+| Local Component | AWS Service | Migration Steps |
+|----------------|-------------|-----------------|
+| Docker Compose | ECS/EKS | Push images to ECR, deploy task definitions |
+| Local Filesystem | S3 | Configure Git LFS remote, update WORKSPACE_ROOT |
+| Redis | ElastiCache | Update CELERY_BROKER_URL |
+| Local GPU | EC2 GPU/Batch | Configure compute environments |
+| Makefile | CodeBuild | Translate commands to buildspec.yml |
+
+#### Benefits of Container-First Approach
+- **Zero Code Changes**: Application logic remains identical
+- **Progressive Migration**: Move services incrementally
+- **Cost Optimization**: Scale services independently
+- **DevOps Continuity**: Same tooling and workflows
 
 ---
 

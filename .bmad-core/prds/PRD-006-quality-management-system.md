@@ -140,6 +140,29 @@ Project Quality → Function Request → Resource Check → Model Selection → 
 
 ## Technical Requirements
 
+### Resource Monitoring Infrastructure
+#### Development Environment Setup
+- **GPU Monitoring Tools**: nvidia-smi integration for VRAM tracking
+- **Container Resource Limits**: Docker configuration for memory constraints
+- **Prometheus Metrics**: Export resource usage for monitoring
+- **Grafana Dashboards**: Visual resource utilization tracking
+- **Alert Configuration**: Warnings for resource exhaustion
+
+#### Dynamic Resource Allocation
+- **VRAM Profiling**: Real-time memory usage per model
+- **CPU/RAM Monitoring**: System resource tracking
+- **Queue Management**: Priority-based task scheduling
+- **Preemptive Swapping**: Unload models before OOM
+- **Resource Reservation**: Guarantee minimum resources per tier
+
+#### Development Profiles
+- **Test Modes**: Simulate different hardware configurations
+  - `VRAM_LIMIT=8GB` - Test on constrained systems
+  - `VRAM_LIMIT=16GB` - Standard development
+  - `VRAM_LIMIT=24GB` - Full quality testing
+- **Mock Resources**: Artificial resource constraints for testing
+- **Performance Benchmarks**: Track generation speed per configuration
+
 ### Quality Tier Mapping
 
 #### Low Quality (12GB VRAM)
@@ -392,6 +415,28 @@ Quality-related notifications appear in the right panel's Progress and Notificat
     </div>
 </div>
 ```
+
+### Testing Infrastructure Requirements
+#### Quality Tier Testing
+- **Unit Tests**: Quality mapping logic, fallback decisions
+- **Integration Tests**: End-to-end quality routing through Function Runner
+- **Performance Tests**: Generation time accuracy for each tier
+- **Resource Tests**: VRAM usage stays within limits
+- **Fallback Tests**: Graceful degradation scenarios
+
+#### A/B Testing Framework
+- **Quality Comparisons**: Side-by-side output evaluation
+- **Performance Metrics**: Track actual vs. estimated times
+- **User Preference**: Collect feedback on quality trade-offs
+- **Model Updates**: Test new models before deployment
+- **Automatic Reporting**: Quality metrics dashboard
+
+#### Development Testing Commands
+- **Test Harness**: Simulate different hardware profiles
+- **Load Testing**: Multiple concurrent quality requests
+- **Stress Testing**: Resource exhaustion scenarios
+- **Monitoring**: Real-time resource usage visualization
+- **Benchmarking**: Quality vs. performance curves
 
 ## Success Metrics
 

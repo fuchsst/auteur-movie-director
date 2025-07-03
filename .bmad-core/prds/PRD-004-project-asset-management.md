@@ -138,6 +138,18 @@ SHOT-010_v01_take04.mp4  ← Choose the best
 
 ## Technical Requirements
 
+### Development Environment Requirements
+- **Git and Git LFS**: Mandatory prerequisites for project creation
+- **Automated Scaffolding**: Project structure must be created programmatically
+- **Structure Enforcement**: Backend must validate directory layout before operations
+- **Template System**: Reusable .gitignore and .gitattributes templates
+
+### Repository Infrastructure Requirements
+- **Local Git Server Option**: Support for on-premise Git hosting
+- **LFS Storage Backend**: Configurable location for large file storage
+- **CI/CD Integration**: Hooks for automated asset processing pipelines
+- **Backup Strategy**: Automated repository and LFS backup procedures
+
 ### Standardized Project Structure
 ```
 /Generative_Studio_Workspace/
@@ -325,6 +337,20 @@ class ProjectManager {
     }
 }
 ```
+
+### Testing Infrastructure Requirements
+- **Project Structure Validation**: Automated tests verify scaffolding correctness
+- **Git LFS Integration Tests**: Verify large file handling across operations
+- **Performance Benchmarks**: Project creation and asset loading speed tests
+- **Concurrency Testing**: Multi-user project access scenarios
+- **Migration Testing**: Verify project structure upgrades work correctly
+
+### Development Workflow Integration
+- **Makefile Commands**: `make new-project` for standardized creation
+- **Environment Variables**: `WORKSPACE_ROOT` configuration
+- **Docker Volume Mounts**: Workspace accessible to all containers
+- **Git Hooks**: Pre-commit validation of project structure
+- **CI/CD Pipeline**: Automated testing of project operations
 
 ## Success Metrics
 
