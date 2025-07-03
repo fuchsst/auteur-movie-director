@@ -96,6 +96,16 @@ Establish the foundational web-based platform architecture for the Generative Me
 - [ ] Git LFS validation on application startup
 - [ ] Multi-stage Dockerfiles optimize image sizes
 
+### Function Runner Foundation Criteria
+- [ ] Task dispatcher maps quality settings to pipeline configurations
+- [ ] WebSocket supports task execution protocol (start_generation, progress, success/failed)
+- [ ] Celery tasks can publish progress to Redis pub/sub
+- [ ] Worker volume mounts allow access to workspace for future containers
+- [ ] Project.json quality field integrated with backend dispatcher
+- [ ] Task submission via WebSocket with node_id payload
+- [ ] Redis pub/sub channel established for progress events
+- [ ] WebSocket manager subscribes to task progress channels
+
 ### Quality Criteria
 - [ ] Setup documented in README
 - [ ] Code follows project conventions
@@ -246,9 +256,16 @@ Establish the foundational web-based platform architecture for the Generative Me
     - Add LFS setup to project scaffolding
     - Create helper scripts for LFS configuration
 
+21. **Function Runner Foundation** (5 points)
+    - Implement task dispatcher service with quality mapping
+    - Create WebSocket task execution protocol
+    - Set up Redis pub/sub for progress events
+    - Configure worker for container orchestration readiness
+    - Add model storage directory structure
+
 ## Estimated Effort
-**Total Story Points**: 68 points (updated with new stories)
-**Estimated Duration**: 3 sprints (6 weeks)
+**Total Story Points**: 73 points (updated with Function Runner foundation)
+**Estimated Duration**: 3-4 sprints (6-8 weeks)
 **Team Size**: 2 developers (1 frontend, 1 backend)
 
 ## Success Metrics
@@ -300,11 +317,16 @@ backend/
 │   ├── api/
 │   │   ├── projects.py  # Project endpoints
 │   │   ├── files.py     # File operations
+│   │   ├── tasks.py     # Task submission endpoints
 │   │   └── ws.py        # WebSocket handler
 │   ├── services/
 │   │   ├── workspace.py # Workspace management
 │   │   ├── git.py       # Git operations
-│   │   └── files.py     # File utilities
+│   │   ├── files.py     # File utilities
+│   │   └── dispatcher.py # Task dispatcher (quality mapping)
+│   ├── worker/
+│   │   ├── celery_app.py # Celery configuration
+│   │   └── tasks.py      # Task definitions
 │   └── config.py        # Configuration
 ├── requirements.txt     # Python dependencies
 └── Dockerfile          # Container setup
@@ -326,7 +348,12 @@ GET    /api/projects/{id}       # Get project details
 DELETE /api/projects/{id}       # Delete project
 POST   /api/projects/{id}/files # Upload files
 GET    /api/projects/{id}/files # List project files
-WS     /ws                      # WebSocket connection
+WS     /ws/{project_id}        # Project-specific WebSocket connection
+
+# Function Runner Foundation Endpoints
+POST   /api/tasks/submit       # Submit generation task
+GET    /api/tasks/{id}/status  # Get task status
+GET    /api/quality/mappings   # Get quality to pipeline mappings
 ```
 
 ### WebSocket Event Types
@@ -344,6 +371,47 @@ interface SelectionChangeEvent {
   targetId: string;
 }
 
+// Node State Events (Function Runner Foundation)
+interface NodeStateUpdatedEvent {
+  type: 'node_state_updated';
+  nodeId: string;
+  state: 'idle' | 'generating' | 'completed' | 'error';
+}
+
+// Task Execution Events (Aligned with Function Runner)
+interface StartGenerationEvent {
+  type: 'start_generation';
+  nodeId: string;
+  nodeType: string;
+  parameters: Record<string, any>;
+}
+
+interface TaskProgressEvent {
+  type: 'task_progress';
+  taskId: string;
+  nodeId: string;
+  progress: number;
+  step: string;  // Granular step description
+  status: 'pending' | 'running' | 'completed' | 'error';
+}
+
+interface TaskSuccessEvent {
+  type: 'task_success';
+  taskId: string;
+  nodeId: string;
+  result: {
+    outputPath: string;
+    metadata?: Record<string, any>;
+  };
+}
+
+interface TaskFailedEvent {
+  type: 'task_failed';
+  taskId: string;
+  nodeId: string;
+  error: string;
+}
+
 // Project Events
 interface ProjectUpdateEvent {
   type: 'project_update';
@@ -356,15 +424,6 @@ interface AssetAddedEvent {
   type: 'asset_added';
   category: 'locations' | 'characters' | 'music' | 'styles';
   asset: AssetData;
-}
-
-// Progress Events
-interface TaskProgressEvent {
-  type: 'task_progress';
-  taskId: string;
-  progress: number;
-  message: string;
-  status: 'running' | 'completed' | 'error';
 }
 ```
 
@@ -439,10 +498,12 @@ services:
     volumes:
       - ./backend:/app
       - generative_studio_workspace:/Generative_Studio_Workspace
+      - /var/run/docker.sock:/var/run/docker.sock  # For Function Runner container orchestration
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - WORKSPACE_ROOT=/Generative_Studio_Workspace
+      - DOCKER_HOST=unix:///var/run/docker.sock
     depends_on:
       - backend
       - redis
@@ -510,13 +571,58 @@ make up-with-comfyui    # Start with ComfyUI model
     ├── Stock_Media/
     ├── Characters/
     ├── Styles/
-    └── Locations/
+    ├── Locations/
+    └── AI_Models/              # Model storage (Function Runner prep)
 ```
+
+### Function Runner Foundation
+The platform architecture is designed to support the Function Runner pattern for AI model execution:
+
+#### Task Dispatcher Architecture
+```python
+# Dispatcher service maps quality settings to pipeline configurations
+QUALITY_PIPELINE_MAPPING = {
+    "low": {
+        "pipeline_id": "gms-flux:1.0-low-vram",
+        "target_vram": 12,
+        "optimizations": ["cpu_offloading", "sequential"]
+    },
+    "standard": {
+        "pipeline_id": "gms-flux:1.0-standard",
+        "target_vram": 16,
+        "optimizations": ["moderate_parallel"]
+    },
+    "high": {
+        "pipeline_id": "gms-flux:1.0-high-fidelity",
+        "target_vram": 24,
+        "optimizations": ["full_parallel"]
+    }
+}
+```
+
+#### Celery Task Structure
+```python
+# Foundation for Function Runner tasks
+@celery_app.task
+def execute_generation(node_id: str, project_id: str, parameters: dict):
+    # 1. Retrieve node data and project quality setting
+    # 2. Map quality to pipeline configuration
+    # 3. Prepare task payload with output paths
+    # 4. Publish progress updates via Redis pub/sub
+    # 5. Return success/failure with output path
+    pass
+```
+
+#### WebSocket Progress Relay
+- Worker publishes events to Redis pub/sub channel
+- FastAPI WebSocket manager subscribes to channels
+- Events forwarded to appropriate client connections
+- Enables real-time progress tracking for long-running tasks
 
 ---
 
-**Epic Version**: 1.2  
+**Epic Version**: 1.3  
 **Created**: 2025-01-02  
 **Updated**: 2025-01-03  
-**Owner**: Generative Media Studio Development Team  
+**Owner**: Auteur Movie Director Development Team  
 **Status**: Ready for Development

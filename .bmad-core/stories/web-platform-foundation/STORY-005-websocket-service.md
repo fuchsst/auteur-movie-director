@@ -7,55 +7,78 @@
 **Priority**: High  
 
 ## Story Description
-As a frontend developer, I need a WebSocket connection to receive real-time updates about file changes, processing status, Celery task progress, and system events so that the UI can reflect the current state without polling. The service must support container orchestration environments and handle connection management across container restarts.
+As a frontend developer, I need a WebSocket connection to receive real-time updates about file changes, processing status, node state changes, task execution progress, and system events so that the UI can reflect the current state without polling. The service acts as the nervous system of the application, relaying events from the Function Runner architecture through Redis pub/sub for decoupled event publishing. The service must support container orchestration environments and handle connection management across container restarts.
 
 ## Acceptance Criteria
 
 ### Functional Requirements
-- [ ] WebSocket endpoint accepts connections at `/ws`
-- [ ] Clients can subscribe to specific project updates
+- [ ] WebSocket endpoint accepts connections at `/ws/{project_id}`
+- [ ] Clients automatically subscribe to project-specific events on connection
+- [ ] Node state change events are broadcast to connected clients
+- [ ] Task execution events with granular progress updates
 - [ ] File change events are broadcast to connected clients
-- [ ] Celery task progress updates are streamed in real-time
 - [ ] Connection heartbeat prevents timeouts
 - [ ] Graceful reconnection after disconnects
-- [ ] Multiple clients can connect simultaneously
-- [ ] Support for Redis pub/sub event distribution
+- [ ] Multiple clients can connect simultaneously per project
+- [ ] Redis pub/sub for decoupled event publishing from Function Runners
+- [ ] WebSocket manager subscribes to Redis channels for event relay
 - [ ] Container-aware connection management
 
 ### Technical Requirements
-- [ ] Implement WebSocket manager for connection tracking
+- [ ] Implement WebSocket manager with project-based connection tracking
 - [ ] Use JSON for all message payloads
-- [ ] Include message type and timestamp in all events
-- [ ] Implement subscription-based filtering
+- [ ] Include message type, timestamp, and project_id in all events
+- [ ] Automatic project-based subscription on connection
 - [ ] Add connection authentication (session-based)
 - [ ] Handle backpressure for slow clients
-- [ ] Redis integration for scalable event distribution
+- [ ] Redis pub/sub integration for event relay pattern
+- [ ] Subscribe to project-specific Redis channels
 - [ ] Environment-aware WebSocket URL configuration
 - [ ] Typed event schemas for all message types
 - [ ] Connection state persistence across container restarts
+- [ ] Support for step-by-step progress with descriptions
 
 ### Message Types
-- `connection.established` - Initial handshake
+
+#### Connection Events
+- `connection.established` - Initial handshake with project context
+- `connection.closed` - Clean disconnection
+- `system.heartbeat` - Keep-alive ping
+- `container.reconnect` - Container restart notification
+
+#### Project Events
 - `project.created` - New project created
 - `project.updated` - Project metadata changed
 - `project.deleted` - Project removed
+
+#### Node State Events
+- `node.state.updated` - Node state changed (idle, queued, processing, completed, failed)
+- `node.progress.updated` - Node execution progress with step details
+- `node.output.ready` - Node output is available
+- `node.error.occurred` - Node encountered an error
+
+#### Task Execution Events
+- `task.queued` - Task added to execution queue
+- `task.started` - Task execution began
+- `task.progress` - Granular progress update with current step
+- `task.success` - Task completed successfully
+- `task.failed` - Task execution failed
+- `task.cancelled` - Task was cancelled
+
+#### File Events
 - `file.uploaded` - New file added
 - `file.deleted` - File removed
 - `file.changed` - File content modified
 - `workspace.changed` - Workspace directory updated
-- `task.started` - Celery task initiated
-- `task.progress` - Celery task progress update
-- `task.completed` - Celery task finished
-- `task.failed` - Celery task error
-- `process.started` - Long operation began
-- `process.progress` - Progress update
-- `process.completed` - Operation finished
-- `system.heartbeat` - Keep-alive ping
-- `container.reconnect` - Container restart notification
+
+#### Function Runner Events
+- `runner.assigned` - Function runner picked up task
+- `runner.heartbeat` - Function runner health check
+- `runner.completed` - Function runner finished execution
 
 ## Implementation Notes
 
-### WebSocket Manager with Redis Integration
+### WebSocket Manager with Event Relay Pattern
 ```python
 # app/services/websocket.py
 from typing import Dict, List, Set, Optional
@@ -65,198 +88,509 @@ import asyncio
 import redis.asyncio as redis
 from datetime import datetime
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.subscriptions: Dict[str, Set[str]] = {}
+        self.active_connections: Dict[str, Dict[str, WebSocket]] = {}  # {project_id: {client_id: websocket}}
+        self.client_projects: Dict[str, str] = {}  # {client_id: project_id}
         self.redis_client: Optional[redis.Redis] = None
         self.pubsub: Optional[redis.PubSub] = None
-        self._redis_task = None
+        self._redis_tasks: Dict[str, asyncio.Task] = {}
+        self._subscribed_channels: Set[str] = set()
     
     async def initialize(self):
-        """Initialize Redis connection for distributed events"""
+        """Initialize Redis connection for event relay"""
         redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
         self.redis_client = await redis.from_url(redis_url)
         self.pubsub = self.redis_client.pubsub()
-        await self.pubsub.subscribe("websocket:broadcast")
         
-        # Start listening for Redis events
-        self._redis_task = asyncio.create_task(self._redis_listener())
+        # Subscribe to global broadcast channel
+        await self.pubsub.subscribe("websocket:broadcast")
+        self._subscribed_channels.add("websocket:broadcast")
+        
+        # Start global listener
+        self._redis_tasks["global"] = asyncio.create_task(
+            self._redis_listener("websocket:broadcast")
+        )
+    
+    async def subscribe_to_project(self, project_id: str):
+        """Subscribe to project-specific Redis channel"""
+        channel = f"project:{project_id}:events"
+        if channel not in self._subscribed_channels:
+            await self.pubsub.subscribe(channel)
+            self._subscribed_channels.add(channel)
+            self._redis_tasks[project_id] = asyncio.create_task(
+                self._redis_listener(channel, project_id)
+            )
+            logger.info(f"Subscribed to Redis channel: {channel}")
+    
+    async def unsubscribe_from_project(self, project_id: str):
+        """Unsubscribe from project-specific Redis channel if no clients"""
+        if project_id not in self.active_connections or not self.active_connections[project_id]:
+            channel = f"project:{project_id}:events"
+            if channel in self._subscribed_channels:
+                await self.pubsub.unsubscribe(channel)
+                self._subscribed_channels.remove(channel)
+                if project_id in self._redis_tasks:
+                    self._redis_tasks[project_id].cancel()
+                    del self._redis_tasks[project_id]
+                logger.info(f"Unsubscribed from Redis channel: {channel}")
     
     async def shutdown(self):
         """Clean shutdown of Redis connections"""
-        if self._redis_task:
-            self._redis_task.cancel()
+        for task in self._redis_tasks.values():
+            task.cancel()
         if self.pubsub:
             await self.pubsub.unsubscribe()
             await self.pubsub.close()
         if self.redis_client:
             await self.redis_client.close()
     
-    async def _redis_listener(self):
-        """Listen for Redis pub/sub events"""
-        async for message in self.pubsub.listen():
-            if message["type"] == "message":
-                data = json.loads(message["data"])
-                await self._handle_redis_event(data)
+    async def _redis_listener(self, channel: str, project_id: str = None):
+        """Listen for Redis pub/sub events on specific channel"""
+        try:
+            async for message in self.pubsub.listen():
+                if message["type"] == "message" and message["channel"].decode() == channel:
+                    try:
+                        data = json.loads(message["data"])
+                        await self._handle_redis_event(data, project_id)
+                    except json.JSONDecodeError:
+                        logger.error(f"Invalid JSON in Redis message: {message['data']}")
+                    except Exception as e:
+                        logger.error(f"Error handling Redis event: {e}")
+        except asyncio.CancelledError:
+            logger.info(f"Redis listener for {channel} cancelled")
+            raise
+        except Exception as e:
+            logger.error(f"Redis listener error for {channel}: {e}")
     
-    async def _handle_redis_event(self, event: dict):
-        """Handle events from Redis (from other containers)"""
-        project_id = event.get("project_id")
-        await self.broadcast(event, project_id, from_redis=True)
-    
-    async def connect(self, websocket: WebSocket, client_id: str):
-        await websocket.accept()
-        self.active_connections[client_id] = websocket
+    async def _handle_redis_event(self, event: dict, project_id: str = None):
+        """Handle events from Redis (from Function Runners or other services)"""
+        # Extract project_id from event if not provided
+        if not project_id:
+            project_id = event.get("project_id")
         
-        # Store connection state in Redis for reconnection
+        if project_id:
+            await self.broadcast_to_project(project_id, event, from_redis=True)
+        else:
+            # Global broadcast
+            await self.broadcast_all(event, from_redis=True)
+    
+    async def connect(self, websocket: WebSocket, client_id: str, project_id: str):
+        """Connect client to project-specific WebSocket"""
+        await websocket.accept()
+        
+        # Initialize project connection dict if needed
+        if project_id not in self.active_connections:
+            self.active_connections[project_id] = {}
+            await self.subscribe_to_project(project_id)
+        
+        # Store connection
+        self.active_connections[project_id][client_id] = websocket
+        self.client_projects[client_id] = project_id
+        
+        # Store connection state in Redis
         if self.redis_client:
             await self.redis_client.setex(
                 f"ws:connection:{client_id}", 
                 3600,  # 1 hour TTL
-                json.dumps({"connected_at": datetime.utcnow().isoformat()})
+                json.dumps({
+                    "connected_at": datetime.utcnow().isoformat(),
+                    "project_id": project_id
+                })
             )
         
-        await self.send_personal_message(
-            {"type": "connection.established", "client_id": client_id},
-            client_id
+        # Send connection established event
+        await self.send_to_client(
+            {
+                "type": "connection.established",
+                "client_id": client_id,
+                "project_id": project_id,
+                "timestamp": datetime.utcnow().isoformat()
+            },
+            client_id,
+            project_id
         )
     
-    def disconnect(self, client_id: str):
-        if client_id in self.active_connections:
-            del self.active_connections[client_id]
-            self.subscriptions.pop(client_id, None)
+    async def disconnect(self, client_id: str):
+        """Disconnect client and clean up"""
+        project_id = self.client_projects.get(client_id)
+        
+        if project_id and project_id in self.active_connections:
+            self.active_connections[project_id].pop(client_id, None)
             
-            # Remove connection state from Redis
-            if self.redis_client:
-                asyncio.create_task(
-                    self.redis_client.delete(f"ws:connection:{client_id}")
-                )
+            # Clean up empty project connections
+            if not self.active_connections[project_id]:
+                del self.active_connections[project_id]
+                await self.unsubscribe_from_project(project_id)
+        
+        # Remove client tracking
+        self.client_projects.pop(client_id, None)
+        
+        # Remove connection state from Redis
+        if self.redis_client:
+            await self.redis_client.delete(f"ws:connection:{client_id}")
     
-    async def send_personal_message(self, message: dict, client_id: str):
-        if websocket := self.active_connections.get(client_id):
-            try:
-                await websocket.send_json(message)
-            except Exception as e:
-                # Handle disconnected clients
-                self.disconnect(client_id)
+    async def send_to_client(self, message: dict, client_id: str, project_id: str):
+        """Send message to specific client"""
+        if project_id in self.active_connections:
+            if websocket := self.active_connections[project_id].get(client_id):
+                try:
+                    await websocket.send_json(message)
+                except Exception as e:
+                    logger.error(f"Error sending to client {client_id}: {e}")
+                    await self.disconnect(client_id)
     
-    async def broadcast(self, message: dict, project_id: str = None, 
-                       from_redis: bool = False):
-        """Broadcast message to connected clients"""
+    async def broadcast_to_project(self, project_id: str, message: dict, 
+                                  from_redis: bool = False):
+        """Broadcast message to all clients in a project"""
+        # Add metadata if not present
+        if "timestamp" not in message:
+            message["timestamp"] = datetime.utcnow().isoformat()
+        if "project_id" not in message:
+            message["project_id"] = project_id
+        
+        # Publish to Redis for other services (unless it came from Redis)
+        if self.redis_client and not from_redis:
+            channel = f"project:{project_id}:events"
+            await self.redis_client.publish(channel, json.dumps(message))
+        
+        # Send to local connections
+        if project_id in self.active_connections:
+            tasks = [
+                self.send_to_client(message, client_id, project_id)
+                for client_id in self.active_connections[project_id]
+            ]
+            await asyncio.gather(*tasks, return_exceptions=True)
+    
+    async def broadcast_all(self, message: dict, from_redis: bool = False):
+        """Broadcast message to all connected clients"""
         # Add timestamp if not present
         if "timestamp" not in message:
             message["timestamp"] = datetime.utcnow().isoformat()
         
-        # Publish to Redis for other containers (unless it came from Redis)
+        # Publish to Redis for other services
         if self.redis_client and not from_redis:
-            await self.redis_client.publish(
-                "websocket:broadcast",
-                json.dumps({**message, "project_id": project_id})
-            )
+            await self.redis_client.publish("websocket:broadcast", json.dumps(message))
         
-        # Send to local connections
-        if project_id:
-            clients = [cid for cid, subs in self.subscriptions.items() 
-                      if project_id in subs]
-        else:
-            clients = list(self.active_connections.keys())
+        # Send to all local connections
+        tasks = []
+        for project_id, connections in self.active_connections.items():
+            for client_id in connections:
+                tasks.append(self.send_to_client(message, client_id, project_id))
         
-        tasks = [self.send_personal_message(message, cid) 
-                for cid in clients]
         await asyncio.gather(*tasks, return_exceptions=True)
-    
-    def subscribe(self, client_id: str, project_id: str):
-        """Subscribe client to project updates"""
-        if client_id not in self.subscriptions:
-            self.subscriptions[client_id] = set()
-        self.subscriptions[client_id].add(project_id)
-    
-    def unsubscribe(self, client_id: str, project_id: str):
-        """Unsubscribe client from project updates"""
-        if client_id in self.subscriptions:
-            self.subscriptions[client_id].discard(project_id)
 ```
 
-### WebSocket Endpoint with Environment Configuration
+### WebSocket Endpoint with Project-Specific Connections
 ```python
 # app/api/websocket.py
-from fastapi import WebSocket, WebSocketDisconnect, Depends, Request
+from fastapi import WebSocket, WebSocketDisconnect, Depends, Request, Path
 from app.services.websocket import ConnectionManager
 from app.core.config import settings
+from datetime import datetime
 import uuid
 import logging
 
 logger = logging.getLogger(__name__)
 manager = ConnectionManager()
 
-@router.websocket("/ws")
+@router.websocket("/ws/{project_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
-    request: Request
+    project_id: str = Path(..., description="Project ID to connect to"),
+    request: Request = None
 ):
     client_id = str(uuid.uuid4())
     
-    # Log connection info for debugging in container environment
-    logger.info(f"WebSocket connection attempt from {request.client.host}")
+    # Log connection info for debugging
+    client_host = request.client.host if request else "unknown"
+    logger.info(f"WebSocket connection from {client_host} for project {project_id}")
     
-    await manager.connect(websocket, client_id)
+    # Connect with automatic project subscription
+    await manager.connect(websocket, client_id, project_id)
     
     try:
         while True:
             # Receive messages from client
             data = await websocket.receive_json()
+            message_type = data.get("type")
             
             # Handle different message types
-            if data["type"] == "subscribe":
-                project_id = data["project_id"]
-                manager.subscribe(client_id, project_id)
-                await manager.send_personal_message({
-                    "type": "subscription.confirmed",
-                    "project_id": project_id
-                }, client_id)
-                
-            elif data["type"] == "unsubscribe":
-                project_id = data["project_id"]
-                manager.unsubscribe(client_id, project_id)
-                
-            elif data["type"] == "ping":
-                await manager.send_personal_message(
-                    {"type": "pong", "timestamp": datetime.utcnow().isoformat()},
-                    client_id
+            if message_type == "ping":
+                await manager.send_to_client(
+                    {
+                        "type": "pong",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "project_id": project_id
+                    },
+                    client_id,
+                    project_id
+                )
+            
+            elif message_type == "node.execute":
+                # Relay node execution request to Function Runner via Redis
+                await manager.redis_client.publish(
+                    f"project:{project_id}:commands",
+                    json.dumps({
+                        "type": "execute_node",
+                        "node_id": data.get("node_id"),
+                        "parameters": data.get("parameters", {}),
+                        "client_id": client_id,
+                        "project_id": project_id,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                )
+            
+            elif message_type == "task.cancel":
+                # Relay task cancellation to Function Runner
+                await manager.redis_client.publish(
+                    f"project:{project_id}:commands",
+                    json.dumps({
+                        "type": "cancel_task",
+                        "task_id": data.get("task_id"),
+                        "client_id": client_id,
+                        "project_id": project_id,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
                 )
                 
     except WebSocketDisconnect:
-        logger.info(f"WebSocket client {client_id} disconnected")
-        manager.disconnect(client_id)
+        logger.info(f"WebSocket client {client_id} disconnected from project {project_id}")
+        await manager.disconnect(client_id)
     except Exception as e:
         logger.error(f"WebSocket error for client {client_id}: {e}")
-        manager.disconnect(client_id)
+        await manager.disconnect(client_id)
 
 # Environment-aware configuration helper
-def get_websocket_url():
-    """Get WebSocket URL based on environment"""
+def get_websocket_url(project_id: str) -> str:
+    """Get WebSocket URL for specific project based on environment"""
     if settings.environment == "production":
-        return f"wss://{settings.domain}/ws"
+        return f"wss://{settings.domain}/ws/{project_id}"
     elif settings.environment == "docker":
-        return f"ws://{settings.backend_host}:{settings.backend_port}/ws"
+        return f"ws://{settings.backend_host}:{settings.backend_port}/ws/{project_id}"
     else:
-        return f"ws://localhost:{settings.backend_port}/ws"
+        return f"ws://localhost:{settings.backend_port}/ws/{project_id}"
 ```
 
-### Event Broadcasting with Celery Integration
+### Event Broadcasting Service
 ```python
 # app/services/events.py
 from app.services.websocket import manager
 from datetime import datetime
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from enum import Enum
+
+class NodeState(str, Enum):
+    IDLE = "idle"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 class EventBroadcaster:
+    """Event broadcasting service for real-time updates"""
+    
+    # Node State Events
+    @staticmethod
+    async def node_state_updated(project_id: str, node_id: str, 
+                                state: NodeState, metadata: Optional[Dict] = None):
+        """Broadcast node state change"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "node.state.updated",
+            "node_id": node_id,
+            "state": state.value,
+            "metadata": metadata or {},
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def node_progress_updated(project_id: str, node_id: str,
+                                   progress: float, step: str,
+                                   current_step: int, total_steps: int,
+                                   metadata: Optional[Dict] = None):
+        """Broadcast node execution progress with step details"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "node.progress.updated",
+            "node_id": node_id,
+            "progress": progress,
+            "step": step,
+            "step_info": {
+                "current": current_step,
+                "total": total_steps,
+                "description": step
+            },
+            "metadata": metadata or {},
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def node_output_ready(project_id: str, node_id: str,
+                               outputs: Dict[str, Any], 
+                               execution_time: float):
+        """Broadcast that node output is ready"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "node.output.ready",
+            "node_id": node_id,
+            "outputs": outputs,
+            "execution_time": execution_time,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def node_error_occurred(project_id: str, node_id: str,
+                                 error: str, traceback: Optional[str] = None):
+        """Broadcast node error"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "node.error.occurred",
+            "node_id": node_id,
+            "error": error,
+            "traceback": traceback,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    # Task Execution Events
+    @staticmethod
+    async def task_queued(project_id: str, task_id: str, 
+                         node_id: str, priority: int = 0):
+        """Broadcast task queued event"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "task.queued",
+            "task_id": task_id,
+            "node_id": node_id,
+            "priority": priority,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def task_started(project_id: str, task_id: str, 
+                          node_id: str, runner_id: str):
+        """Broadcast task started by Function Runner"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "task.started",
+            "task_id": task_id,
+            "node_id": node_id,
+            "runner_id": runner_id,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def task_progress(project_id: str, task_id: str, node_id: str,
+                           progress: float, step_description: str,
+                           current_step: int, total_steps: int,
+                           metadata: Optional[Dict] = None):
+        """Broadcast granular task progress with step information"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "task.progress",
+            "task_id": task_id,
+            "node_id": node_id,
+            "progress": {
+                "percentage": progress,
+                "current_step": current_step,
+                "total_steps": total_steps,
+                "step_description": step_description
+            },
+            "metadata": metadata or {},
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def task_success(project_id: str, task_id: str, node_id: str,
+                          result: Dict[str, Any], execution_time: float):
+        """Broadcast task success"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "task.success",
+            "task_id": task_id,
+            "node_id": node_id,
+            "result": result,
+            "execution_time": execution_time,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def task_failed(project_id: str, task_id: str, node_id: str,
+                         error: str, traceback: Optional[str] = None):
+        """Broadcast task failure"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "task.failed",
+            "task_id": task_id,
+            "node_id": node_id,
+            "error": error,
+            "traceback": traceback,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def task_cancelled(project_id: str, task_id: str, node_id: str):
+        """Broadcast task cancellation"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "task.cancelled",
+            "task_id": task_id,
+            "node_id": node_id,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    # Function Runner Events
+    @staticmethod
+    async def runner_assigned(project_id: str, task_id: str, 
+                            runner_id: str, runner_info: Dict[str, Any]):
+        """Broadcast Function Runner assignment"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "runner.assigned",
+            "task_id": task_id,
+            "runner_id": runner_id,
+            "runner_info": runner_info,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def runner_heartbeat(runner_id: str, status: Dict[str, Any]):
+        """Broadcast Function Runner heartbeat (global)"""
+        await manager.broadcast_all({
+            "type": "runner.heartbeat",
+            "runner_id": runner_id,
+            "status": status,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def runner_completed(project_id: str, task_id: str, 
+                             runner_id: str, metrics: Dict[str, Any]):
+        """Broadcast Function Runner completion"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "runner.completed",
+            "task_id": task_id,
+            "runner_id": runner_id,
+            "metrics": metrics,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    # File Events (existing)
+    @staticmethod
+    async def file_uploaded(project_id: str, file_info: dict):
+        await manager.broadcast_to_project(project_id, {
+            "type": "file.uploaded",
+            "file": file_info,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def file_changed(project_id: str, file_path: str, change_type: str):
+        await manager.broadcast_to_project(project_id, {
+            "type": "file.changed",
+            "file_path": file_path,
+            "change_type": change_type,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    # Project Events
     @staticmethod
     async def project_created(project_id: str, project_data: dict):
-        await manager.broadcast({
+        await manager.broadcast_all({
             "type": "project.created",
             "project_id": project_id,
             "data": project_data,
@@ -264,99 +598,13 @@ class EventBroadcaster:
         })
     
     @staticmethod
-    async def file_uploaded(project_id: str, file_info: dict):
-        await manager.broadcast({
-            "type": "file.uploaded",
-            "project_id": project_id,
-            "file": file_info,
-            "timestamp": datetime.utcnow().isoformat()
-        }, project_id=project_id)
-    
-    @staticmethod
-    async def file_changed(project_id: str, file_path: str, change_type: str):
-        await manager.broadcast({
-            "type": "file.changed",
-            "project_id": project_id,
-            "file_path": file_path,
-            "change_type": change_type,  # 'modified', 'created', 'deleted'
-            "timestamp": datetime.utcnow().isoformat()
-        }, project_id=project_id)
-    
-    @staticmethod
-    async def workspace_changed(workspace_id: str, change_summary: Dict[str, Any]):
-        await manager.broadcast({
+    async def workspace_changed(workspace_id: str, changes: Dict[str, List[str]]):
+        await manager.broadcast_all({
             "type": "workspace.changed",
             "workspace_id": workspace_id,
-            "changes": change_summary,
+            "changes": changes,
             "timestamp": datetime.utcnow().isoformat()
         })
-    
-    # Celery task events
-    @staticmethod
-    async def task_started(task_id: str, task_name: str, project_id: str, 
-                          metadata: Optional[Dict] = None):
-        await manager.broadcast({
-            "type": "task.started",
-            "task_id": task_id,
-            "task_name": task_name,
-            "project_id": project_id,
-            "metadata": metadata or {},
-            "timestamp": datetime.utcnow().isoformat()
-        }, project_id=project_id)
-    
-    @staticmethod
-    async def task_progress(task_id: str, project_id: str, 
-                           current: int, total: int, 
-                           message: Optional[str] = None,
-                           metadata: Optional[Dict] = None):
-        await manager.broadcast({
-            "type": "task.progress",
-            "task_id": task_id,
-            "project_id": project_id,
-            "progress": {
-                "current": current,
-                "total": total,
-                "percentage": (current / total * 100) if total > 0 else 0
-            },
-            "message": message,
-            "metadata": metadata or {},
-            "timestamp": datetime.utcnow().isoformat()
-        }, project_id=project_id)
-    
-    @staticmethod
-    async def task_completed(task_id: str, project_id: str, 
-                            result: Optional[Dict] = None):
-        await manager.broadcast({
-            "type": "task.completed",
-            "task_id": task_id,
-            "project_id": project_id,
-            "result": result or {},
-            "timestamp": datetime.utcnow().isoformat()
-        }, project_id=project_id)
-    
-    @staticmethod
-    async def task_failed(task_id: str, project_id: str, 
-                         error: str, traceback: Optional[str] = None):
-        await manager.broadcast({
-            "type": "task.failed",
-            "task_id": task_id,
-            "project_id": project_id,
-            "error": error,
-            "traceback": traceback,
-            "timestamp": datetime.utcnow().isoformat()
-        }, project_id=project_id)
-    
-    @staticmethod
-    async def process_progress(project_id: str, process_id: str, 
-                              progress: float, message: str = None):
-        await manager.broadcast({
-            "type": "process.progress",
-            "project_id": project_id,
-            "process_id": process_id,
-            "progress": progress,
-            "message": message,
-            "timestamp": datetime.utcnow().isoformat()
-        }, project_id=project_id)
 ```
 
 ### Heartbeat Implementation
@@ -382,84 +630,111 @@ async def shutdown_event():
     await manager.shutdown()  # Clean shutdown of Redis
 ```
 
-### Celery Task Progress Integration
+### Function Runner Event Publishing
 ```python
-# app/tasks/base.py
-from celery import Task
-from app.services.events import EventBroadcaster
+# Example: Function Runner publishing events via Redis
+import redis
+import json
+from datetime import datetime
 import asyncio
 
-class ProgressTask(Task):
-    """Base task class with WebSocket progress updates"""
+class FunctionRunnerEventPublisher:
+    """Event publisher for Function Runners to send updates via Redis"""
     
-    def __init__(self):
-        self.project_id = None
-        self.task_id = None
+    def __init__(self, runner_id: str):
+        self.runner_id = runner_id
+        self.redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
     
-    def update_progress(self, current: int, total: int, message: str = None):
-        """Send progress update via WebSocket"""
-        if self.project_id and self.task_id:
-            # Run async broadcast in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                EventBroadcaster.task_progress(
-                    self.task_id, self.project_id, 
-                    current, total, message
-                )
-            )
-            loop.close()
+    def publish_event(self, project_id: str, event: dict):
+        """Publish event to project-specific Redis channel"""
+        channel = f"project:{project_id}:events"
+        event["timestamp"] = datetime.utcnow().isoformat()
+        event["runner_id"] = self.runner_id
+        self.redis_client.publish(channel, json.dumps(event))
     
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
-        """Handle task failure"""
-        project_id = kwargs.get('project_id')
-        if project_id:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                EventBroadcaster.task_failed(
-                    task_id, project_id, str(exc), str(einfo)
-                )
-            )
-            loop.close()
+    def node_state_update(self, project_id: str, node_id: str, state: str):
+        """Publish node state update"""
+        self.publish_event(project_id, {
+            "type": "node.state.updated",
+            "node_id": node_id,
+            "state": state
+        })
     
-    def on_success(self, retval, task_id, args, kwargs):
-        """Handle task success"""
-        project_id = kwargs.get('project_id')
-        if project_id:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                EventBroadcaster.task_completed(
-                    task_id, project_id, retval
-                )
-            )
-            loop.close()
+    def task_progress(self, project_id: str, task_id: str, node_id: str,
+                     progress: float, step: str, current_step: int, total_steps: int):
+        """Publish granular task progress"""
+        self.publish_event(project_id, {
+            "type": "task.progress",
+            "task_id": task_id,
+            "node_id": node_id,
+            "progress": {
+                "percentage": progress,
+                "current_step": current_step,
+                "total_steps": total_steps,
+                "step_description": step
+            }
+        })
+    
+    def task_success(self, project_id: str, task_id: str, node_id: str,
+                    result: dict, execution_time: float):
+        """Publish task success"""
+        self.publish_event(project_id, {
+            "type": "task.success",
+            "task_id": task_id,
+            "node_id": node_id,
+            "result": result,
+            "execution_time": execution_time
+        })
+    
+    def task_failed(self, project_id: str, task_id: str, node_id: str,
+                   error: str, traceback: str = None):
+        """Publish task failure"""
+        self.publish_event(project_id, {
+            "type": "task.failed",
+            "task_id": task_id,
+            "node_id": node_id,
+            "error": error,
+            "traceback": traceback
+        })
 
-# Example usage in a Celery task
-@celery_app.task(base=ProgressTask, bind=True)
-def process_video(self, project_id: str, video_path: str):
-    self.project_id = project_id
-    self.task_id = self.request.id
+# Example usage in a Function Runner
+def execute_text_to_image(project_id: str, task_id: str, node_id: str, params: dict):
+    """Example function runner task execution with event publishing"""
+    publisher = FunctionRunnerEventPublisher("runner-001")
     
-    # Send task started event
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(
-        EventBroadcaster.task_started(
-            self.task_id, "process_video", project_id,
-            {"video_path": video_path}
-        )
-    )
-    loop.close()
-    
-    # Process with progress updates
-    total_frames = 100
-    for i in range(total_frames):
-        # Do processing...
-        self.update_progress(i + 1, total_frames, f"Processing frame {i + 1}")
-    
-    return {"status": "completed", "frames": total_frames}
+    try:
+        # Update node state to processing
+        publisher.node_state_update(project_id, node_id, "processing")
+        
+        # Task execution with granular progress
+        steps = [
+            ("Loading model", 0.2),
+            ("Processing prompt", 0.4),
+            ("Generating image", 0.8),
+            ("Saving output", 1.0)
+        ]
+        
+        for i, (step_desc, progress) in enumerate(steps):
+            # Simulate work
+            time.sleep(1)
+            
+            # Publish progress
+            publisher.task_progress(
+                project_id, task_id, node_id,
+                progress * 100, step_desc, i + 1, len(steps)
+            )
+        
+        # Task completed
+        result = {"image_path": "/outputs/image.png", "seed": 12345}
+        publisher.task_success(project_id, task_id, node_id, result, 4.5)
+        
+        # Update node state to completed
+        publisher.node_state_update(project_id, node_id, "completed")
+        
+    except Exception as e:
+        # Handle failure
+        publisher.task_failed(project_id, task_id, node_id, str(e))
+        publisher.node_state_update(project_id, node_id, "failed")
 ```
 
 ### Message Schema
@@ -468,30 +743,167 @@ def process_video(self, project_id: str, video_path: str):
 interface WSMessage {
   type: string;
   timestamp: string;
+  project_id?: string;
   [key: string]: any;
 }
 
 // Client to server messages
-interface SubscribeMessage {
-  type: 'subscribe' | 'unsubscribe';
-  project_id: string;
-}
-
 interface PingMessage {
   type: 'ping';
 }
 
-// Server to client events
+interface NodeExecuteMessage {
+  type: 'node.execute';
+  node_id: string;
+  parameters: Record<string, any>;
+}
+
+interface TaskCancelMessage {
+  type: 'task.cancel';
+  task_id: string;
+}
+
+// Connection events
 interface ConnectionEvent {
-  type: 'connection.established' | 'subscription.confirmed';
-  client_id?: string;
-  project_id?: string;
+  type: 'connection.established' | 'connection.closed';
+  client_id: string;
+  project_id: string;
   timestamp: string;
 }
 
+// Node state events
+interface NodeStateEvent {
+  type: 'node.state.updated';
+  node_id: string;
+  state: 'idle' | 'queued' | 'processing' | 'completed' | 'failed';
+  metadata?: Record<string, any>;
+  timestamp: string;
+}
+
+interface NodeProgressEvent {
+  type: 'node.progress.updated';
+  node_id: string;
+  progress: number;
+  step: string;
+  step_info: {
+    current: number;
+    total: number;
+    description: string;
+  };
+  metadata?: Record<string, any>;
+  timestamp: string;
+}
+
+interface NodeOutputEvent {
+  type: 'node.output.ready';
+  node_id: string;
+  outputs: Record<string, any>;
+  execution_time: number;
+  timestamp: string;
+}
+
+interface NodeErrorEvent {
+  type: 'node.error.occurred';
+  node_id: string;
+  error: string;
+  traceback?: string;
+  timestamp: string;
+}
+
+// Task execution events
+interface TaskQueuedEvent {
+  type: 'task.queued';
+  task_id: string;
+  node_id: string;
+  priority: number;
+  timestamp: string;
+}
+
+interface TaskStartedEvent {
+  type: 'task.started';
+  task_id: string;
+  node_id: string;
+  runner_id: string;
+  timestamp: string;
+}
+
+interface TaskProgressEvent {
+  type: 'task.progress';
+  task_id: string;
+  node_id: string;
+  progress: {
+    percentage: number;
+    current_step: number;
+    total_steps: number;
+    step_description: string;
+  };
+  metadata?: Record<string, any>;
+  timestamp: string;
+}
+
+interface TaskSuccessEvent {
+  type: 'task.success';
+  task_id: string;
+  node_id: string;
+  result: Record<string, any>;
+  execution_time: number;
+  timestamp: string;
+}
+
+interface TaskFailedEvent {
+  type: 'task.failed';
+  task_id: string;
+  node_id: string;
+  error: string;
+  traceback?: string;
+  timestamp: string;
+}
+
+interface TaskCancelledEvent {
+  type: 'task.cancelled';
+  task_id: string;
+  node_id: string;
+  timestamp: string;
+}
+
+// Function Runner events
+interface RunnerAssignedEvent {
+  type: 'runner.assigned';
+  task_id: string;
+  runner_id: string;
+  runner_info: {
+    capabilities: string[];
+    resources: Record<string, any>;
+  };
+  timestamp: string;
+}
+
+interface RunnerHeartbeatEvent {
+  type: 'runner.heartbeat';
+  runner_id: string;
+  status: {
+    active_tasks: number;
+    available_memory: number;
+    cpu_usage: number;
+  };
+  timestamp: string;
+}
+
+interface RunnerCompletedEvent {
+  type: 'runner.completed';
+  task_id: string;
+  runner_id: string;
+  metrics: {
+    execution_time: number;
+    memory_used: number;
+    [key: string]: any;
+  };
+  timestamp: string;
+}
+
+// File events
 interface FileEvent {
   type: 'file.uploaded' | 'file.deleted' | 'file.changed';
-  project_id: string;
   file?: {
     name: string;
     path: string;
@@ -503,44 +915,7 @@ interface FileEvent {
   timestamp: string;
 }
 
-interface WorkspaceEvent {
-  type: 'workspace.changed';
-  workspace_id: string;
-  changes: {
-    added?: string[];
-    modified?: string[];
-    deleted?: string[];
-  };
-  timestamp: string;
-}
-
-interface TaskEvent {
-  type: 'task.started' | 'task.progress' | 'task.completed' | 'task.failed';
-  task_id: string;
-  project_id: string;
-  task_name?: string;
-  progress?: {
-    current: number;
-    total: number;
-    percentage: number;
-  };
-  message?: string;
-  metadata?: Record<string, any>;
-  result?: any;
-  error?: string;
-  traceback?: string;
-  timestamp: string;
-}
-
-interface ProcessEvent {
-  type: 'process.started' | 'process.progress' | 'process.completed';
-  project_id: string;
-  process_id: string;
-  progress?: number;
-  message?: string;
-  timestamp: string;
-}
-
+// System events
 interface SystemEvent {
   type: 'system.heartbeat' | 'container.reconnect';
   timestamp: string;
@@ -558,30 +933,36 @@ interface SystemEvent {
 - Docker environment configuration
 
 ## Testing Criteria
-- [ ] WebSocket connects successfully
-- [ ] Messages are received by subscribed clients only
+- [ ] WebSocket connects successfully to project-specific endpoints
+- [ ] Project-based event filtering works correctly
+- [ ] Node state updates are received in real-time
+- [ ] Task progress events include step descriptions
 - [ ] Disconnections are handled gracefully
 - [ ] Heartbeat keeps connections alive
-- [ ] Multiple simultaneous connections work
-- [ ] Large messages don't block other clients
-- [ ] Redis pub/sub distributes events across containers
-- [ ] Celery task progress updates stream correctly
+- [ ] Multiple clients can connect to same project
+- [ ] Redis pub/sub relays events from Function Runners
+- [ ] Event relay pattern works across services
 - [ ] Connection state persists across container restarts
 - [ ] Environment-aware URL configuration works
-- [ ] File change events are properly typed
-- [ ] Workspace change events aggregate correctly
+- [ ] Granular progress updates display correctly
+- [ ] Task cancellation propagates properly
+- [ ] Function Runner events are received
+- [ ] Project-specific Redis channels are managed efficiently
 
 ## Definition of Done
-- [ ] WebSocket endpoint implemented and tested
-- [ ] Connection manager handles multiple clients
-- [ ] All event types implemented (including Celery tasks)
-- [ ] Subscription filtering works correctly
+- [ ] Project-specific WebSocket endpoints implemented
+- [ ] Connection manager handles project-based connections
+- [ ] All event types implemented (node state, task execution, runner status)
+- [ ] Redis event relay pattern fully functional
+- [ ] Automatic project subscription on connection
 - [ ] Heartbeat prevents connection timeouts
-- [ ] Integration with file operations complete
-- [ ] Redis pub/sub integration tested
+- [ ] Function Runner event publishing integrated
+- [ ] Granular progress reporting with steps
 - [ ] Container orchestration support verified
 - [ ] Typed event schemas documented
 - [ ] Environment configuration tested
+- [ ] Redis channel lifecycle management working
+- [ ] Event broadcasting service complete
 
 ### Container Reconnection Handling
 ```python
@@ -647,4 +1028,17 @@ class Settings(BaseSettings):
 ## Story Links
 - **Depends On**: STORY-003-fastapi-application-bootstrap
 - **Blocks**: STORY-009-websocket-client
-- **Related PRD**: PRD-001-web-platform-foundation
+- **Related PRD**: PRD-001-web-platform-foundation, PRD-003-function-runner-architecture
+
+## Key Enhancements from Node Specification
+
+This story has been enhanced to support the Function Runner architecture with:
+
+1. **Project-Specific WebSocket Endpoints**: Connections are now established per project at `/ws/{project_id}`
+2. **Comprehensive Event Protocol**: Added node state management and task execution events
+3. **Redis Event Relay Pattern**: WebSocket manager subscribes to Redis channels for decoupled event publishing
+4. **Granular Progress Updates**: Support for step-by-step progress with descriptions
+5. **Function Runner Integration**: Events from distributed Function Runners are relayed through Redis
+6. **Automatic Project Subscription**: Clients are automatically subscribed to their project's events on connection
+
+The WebSocket service now acts as the nervous system of the application, providing real-time communication between the web platform and the Function Runner architecture.

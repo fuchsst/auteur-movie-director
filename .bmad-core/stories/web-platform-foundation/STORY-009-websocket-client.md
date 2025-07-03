@@ -7,7 +7,7 @@
 **Priority**: High  
 
 ## Story Description
-As a frontend developer, I need a robust WebSocket client implementation that maintains a persistent connection to the backend, handles reconnection automatically, supports container restarts and distributed events, and dispatches real-time events to the UI components including Celery task progress.
+As a frontend developer, I need a robust WebSocket client implementation that maintains a persistent connection to the backend, handles reconnection automatically, supports container restarts and distributed events, and dispatches real-time events to the UI components including Celery task progress. The client must support production canvas node state management, tracking generation progress with granular step descriptions, and updating visual states for nodes based on backend events.
 
 ## Acceptance Criteria
 
@@ -21,6 +21,11 @@ As a frontend developer, I need a robust WebSocket client implementation that ma
 - [ ] Support Celery task progress events
 - [ ] Handle distributed events via Redis pub/sub
 - [ ] Persist connection state across container restarts
+- [ ] Track node execution states (generating, completed, error)
+- [ ] Handle granular progress updates with step descriptions
+- [ ] Update node visual states (borders, spinners, thumbnails)
+- [ ] Support start_generation message dispatch from nodes
+- [ ] Manage takes gallery updates on task completion
 
 ### Technical Requirements
 - [ ] Implement exponential backoff for reconnection
@@ -72,12 +77,42 @@ export const wsMessages = writable<WSMessage[]>([]);
 // Store for Celery task progress
 export const taskProgress = writable<Record<string, TaskProgress>>({});
 
+// Store for node execution states
+export const nodeStates = writable<Record<string, NodeState>>({});
+
+// Store for active generations
+export const activeGenerations = writable<Set<string>>(new Set());
+
 interface TaskProgress {
   task_id: string;
   state: 'PENDING' | 'STARTED' | 'PROGRESS' | 'SUCCESS' | 'FAILURE';
   progress: number;
   message?: string;
   result?: any;
+  node_id?: string;
+  step?: string;
+  total_steps?: number;
+  current_step?: number;
+}
+
+interface NodeState {
+  node_id: string;
+  status: 'idle' | 'generating' | 'completed' | 'error';
+  progress?: number;
+  message?: string;
+  error?: string;
+  output_path?: string;
+  thumbnail?: string;
+  takes?: Take[];
+  current_take?: number;
+}
+
+interface Take {
+  id: string;
+  path: string;
+  thumbnail?: string;
+  metadata?: any;
+  created_at: string;
 }
 
 class WebSocketClient {
@@ -226,7 +261,95 @@ class WebSocketClient {
             state: taskMsg.state,
             progress: taskMsg.progress || 0,
             message: taskMsg.message,
-            result: taskMsg.result
+            result: taskMsg.result,
+            node_id: taskMsg.node_id,
+            step: taskMsg.step,
+            total_steps: taskMsg.total_steps,
+            current_step: taskMsg.current_step
+          }
+        }));
+        
+        // Update node state if node_id is present
+        if (taskMsg.node_id) {
+          this.updateNodeState(taskMsg);
+        }
+        break;
+        
+      case 'node.state_changed':
+        const nodeMsg = message as NodeStateMessage;
+        nodeStates.update(states => ({
+          ...states,
+          [nodeMsg.node_id]: {
+            node_id: nodeMsg.node_id,
+            status: nodeMsg.status,
+            progress: nodeMsg.progress,
+            message: nodeMsg.message,
+            error: nodeMsg.error,
+            output_path: nodeMsg.output_path,
+            thumbnail: nodeMsg.thumbnail,
+            takes: nodeMsg.takes,
+            current_take: nodeMsg.current_take
+          }
+        }));
+        
+        // Update active generations
+        if (nodeMsg.status === 'generating') {
+          activeGenerations.update(s => s.add(nodeMsg.node_id));
+        } else {
+          activeGenerations.update(s => {
+            s.delete(nodeMsg.node_id);
+            return new Set(s);
+          });
+        }
+        break;
+        
+      case 'generation.started':
+        const genStartMsg = message as GenerationStartedMessage;
+        activeGenerations.update(s => s.add(genStartMsg.node_id));
+        nodeStates.update(states => ({
+          ...states,
+          [genStartMsg.node_id]: {
+            ...states[genStartMsg.node_id],
+            status: 'generating',
+            progress: 0,
+            message: 'Starting generation...'
+          }
+        }));
+        break;
+        
+      case 'generation.completed':
+        const genCompleteMsg = message as GenerationCompletedMessage;
+        activeGenerations.update(s => {
+          s.delete(genCompleteMsg.node_id);
+          return new Set(s);
+        });
+        nodeStates.update(states => ({
+          ...states,
+          [genCompleteMsg.node_id]: {
+            ...states[genCompleteMsg.node_id],
+            status: 'completed',
+            progress: 100,
+            message: 'Generation complete',
+            output_path: genCompleteMsg.output_path,
+            thumbnail: genCompleteMsg.thumbnail,
+            takes: genCompleteMsg.takes
+          }
+        }));
+        break;
+        
+      case 'generation.error':
+        const genErrorMsg = message as GenerationErrorMessage;
+        activeGenerations.update(s => {
+          s.delete(genErrorMsg.node_id);
+          return new Set(s);
+        });
+        nodeStates.update(states => ({
+          ...states,
+          [genErrorMsg.node_id]: {
+            ...states[genErrorMsg.node_id],
+            status: 'error',
+            error: genErrorMsg.error,
+            message: genErrorMsg.message
           }
         }));
         break;
@@ -354,6 +477,57 @@ class WebSocketClient {
     }
     
     this.clearSession();
+  }
+  
+  // Node-specific methods
+  private updateNodeState(taskMsg: TaskProgressMessage) {
+    if (!taskMsg.node_id) return;
+    
+    nodeStates.update(states => {
+      const currentState = states[taskMsg.node_id] || {
+        node_id: taskMsg.node_id,
+        status: 'idle'
+      };
+      
+      // Map task state to node status
+      let status: NodeState['status'] = currentState.status;
+      if (taskMsg.state === 'STARTED' || taskMsg.state === 'PROGRESS') {
+        status = 'generating';
+      } else if (taskMsg.state === 'SUCCESS') {
+        status = 'completed';
+      } else if (taskMsg.state === 'FAILURE') {
+        status = 'error';
+      }
+      
+      return {
+        ...states,
+        [taskMsg.node_id]: {
+          ...currentState,
+          status,
+          progress: taskMsg.progress || 0,
+          message: taskMsg.step || taskMsg.message
+        }
+      };
+    });
+  }
+  
+  // Send generation request
+  startGeneration(nodeId: string, params: any) {
+    this.send({
+      type: 'start_generation',
+      node_id: nodeId,
+      params,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  // Cancel generation
+  cancelGeneration(nodeId: string) {
+    this.send({
+      type: 'cancel_generation',
+      node_id: nodeId,
+      timestamp: new Date().toISOString()
+    });
   }
   
   // Container awareness methods
@@ -515,6 +689,52 @@ export interface TaskProgressMessage extends WSMessage {
   progress?: number;
   message?: string;
   result?: any;
+  node_id?: string;
+  step?: string;
+  total_steps?: number;
+  current_step?: number;
+}
+
+export interface NodeStateMessage extends WSMessage {
+  type: 'node.state_changed';
+  node_id: string;
+  status: 'idle' | 'generating' | 'completed' | 'error';
+  progress?: number;
+  message?: string;
+  error?: string;
+  output_path?: string;
+  thumbnail?: string;
+  takes?: any[];
+  current_take?: number;
+}
+
+export interface GenerationStartedMessage extends WSMessage {
+  type: 'generation.started';
+  node_id: string;
+  task_id: string;
+}
+
+export interface GenerationCompletedMessage extends WSMessage {
+  type: 'generation.completed';
+  node_id: string;
+  task_id: string;
+  output_path: string;
+  thumbnail?: string;
+  takes?: any[];
+}
+
+export interface GenerationErrorMessage extends WSMessage {
+  type: 'generation.error';
+  node_id: string;
+  task_id: string;
+  error: string;
+  message?: string;
+}
+
+export interface StartGenerationMessage extends WSMessage {
+  type: 'start_generation';
+  node_id: string;
+  params: any;
 }
 
 export interface StructureEvent extends WSMessage {
@@ -668,6 +888,12 @@ export interface GitEvent extends WSMessage {
       </span>
     </div>
     
+    {#if task.step}
+      <div class="task-step">
+        Step {task.current_step || 1} of {task.total_steps || 1}: {task.step}
+      </div>
+    {/if}
+    
     {#if task.message}
       <div class="task-message">{task.message}</div>
     {/if}
@@ -691,6 +917,12 @@ export interface GitEvent extends WSMessage {
     border-radius: 4px;
   }
   
+  .task-step {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+  
   .progress-bar {
     height: 20px;
     background: #f0f0f0;
@@ -707,6 +939,209 @@ export interface GitEvent extends WSMessage {
   .task-state.success { color: green; }
   .task-state.error { color: red; }
 </style>
+```
+
+#### Node State Visual Management
+```svelte
+<!-- src/lib/components/canvas/NodeStateVisuals.svelte -->
+<script lang="ts">
+  import { nodeStates, activeGenerations } from '$stores/websocket';
+  import { fade, scale } from 'svelte/transition';
+  
+  export let nodeId: string;
+  
+  $: nodeState = $nodeStates[nodeId] || { status: 'idle' };
+  $: isGenerating = $activeGenerations.has(nodeId);
+  $: borderClass = {
+    idle: 'border-gray-300',
+    generating: 'border-blue-500 animate-pulse',
+    completed: 'border-green-500',
+    error: 'border-red-500'
+  }[nodeState.status];
+</script>
+
+<div class="node-container {borderClass}" class:generating={isGenerating}>
+  <slot />
+  
+  {#if isGenerating}
+    <div class="spinner-overlay" transition:fade>
+      <div class="spinner" />
+      {#if nodeState.progress}
+        <div class="progress-text">{nodeState.progress}%</div>
+      {/if}
+      {#if nodeState.message}
+        <div class="status-message">{nodeState.message}</div>
+      {/if}
+    </div>
+  {/if}
+  
+  {#if nodeState.status === 'error'}
+    <div class="error-indicator" transition:scale>
+      <span class="error-icon">⚠️</span>
+      {#if nodeState.error}
+        <span class="error-text">{nodeState.error}</span>
+      {/if}
+    </div>
+  {/if}
+  
+  {#if nodeState.status === 'completed' && nodeState.thumbnail}
+    <div class="thumbnail-preview" transition:fade>
+      <img src={nodeState.thumbnail} alt="Generated output" />
+    </div>
+  {/if}
+</div>
+
+<style>
+  .node-container {
+    position: relative;
+    border-width: 2px;
+    border-style: solid;
+    transition: border-color 0.3s ease;
+  }
+  
+  .node-container.generating {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  
+  .spinner-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .progress-text {
+    margin-top: 1rem;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #3b82f6;
+  }
+  
+  .status-message {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-align: center;
+    padding: 0 1rem;
+  }
+  
+  .error-indicator {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: white;
+    border-radius: 50%;
+    padding: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .thumbnail-preview {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    overflow: hidden;
+  }
+  
+  .thumbnail-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>
+```
+
+#### Integration with Text-to-Image Node
+```svelte
+<!-- Example integration in a Text-to-Image node component -->
+<script lang="ts">
+  import { getWebSocketClient, nodeStates } from '$stores/websocket';
+  import NodeStateVisuals from './NodeStateVisuals.svelte';
+  import TakesGallery from './TakesGallery.svelte';
+  
+  export let nodeId: string;
+  export let nodeData: any;
+  
+  $: nodeState = $nodeStates[nodeId];
+  $: canGenerate = nodeState?.status !== 'generating';
+  
+  function handleGenerate() {
+    const client = getWebSocketClient();
+    if (client && canGenerate) {
+      client.startGeneration(nodeId, {
+        prompt: nodeData.prompt,
+        negative_prompt: nodeData.negativePrompt,
+        width: nodeData.width,
+        height: nodeData.height,
+        steps: nodeData.steps,
+        cfg_scale: nodeData.cfgScale,
+        seed: nodeData.seed
+      });
+    }
+  }
+  
+  function handleCancel() {
+    const client = getWebSocketClient();
+    if (client) {
+      client.cancelGeneration(nodeId);
+    }
+  }
+</script>
+
+<NodeStateVisuals {nodeId}>
+  <div class="text-to-image-node">
+    <div class="node-header">
+      <h3>Text to Image</h3>
+    </div>
+    
+    <div class="node-content">
+      <!-- Node controls here -->
+      
+      <div class="actions">
+        {#if nodeState?.status === 'generating'}
+          <button on:click={handleCancel} class="cancel-btn">
+            Cancel Generation
+          </button>
+        {:else}
+          <button 
+            on:click={handleGenerate} 
+            disabled={!canGenerate}
+            class="generate-btn"
+          >
+            Generate
+          </button>
+        {/if}
+      </div>
+      
+      {#if nodeState?.takes && nodeState.takes.length > 0}
+        <TakesGallery 
+          takes={nodeState.takes} 
+          currentTake={nodeState.current_take}
+          on:select={(e) => handleTakeSelect(e.detail)}
+        />
+      {/if}
+    </div>
+  </div>
+</NodeStateVisuals>
 ```
 
 ## Dependencies
@@ -727,6 +1162,14 @@ export interface GitEvent extends WSMessage {
 - [ ] Celery task progress updates received
 - [ ] Distributed events from Redis handled
 - [ ] Docker networking support verified
+- [ ] Node state changes update visual borders correctly
+- [ ] Progress tracking shows granular step descriptions
+- [ ] Generation spinner displays during processing
+- [ ] Error states show appropriate visual indicators
+- [ ] Thumbnails update on task completion
+- [ ] Takes gallery refreshes with new outputs
+- [ ] start_generation messages dispatch successfully
+- [ ] Cancel generation functionality works
 
 ## Definition of Done
 - [ ] WebSocket client implemented with all features
@@ -741,6 +1184,13 @@ export interface GitEvent extends WSMessage {
 - [ ] Handling of distributed Redis events
 - [ ] Docker networking compatibility verified
 - [ ] All connection states properly handled
+- [ ] Node state management stores implemented
+- [ ] Visual state components (borders, spinners) created
+- [ ] Progress tracking with step descriptions working
+- [ ] Generation start/cancel methods implemented
+- [ ] Takes gallery integration complete
+- [ ] Error handling with visual feedback
+- [ ] Thumbnail updates on completion
 
 ## Story Links
 - **Depends On**: STORY-005-websocket-service, STORY-007-sveltekit-application-setup

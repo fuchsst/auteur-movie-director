@@ -52,6 +52,11 @@ As a developer, I need to verify that the complete project creation flow works e
 8. **Git LFS**: Large file uploads work correctly
 9. **Network Partition**: Handle temporary container disconnection
 10. **Resource Limits**: Respect container memory/CPU constraints
+11. **WebSocket Task Execution**: Validate async task lifecycle (start_generation → progress → success)
+12. **Quality Mapping**: Verify project quality affects task execution parameters
+13. **Redis Event Relay**: Confirm pub/sub broadcasts task updates correctly
+14. **Output Path Validation**: Ensure renders go to 03_Renders directory
+15. **Node State Sync**: UI reflects real-time task progress and completion
 
 ## Implementation Notes
 
@@ -227,6 +232,150 @@ test.describe('End-to-End Project Flow - Containerized', () => {
     // Verify volume data persisted
     const volumeCheck = await docker.exec('backend', `ls -la /workspace/${projectName}`);
     expect(volumeCheck).toContain('project.json');
+  });
+  
+  test('WebSocket task execution flow with quality mapping', async ({ page }) => {
+    const projectName = `task-execution-test-${Date.now()}`;
+    
+    // Create project with specific quality
+    const response = await api.post('http://localhost:8000/api/v1/projects', {
+      name: projectName,
+      quality: 'premium'  // This should affect task parameters
+    });
+    const project = response.json();
+    
+    // Navigate to project and trigger a mock text-to-image generation
+    await page.goto(`http://localhost:3000/project/${project.id}`);
+    
+    // Listen for WebSocket messages
+    const wsMessages = [];
+    page.on('websocket', ws => {
+      ws.on('framereceived', event => {
+        const data = JSON.parse(event.payload);
+        wsMessages.push(data);
+      });
+    });
+    
+    // Trigger generation task (simulated)
+    const taskPayload = {
+      type: 'text_to_image',
+      prompt: 'A cinematic shot of a sunset',
+      node_id: 'test-node-123',
+      quality_preset: project.quality  // Should map to specific parameters
+    };
+    
+    const taskResponse = await api.post(
+      `http://localhost:8000/api/v1/projects/${project.id}/tasks`,
+      taskPayload
+    );
+    const task = taskResponse.json();
+    
+    // Verify task started
+    expect(task.status).toBe('pending');
+    expect(task.type).toBe('text_to_image');
+    
+    // Wait for WebSocket updates
+    await page.waitForTimeout(1000);
+    
+    // Verify WebSocket message flow
+    const startMsg = wsMessages.find(m => m.type === 'task.started');
+    expect(startMsg).toBeDefined();
+    expect(startMsg.data.task_id).toBe(task.id);
+    expect(startMsg.data.node_id).toBe('test-node-123');
+    
+    // Verify Redis pub/sub relayed the event
+    const redisLogs = await docker.exec('redis', `redis-cli PUBSUB CHANNELS task:*`);
+    expect(redisLogs).toContain(`task:${project.id}`);
+    
+    // Verify quality mapping affected parameters
+    const taskDetails = await api.get(`http://localhost:8000/api/v1/tasks/${task.id}`);
+    expect(taskDetails.parameters.steps).toBe(50);  // Premium = 50 steps
+    expect(taskDetails.parameters.cfg_scale).toBe(7.5);
+    
+    // Wait for task completion (mocked worker)
+    await page.waitForFunction(
+      () => document.querySelector('[data-task-status="completed"]'),
+      { timeout: 10000 }
+    );
+    
+    // Verify completion message
+    const completeMsg = wsMessages.find(m => m.type === 'task.completed');
+    expect(completeMsg).toBeDefined();
+    expect(completeMsg.data.output_path).toContain('/03_Renders/');
+    
+    // Verify output file in correct directory
+    const outputCheck = await docker.exec(
+      'backend', 
+      `ls -la /workspace/${projectName}/03_Renders/`
+    );
+    expect(outputCheck).toContain('.png');
+    
+    // Verify node state updated in UI
+    const nodeElement = page.locator(`[data-node-id="test-node-123"]`);
+    await expect(nodeElement).toHaveAttribute('data-status', 'completed');
+    await expect(nodeElement.locator('.output-preview')).toBeVisible();
+  });
+  
+  test('Function Runner infrastructure validation', async ({ page }) => {
+    const projectName = `function-runner-test-${Date.now()}`;
+    
+    // Create project
+    const project = await api.post('http://localhost:8000/api/v1/projects', {
+      name: projectName,
+      quality: 'draft'  // Fast execution for testing
+    });
+    
+    // Test multiple concurrent tasks
+    const tasks = [];
+    for (let i = 0; i < 3; i++) {
+      tasks.push(api.post(`http://localhost:8000/api/v1/projects/${project.id}/tasks`, {
+        type: 'text_to_image',
+        prompt: `Test prompt ${i}`,
+        node_id: `node-${i}`
+      }));
+    }
+    
+    const taskResponses = await Promise.all(tasks);
+    const taskIds = taskResponses.map(r => r.json().id);
+    
+    // Monitor task execution via WebSocket
+    await page.goto(`http://localhost:3000/project/${project.id}`);
+    
+    // Verify tasks queued in Redis
+    const queueStatus = await docker.exec(
+      'redis',
+      'redis-cli LLEN task:queue:default'
+    );
+    expect(parseInt(queueStatus)).toBeGreaterThanOrEqual(3);
+    
+    // Verify worker picks up tasks
+    const workerLogs = await docker.logs('worker', { tail: 100 });
+    for (const taskId of taskIds) {
+      expect(workerLogs).toContain(`Processing task ${taskId}`);
+    }
+    
+    // Wait for all tasks to complete
+    await page.waitForFunction(
+      () => {
+        const completedNodes = document.querySelectorAll('[data-status="completed"]');
+        return completedNodes.length >= 3;
+      },
+      { timeout: 30000 }
+    );
+    
+    // Verify all outputs in correct directory structure
+    const outputs = await docker.exec(
+      'backend',
+      `find /workspace/${projectName}/03_Renders -name "*.png" | wc -l`
+    );
+    expect(parseInt(outputs.trim())).toBe(3);
+    
+    // Verify worker can access shared volume
+    const volumeTest = await docker.exec(
+      'worker',
+      `ls -la /workspace/${projectName}/03_Renders/`
+    );
+    expect(volumeTest).not.toContain('Permission denied');
   });
   
   test('structure enforcement validation', async ({ page }) => {
@@ -411,6 +560,284 @@ async def test_volume_persistence_across_restarts():
     assert response.status_code == 200
 
 @pytest.mark.asyncio
+async def test_websocket_task_execution_lifecycle(client, websocket_client):
+    """Test complete async task lifecycle with WebSocket updates"""
+    
+    # 1. Create project with quality mapping
+    response = await client.post("/api/v1/projects", json={
+        "name": "websocket-task-test",
+        "quality": "premium"
+    })
+    project = response.json()
+    
+    # 2. Connect WebSocket client
+    ws_messages = []
+    async def message_handler(message):
+        ws_messages.append(json.loads(message))
+    
+    await websocket_client.connect(f"/ws/projects/{project['id']}")
+    websocket_client.on_message = message_handler
+    
+    # 3. Submit text-to-image task
+    task_response = await client.post(
+        f"/api/v1/projects/{project['id']}/tasks",
+        json={
+            "type": "text_to_image",
+            "prompt": "A dramatic landscape",
+            "node_id": "test-node-001",
+            "parameters": {
+                "seed": 12345,
+                "width": 1024,
+                "height": 1024
+            }
+        }
+    )
+    task = task_response.json()
+    assert task["status"] == "pending"
+    assert task["quality_preset"] == "premium"
+    
+    # 4. Verify task queued in Redis
+    redis = await RedisService.get_client()
+    task_data = await redis.get(f"task:{task['id']}")
+    assert task_data is not None
+    task_obj = json.loads(task_data)
+    assert task_obj["parameters"]["steps"] == 50  # Premium quality
+    
+    # 5. Wait for WebSocket updates
+    await asyncio.sleep(0.5)
+    
+    # Verify start message
+    start_msg = next((m for m in ws_messages if m["type"] == "task.started"), None)
+    assert start_msg is not None
+    assert start_msg["data"]["task_id"] == task["id"]
+    assert start_msg["data"]["node_id"] == "test-node-001"
+    
+    # 6. Simulate worker progress updates
+    for progress in [25, 50, 75, 100]:
+        await redis.publish(
+            f"task:{project['id']}",
+            json.dumps({
+                "type": "task.progress",
+                "data": {
+                    "task_id": task["id"],
+                    "progress": progress,
+                    "node_id": "test-node-001"
+                }
+            })
+        )
+        await asyncio.sleep(0.1)
+    
+    # 7. Simulate task completion
+    output_path = f"/workspace/websocket-task-test/03_Renders/output_{task['id']}.png"
+    await redis.publish(
+        f"task:{project['id']}",
+        json.dumps({
+            "type": "task.completed",
+            "data": {
+                "task_id": task["id"],
+                "node_id": "test-node-001",
+                "output_path": output_path,
+                "duration": 15.5
+            }
+        })
+    )
+    
+    # 8. Verify completion message received
+    await asyncio.sleep(0.5)
+    complete_msg = next((m for m in ws_messages if m["type"] == "task.completed"), None)
+    assert complete_msg is not None
+    assert complete_msg["data"]["output_path"] == output_path
+    assert "/03_Renders/" in complete_msg["data"]["output_path"]
+    
+    # 9. Verify task status updated
+    status_response = await client.get(f"/api/v1/tasks/{task['id']}")
+    updated_task = status_response.json()
+    assert updated_task["status"] == "completed"
+    assert updated_task["output_path"] == output_path
+
+@pytest.mark.asyncio
+async def test_quality_mapping_affects_execution(client):
+    """Test that project quality properly maps to execution parameters"""
+    
+    quality_mappings = {
+        "draft": {"steps": 20, "cfg_scale": 7.0, "sampler": "euler"},
+        "standard": {"steps": 30, "cfg_scale": 7.5, "sampler": "euler_a"},
+        "premium": {"steps": 50, "cfg_scale": 7.5, "sampler": "dpm++_2m"}
+    }
+    
+    for quality, expected_params in quality_mappings.items():
+        # Create project with specific quality
+        response = await client.post("/api/v1/projects", json={
+            "name": f"quality-test-{quality}",
+            "quality": quality
+        })
+        project = response.json()
+        
+        # Submit task
+        task_response = await client.post(
+            f"/api/v1/projects/{project['id']}/tasks",
+            json={
+                "type": "text_to_image",
+                "prompt": "Test prompt",
+                "node_id": f"node-{quality}"
+            }
+        )
+        task = task_response.json()
+        
+        # Verify parameters mapped correctly
+        assert task["parameters"]["steps"] == expected_params["steps"]
+        assert task["parameters"]["cfg_scale"] == expected_params["cfg_scale"]
+        assert task["parameters"]["sampler"] == expected_params["sampler"]
+
+@pytest.mark.asyncio
+async def test_redis_pubsub_event_relay(client, redis_client):
+    """Test Redis pub/sub correctly relays events between services"""
+    
+    # 1. Create project
+    project = await client.post("/api/v1/projects", json={
+        "name": "redis-relay-test",
+        "quality": "standard"
+    })
+    project_id = project.json()["id"]
+    
+    # 2. Subscribe to project channel
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe(f"task:{project_id}")
+    
+    # 3. Submit task via API
+    task_response = await client.post(
+        f"/api/v1/projects/{project_id}/tasks",
+        json={
+            "type": "text_to_image",
+            "prompt": "Redis test",
+            "node_id": "redis-test-node"
+        }
+    )
+    task = task_response.json()
+    
+    # 4. Verify task creation event published
+    message = await pubsub.get_message(timeout=5)
+    assert message is not None
+    event = json.loads(message["data"])
+    assert event["type"] == "task.created"
+    assert event["data"]["task_id"] == task["id"]
+    
+    # 5. Test cross-service communication
+    # Simulate worker picking up task
+    await redis_client.publish(
+        f"task:{project_id}",
+        json.dumps({
+            "type": "task.started",
+            "data": {"task_id": task["id"], "worker_id": "worker-001"}
+        })
+    )
+    
+    # Verify backend receives and processes event
+    await asyncio.sleep(0.5)
+    status_response = await client.get(f"/api/v1/tasks/{task['id']}")
+    assert status_response.json()["status"] == "processing"
+
+@pytest.mark.asyncio
+async def test_output_directory_structure(client, tmp_workspace):
+    """Test outputs are correctly placed in 03_Renders directory"""
+    
+    # 1. Create project
+    response = await client.post("/api/v1/projects", json={
+        "name": "output-structure-test",
+        "quality": "standard"
+    })
+    project = response.json()
+    project_path = Path("/workspace/output-structure-test")
+    
+    # 2. Verify 03_Renders directory exists
+    renders_dir = project_path / "03_Renders"
+    assert renders_dir.exists()
+    assert renders_dir.is_dir()
+    
+    # 3. Submit multiple tasks
+    task_ids = []
+    for i in range(3):
+        task_response = await client.post(
+            f"/api/v1/projects/{project['id']}/tasks",
+            json={
+                "type": "text_to_image",
+                "prompt": f"Test render {i}",
+                "node_id": f"node-{i}"
+            }
+        )
+        task_ids.append(task_response.json()["id"])
+    
+    # 4. Simulate task completion with outputs
+    for task_id in task_ids:
+        output_file = renders_dir / f"render_{task_id}.png"
+        output_file.write_text("mock image data")
+        
+        # Update task with output path
+        await client.patch(
+            f"/api/v1/tasks/{task_id}",
+            json={
+                "status": "completed",
+                "output_path": str(output_file)
+            }
+        )
+    
+    # 5. Verify all outputs in correct location
+    render_files = list(renders_dir.glob("*.png"))
+    assert len(render_files) == 3
+    
+    # 6. Verify outputs accessible via API
+    assets_response = await client.get(
+        f"/api/v1/projects/{project['id']}/assets?asset_type=renders"
+    )
+    renders = assets_response.json()
+    assert len(renders) == 3
+    for render in renders:
+        assert "/03_Renders/" in render["path"]
+
+@pytest.mark.asyncio
+async def test_worker_shared_volume_access(docker_client):
+    """Test worker container can properly access shared workspace volume"""
+    
+    # 1. Create test directory via backend
+    backend_container = docker_client.containers.get("auteur-backend")
+    backend_container.exec_run(
+        "mkdir -p /workspace/worker-access-test/03_Renders"
+    )
+    
+    # 2. Write test file via backend
+    backend_container.exec_run(
+        "echo 'test data' > /workspace/worker-access-test/03_Renders/test.txt"
+    )
+    
+    # 3. Verify worker can read the file
+    worker_container = docker_client.containers.get("auteur-worker")
+    result = worker_container.exec_run(
+        "cat /workspace/worker-access-test/03_Renders/test.txt"
+    )
+    assert result.exit_code == 0
+    assert b"test data" in result.output
+    
+    # 4. Test worker can write files
+    worker_container.exec_run(
+        "echo 'worker output' > /workspace/worker-access-test/03_Renders/worker.txt"
+    )
+    
+    # 5. Verify backend can read worker's file
+    result = backend_container.exec_run(
+        "cat /workspace/worker-access-test/03_Renders/worker.txt"
+    )
+    assert result.exit_code == 0
+    assert b"worker output" in result.output
+    
+    # 6. Test permissions
+    result = worker_container.exec_run(
+        "ls -la /workspace/worker-access-test/03_Renders/"
+    )
+    assert result.exit_code == 0
+    assert b"test.txt" in result.output
+    assert b"worker.txt" in result.output
+
+@pytest.mark.asyncio
 async def test_makefile_integration():
     """Test Makefile commands work with containerized environment"""
     
@@ -481,6 +908,38 @@ async def test_makefile_integration():
 - [ ] Delete container, recreate, data still in volume
 - [ ] Backup workspace directory works
 
+### WebSocket Task Execution
+- [ ] Submit text-to-image task and monitor WebSocket messages
+- [ ] Verify task.started message received with correct node_id
+- [ ] Progress updates appear in real-time (25%, 50%, 75%, 100%)
+- [ ] Task completion message includes output path
+- [ ] Output file appears in 03_Renders directory
+- [ ] Node UI updates to show completed status
+- [ ] Multiple concurrent tasks execute properly
+- [ ] Task cancellation works and updates UI
+
+### Quality Mapping and Parameters
+- [ ] Draft quality uses 20 steps, 7.0 cfg_scale
+- [ ] Standard quality uses 30 steps, 7.5 cfg_scale  
+- [ ] Premium quality uses 50 steps, 7.5 cfg_scale
+- [ ] Quality setting persists in task parameters
+- [ ] Backend correctly maps quality to execution settings
+
+### Redis Pub/Sub Testing
+- [ ] Task events published to correct Redis channel
+- [ ] Multiple clients receive same event via pub/sub
+- [ ] Events relay between backend and worker correctly
+- [ ] Message format follows expected schema
+- [ ] No message loss under high load
+
+### Function Runner Infrastructure
+- [ ] Worker picks up tasks from Redis queue
+- [ ] Task status updates propagate correctly
+- [ ] Output files written to shared volume
+- [ ] Worker can access project directories
+- [ ] Concurrent task execution doesn't conflict
+- [ ] Task retry on failure works properly
+
 ### Performance Testing (Distributed)
 - [ ] Create 50+ projects across multiple workers
 - [ ] Upload 100+ files with worker processing
@@ -488,6 +947,7 @@ async def test_makefile_integration():
 - [ ] Slow network between containers
 - [ ] High Redis message throughput
 - [ ] Container resource limits respected
+- [ ] Async task throughput meets requirements
 ```
 
 ### Monitoring Setup
@@ -644,6 +1104,13 @@ services:
 - [ ] Cross-container WebSocket communication works
 - [ ] Git LFS handles large files correctly
 - [ ] Makefile commands integrate with Docker stack
+- [ ] Async task lifecycle validated (start → progress → complete)
+- [ ] Quality presets correctly map to execution parameters
+- [ ] Redis pub/sub reliably broadcasts task events
+- [ ] Task outputs stored in 03_Renders directory
+- [ ] Node state synchronizes with backend task status
+- [ ] Worker processes can access shared workspace volume
+- [ ] Function Runner foundation supports concurrent tasks
 
 ## Definition of Done
 - [ ] Integration tests pass consistently in containers
@@ -656,6 +1123,12 @@ services:
 - [ ] Docker health checks implemented and passing
 - [ ] Volume backup/restore procedures documented
 - [ ] Resource limits defined and tested
+- [ ] WebSocket task execution tests pass (including progress updates)
+- [ ] Quality mapping integration verified across all tiers
+- [ ] Redis pub/sub event flow documented and tested
+- [ ] Function Runner foundation validated with concurrent tasks
+- [ ] Task output directory structure enforced (03_Renders)
+- [ ] Worker-backend shared volume access confirmed
 
 ## Story Links
 - **Depends On**: All other stories in epic

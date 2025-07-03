@@ -37,6 +37,11 @@ As a frontend developer, I need to set up the SvelteKit application with TypeScr
 - [ ] Implement hierarchical type definitions
 - [ ] Create layout component structure
 - [ ] Add stores for UI state management
+- [ ] Define typed socket system foundation
+- [ ] Create base node component structure
+- [ ] Implement progressive disclosure pattern
+- [ ] Add visual state management utilities
+- [ ] Prepare component organization for nodes
 
 ### Project Structure
 ```
@@ -56,17 +61,38 @@ frontend/
 │   │   │   │   ├── LeftPanel.svelte
 │   │   │   │   ├── CenterPanel.svelte
 │   │   │   │   └── RightPanel.svelte
+│   │   │   ├── nodes/       # Node system components (future)
+│   │   │   │   ├── base/    # Base node components
+│   │   │   │   │   ├── Node.svelte
+│   │   │   │   │   ├── NodeHeader.svelte
+│   │   │   │   │   ├── NodeSocket.svelte
+│   │   │   │   │   ├── NodePreview.svelte
+│   │   │   │   │   └── NodeStateIndicator.svelte
+│   │   │   │   ├── sockets/ # Socket components
+│   │   │   │   │   ├── InputSocket.svelte
+│   │   │   │   │   ├── OutputSocket.svelte
+│   │   │   │   │   └── SocketTypeIndicator.svelte
+│   │   │   │   └── types/   # Node type implementations
 │   │   │   ├── project/     # Project components
 │   │   │   │   └── ProjectBrowser.svelte
 │   │   │   ├── asset/       # Asset components
 │   │   │   │   └── AssetBrowser.svelte
 │   │   │   ├── properties/  # Properties panel
-│   │   │   │   └── PropertiesInspector.svelte
+│   │   │   │   ├── PropertiesInspector.svelte
+│   │   │   │   └── NodePropertiesPanel.svelte
 │   │   │   └── progress/    # Progress components
 │   │   │       └── ProgressArea.svelte
 │   │   ├── stores/          # Svelte stores
+│   │   │   ├── layout.ts    # Panel size management
+│   │   │   ├── project.ts   # Project state
+│   │   │   ├── nodes.ts     # Node graph state (future)
+│   │   │   └── websocket.ts # WebSocket connection
 │   │   ├── types/           # TypeScript types
+│   │   │   ├── index.ts     # General types
+│   │   │   ├── nodes.ts     # Node system types
+│   │   │   └── sockets.ts   # Socket data types
 │   │   └── utils/           # Helper functions
+│   │       └── nodeUtils.ts # Node-related utilities
 │   ├── app.html            # HTML template
 │   ├── app.css             # Global styles
 │   └── app.d.ts            # App type definitions
@@ -83,6 +109,16 @@ frontend/
 ```
 
 ## Implementation Notes
+
+### Node System Preparation
+While this story focuses on SvelteKit setup, it includes foundational preparations for the future node-based canvas system:
+- Type definitions for sockets and nodes establish the data model
+- Component structure under `nodes/` provides organized locations for future implementation
+- CSS variables define a consistent design system for node visuals
+- State management patterns prepare for reactive node graph updates
+- Progressive disclosure components enable clean node UI with on-node controls vs properties panel
+
+These preparations ensure smooth integration when implementing the Production Canvas in later stories.
 
 ### Docker Configuration
 
@@ -503,6 +539,416 @@ export interface ApiError {
 }
 ```
 
+### Socket Type Definitions
+```typescript
+// src/lib/types/sockets.ts
+
+// Core socket data types
+export enum SocketDataType {
+  // Basic types
+  String = 'string',
+  Number = 'number',
+  Boolean = 'boolean',
+  
+  // Media types
+  Image = 'image',
+  Video = 'video',
+  Audio = 'audio',
+  
+  // Asset types
+  Character = 'character',
+  Style = 'style',
+  Location = 'location',
+  
+  // Structured types
+  Prompt = 'prompt',
+  Config = 'config',
+  Seed = 'seed',
+  
+  // Special types
+  Any = 'any',
+  Trigger = 'trigger'
+}
+
+// Socket type configuration
+export interface SocketTypeConfig {
+  type: SocketDataType;
+  label: string;
+  color: string;
+  icon?: string;
+  validator?: (value: any) => boolean;
+}
+
+// Socket type registry
+export const SOCKET_TYPES: Record<SocketDataType, SocketTypeConfig> = {
+  [SocketDataType.String]: {
+    type: SocketDataType.String,
+    label: 'Text',
+    color: '#4ade80', // green
+  },
+  [SocketDataType.Number]: {
+    type: SocketDataType.Number,
+    label: 'Number',
+    color: '#60a5fa', // blue
+  },
+  [SocketDataType.Boolean]: {
+    type: SocketDataType.Boolean,
+    label: 'Boolean',
+    color: '#f87171', // red
+  },
+  [SocketDataType.Image]: {
+    type: SocketDataType.Image,
+    label: 'Image',
+    color: '#c084fc', // purple
+  },
+  [SocketDataType.Video]: {
+    type: SocketDataType.Video,
+    label: 'Video',
+    color: '#f472b6', // pink
+  },
+  [SocketDataType.Audio]: {
+    type: SocketDataType.Audio,
+    label: 'Audio',
+    color: '#fb923c', // orange
+  },
+  [SocketDataType.Character]: {
+    type: SocketDataType.Character,
+    label: 'Character',
+    color: '#fbbf24', // amber
+  },
+  [SocketDataType.Style]: {
+    type: SocketDataType.Style,
+    label: 'Style',
+    color: '#a78bfa', // violet
+  },
+  [SocketDataType.Location]: {
+    type: SocketDataType.Location,
+    label: 'Location',
+    color: '#2dd4bf', // teal
+  },
+  [SocketDataType.Prompt]: {
+    type: SocketDataType.Prompt,
+    label: 'Prompt',
+    color: '#4ade80', // green
+  },
+  [SocketDataType.Config]: {
+    type: SocketDataType.Config,
+    label: 'Config',
+    color: '#94a3b8', // slate
+  },
+  [SocketDataType.Seed]: {
+    type: SocketDataType.Seed,
+    label: 'Seed',
+    color: '#60a5fa', // blue
+  },
+  [SocketDataType.Any]: {
+    type: SocketDataType.Any,
+    label: 'Any',
+    color: '#e5e7eb', // gray
+  },
+  [SocketDataType.Trigger]: {
+    type: SocketDataType.Trigger,
+    label: 'Trigger',
+    color: '#facc15', // yellow
+  }
+};
+
+// Socket connection state
+export interface SocketConnection {
+  fromNodeId: string;
+  fromSocketId: string;
+  toNodeId: string;
+  toSocketId: string;
+}
+```
+
+### Node Type Definitions
+```typescript
+// src/lib/types/nodes.ts
+
+import type { SocketDataType } from './sockets';
+
+// Base node interface
+export interface BaseNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: Record<string, any>;
+  state: NodeState;
+}
+
+// Node execution state
+export enum NodeState {
+  Idle = 'idle',
+  Running = 'running',
+  Success = 'success',
+  Error = 'error',
+  Warning = 'warning'
+}
+
+// Node socket definition
+export interface NodeSocket {
+  id: string;
+  name: string;
+  type: SocketDataType;
+  multiple?: boolean; // Can accept multiple connections
+  required?: boolean;
+  defaultValue?: any;
+}
+
+// Node definition
+export interface NodeDefinition {
+  type: string;
+  category: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  inputs: NodeSocket[];
+  outputs: NodeSocket[];
+  properties?: NodeProperty[];
+  previewable?: boolean;
+}
+
+// Node property for properties panel
+export interface NodeProperty {
+  key: string;
+  label: string;
+  type: 'string' | 'number' | 'boolean' | 'select' | 'slider' | 'color';
+  defaultValue?: any;
+  options?: Array<{ label: string; value: any }>; // For select
+  min?: number; // For number/slider
+  max?: number; // For number/slider
+  step?: number; // For slider
+}
+
+// Node instance in the graph
+export interface NodeInstance extends BaseNode {
+  definition: NodeDefinition;
+  inputs: Record<string, any>; // Socket id -> value
+  outputs: Record<string, any>; // Socket id -> value
+  properties: Record<string, any>; // Property key -> value
+  preview?: {
+    type: 'image' | 'video' | 'text';
+    data: any;
+  };
+}
+
+// Node graph state
+export interface NodeGraph {
+  nodes: Record<string, NodeInstance>;
+  connections: SocketConnection[];
+  selectedNodeId?: string;
+}
+```
+
+### Progressive Disclosure Pattern Components
+```svelte
+<!-- src/lib/components/nodes/base/Node.svelte -->
+<script lang="ts">
+  import type { NodeInstance } from '$types/nodes';
+  import NodeHeader from './NodeHeader.svelte';
+  import NodeSocket from './NodeSocket.svelte';
+  import NodePreview from './NodePreview.svelte';
+  import NodeStateIndicator from './NodeStateIndicator.svelte';
+  
+  export let node: NodeInstance;
+  export let selected = false;
+  
+  $: stateClass = `node-${node.state}`;
+  $: borderColor = getBorderColor(node.state);
+  
+  function getBorderColor(state: string) {
+    switch (state) {
+      case 'running': return 'var(--color-primary)';
+      case 'success': return 'var(--color-success)';
+      case 'error': return 'var(--color-error)';
+      case 'warning': return 'var(--color-warning)';
+      default: return 'var(--border-color)';
+    }
+  }
+</script>
+
+<div 
+  class="node {stateClass}"
+  class:selected
+  style="--border-color: {borderColor}"
+>
+  <NodeHeader {node} />
+  
+  <div class="node-body">
+    <div class="sockets inputs">
+      {#each node.definition.inputs as socket}
+        <NodeSocket 
+          {socket} 
+          value={node.inputs[socket.id]}
+          direction="input"
+        />
+      {/each}
+    </div>
+    
+    {#if node.previewable && node.preview}
+      <NodePreview preview={node.preview} />
+    {/if}
+    
+    <div class="sockets outputs">
+      {#each node.definition.outputs as socket}
+        <NodeSocket 
+          {socket}
+          value={node.outputs[socket.id]}
+          direction="output"
+        />
+      {/each}
+    </div>
+  </div>
+  
+  <NodeStateIndicator state={node.state} />
+</div>
+
+<style>
+  .node {
+    position: absolute;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    min-width: 200px;
+    transition: border-color 0.2s;
+  }
+  
+  .node.selected {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+  
+  .node-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .sockets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .node-running {
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+</style>
+```
+
+### Global CSS Variables for Node System
+```css
+/* src/app.css - Node system design tokens */
+:root {
+  /* Color system for socket types */
+  --socket-string: #4ade80;
+  --socket-number: #60a5fa;
+  --socket-boolean: #f87171;
+  --socket-image: #c084fc;
+  --socket-video: #f472b6;
+  --socket-audio: #fb923c;
+  --socket-character: #fbbf24;
+  --socket-style: #a78bfa;
+  --socket-location: #2dd4bf;
+  --socket-any: #e5e7eb;
+  --socket-trigger: #facc15;
+  
+  /* Node state colors */
+  --node-idle: var(--border-color);
+  --node-running: var(--color-primary);
+  --node-success: var(--color-success);
+  --node-error: var(--color-error);
+  --node-warning: var(--color-warning);
+  
+  /* Node UI tokens */
+  --node-bg: var(--bg-secondary);
+  --node-header-bg: var(--bg-tertiary);
+  --node-border-width: 2px;
+  --node-border-radius: 8px;
+  --node-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --node-shadow-selected: 0 0 0 2px var(--color-primary);
+  
+  /* Socket sizes */
+  --socket-size: 12px;
+  --socket-border-width: 2px;
+  
+  /* Animation durations */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 400ms;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] {
+  --node-bg: var(--bg-secondary);
+  --node-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+}
+```
+
+### Node State Management Store
+```typescript
+// src/lib/stores/nodes.ts
+import { writable, derived } from 'svelte/store';
+import type { NodeGraph, NodeInstance, SocketConnection } from '$types/nodes';
+
+// Node graph state
+export const nodeGraph = writable<NodeGraph>({
+  nodes: {},
+  connections: [],
+  selectedNodeId: undefined
+});
+
+// Derived stores for specific queries
+export const selectedNode = derived(
+  nodeGraph,
+  $graph => $graph.selectedNodeId ? $graph.nodes[$graph.selectedNodeId] : null
+);
+
+export const runningNodes = derived(
+  nodeGraph,
+  $graph => Object.values($graph.nodes).filter(node => node.state === 'running')
+);
+
+// Node operations
+export function addNode(node: NodeInstance) {
+  nodeGraph.update(graph => ({
+    ...graph,
+    nodes: { ...graph.nodes, [node.id]: node }
+  }));
+}
+
+export function updateNodeState(nodeId: string, state: NodeState) {
+  nodeGraph.update(graph => ({
+    ...graph,
+    nodes: {
+      ...graph.nodes,
+      [nodeId]: { ...graph.nodes[nodeId], state }
+    }
+  }));
+}
+
+export function connectNodes(connection: SocketConnection) {
+  nodeGraph.update(graph => ({
+    ...graph,
+    connections: [...graph.connections, connection]
+  }));
+}
+
+export function selectNode(nodeId: string | undefined) {
+  nodeGraph.update(graph => ({
+    ...graph,
+    selectedNodeId: nodeId
+  }));
+}
+```
+
 ## Container Development Workflow
 
 ### Local Development with Docker
@@ -554,6 +1000,11 @@ docker-compose build frontend
 - [ ] Static assets load properly in container
 - [ ] API proxy forwards requests to backend container
 - [ ] No port conflicts with host system
+- [ ] Socket type definitions compile without errors
+- [ ] Node type definitions are properly typed
+- [ ] CSS variables load correctly for theming
+- [ ] Store subscriptions work as expected
+- [ ] Component structure supports future node implementation
 
 ## Definition of Done
 - [ ] Multi-stage Dockerfile created and tested
@@ -565,6 +1016,11 @@ docker-compose build frontend
 - [ ] Environment variables properly configured
 - [ ] Basic layout and routing implemented
 - [ ] Path aliases working for clean imports
+- [ ] Socket and node type system defined
+- [ ] Base node component structure prepared
+- [ ] Progressive disclosure pattern implemented
+- [ ] Node state management store created
+- [ ] CSS design tokens for nodes established
 - [ ] README updated with Docker setup instructions
 
 ## Story Links

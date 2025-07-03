@@ -7,7 +7,7 @@
 **Priority**: Medium  
 
 ## Story Description
-As a user, I need an intuitive drag-and-drop file upload interface so that I can easily add scripts, images, audio, and other assets to my project with visual feedback on upload progress. The system must automatically organize files according to the numbered directory structure, track large files with Git LFS, and provide real-time progress updates via WebSocket/Celery integration.
+As a user, I need an intuitive drag-and-drop file upload interface so that I can easily add scripts, images, audio, AI models (LoRAs, checkpoints), control maps, and other assets to my project with visual feedback on upload progress. The system must automatically organize files according to the numbered directory structure, track large files with Git LFS, provide real-time progress updates via WebSocket/Celery integration, and capture metadata for future node-based connections.
 
 ## Acceptance Criteria
 
@@ -22,6 +22,10 @@ As a user, I need an intuitive drag-and-drop file upload interface so that I can
 - [ ] Automatically route files to correct numbered directories (01_Assets, etc.)
 - [ ] Trigger Git LFS tracking for applicable file types
 - [ ] Validate against project structure API contract
+- [ ] Capture asset metadata for node connections (model type, dimensions, etc.)
+- [ ] Support AI model file types (.safetensors, .ckpt, .pt)
+- [ ] Handle control map uploads (depth, edge, pose)
+- [ ] Extract and store asset properties for future AssetReference use
 
 ### UI/UX Requirements
 - [ ] Visual drop zone with clear affordance
@@ -49,7 +53,7 @@ As a user, I need an intuitive drag-and-drop file upload interface so that I can
 ## Implementation Notes
 
 ### Directory Structure Mapping
-The component must understand the numbered directory structure and route files accordingly:
+The component must understand the numbered directory structure and route files accordingly, with enhanced support for AI model files:
 
 ```typescript
 const DIRECTORY_MAPPING = {
@@ -59,7 +63,11 @@ const DIRECTORY_MAPPING = {
   environments: '01_Assets/Environments',
   audio: '01_Assets/Audio',
   media: '01_Assets/Media',
-  models: '01_Assets/Models'
+  models: '01_Assets/Models',
+  // AI-specific asset directories
+  loras: '01_Assets/Generative_Assets/Characters/LoRAs',
+  controlmaps: '01_Assets/Generative_Assets/ControlMaps',
+  checkpoints: '01_Assets/Models/Checkpoints'
 };
 ```
 
@@ -78,6 +86,7 @@ const DIRECTORY_MAPPING = {
   export let multiple = true;
   export let maxFileSize = 100 * 1024 * 1024; // 100MB
   export let warnSize = 10 * 1024 * 1024; // 10MB - warn about LFS
+  export let captureMetadata = true; // Extract asset properties for nodes
   
   const dispatch = createEventDispatcher();
   
@@ -88,18 +97,22 @@ const DIRECTORY_MAPPING = {
   
   const ALLOWED_EXTENSIONS: Record<AssetType, string[]> = {
     scripts: ['.fdx', '.txt', '.md', '.fountain'],
-    characters: ['.json', '.yaml', '.png', '.jpg'],
-    styles: ['.jpg', '.png', '.webp', '.gif'],
+    characters: ['.json', '.yaml', '.png', '.jpg', '.safetensors', '.ckpt'],
+    styles: ['.jpg', '.png', '.webp', '.gif', '.safetensors', '.ckpt'],
     environments: ['.hdr', '.exr', '.jpg', '.png'],
     audio: ['.wav', '.mp3', '.ogg', '.m4a'],
     media: ['.mp4', '.mov', '.webm', '.avi'],
-    models: ['.glb', '.gltf', '.usdz', '.fbx']
+    models: ['.glb', '.gltf', '.usdz', '.fbx'],
+    // AI-specific asset types
+    loras: ['.safetensors', '.ckpt', '.pt'],
+    controlmaps: ['.png', '.jpg', '.exr', '.tiff'],
+    checkpoints: ['.safetensors', '.ckpt']
   };
   
   const LFS_EXTENSIONS = [
     '.jpg', '.jpeg', '.png', '.exr', '.mp4', '.mov', '.webm',
     '.wav', '.mp3', '.flac', '.glb', '.gltf', '.usdz',
-    '.safetensors', '.ckpt'
+    '.safetensors', '.ckpt', '.pt', '.tiff', '.hdr'
   ];
   
   function handleDragEnter(e: DragEvent) {
@@ -151,7 +164,8 @@ const DIRECTORY_MAPPING = {
         file,
         progress: 0,
         status: 'pending',
-        error: null
+        error: null,
+        metadata: extractAssetMetadata(file, assetType)
       });
     });
     
@@ -193,6 +207,50 @@ const DIRECTORY_MAPPING = {
     }
     
     return true;
+  }
+  
+  // Extract metadata for AI assets to support node connections
+  function extractAssetMetadata(file: File, type: AssetType): Record<string, any> {
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    const metadata: Record<string, any> = {
+      originalName: file.name,
+      fileSize: file.size,
+      mimeType: file.type || 'application/octet-stream',
+      fileExtension: ext
+    };
+    
+    // Add asset-specific metadata
+    if (type === 'loras' || type === 'checkpoints') {
+      metadata.modelType = ext === '.safetensors' ? 'safetensors' : 'checkpoint';
+      metadata.isAIModel = true;
+      // Extract model info from filename if follows common patterns
+      const loraMatch = file.name.match(/(.+?)[-_]v?(\d+\.?\d*)[-_]?(\d+)?/i);
+      if (loraMatch) {
+        metadata.modelName = loraMatch[1];
+        metadata.version = loraMatch[2];
+        metadata.steps = loraMatch[3] || null;
+      }
+    }
+    
+    if (type === 'controlmaps') {
+      // Detect control map type from filename
+      const mapTypes = ['depth', 'canny', 'openpose', 'normal', 'seg'];
+      const detectedType = mapTypes.find(t => file.name.toLowerCase().includes(t));
+      metadata.controlType = detectedType || 'unknown';
+      metadata.requiresPreprocessing = false;
+    }
+    
+    if (type === 'styles') {
+      metadata.canBeReference = true;
+      metadata.supportsLora = ext === '.safetensors' || ext === '.ckpt';
+    }
+    
+    if (type === 'characters') {
+      metadata.assetCategory = 'character';
+      metadata.supportsMultipleVersions = true;
+    }
+    
+    return metadata;
   }
   
   // Subscribe to Celery task progress updates via WebSocket
@@ -249,7 +307,9 @@ const DIRECTORY_MAPPING = {
         dispatch('upload', { 
           file: response.files[0],
           targetPath: response.files[0].path,
-          lfsTracked: response.files[0].lfs_tracked
+          lfsTracked: response.files[0].lfs_tracked,
+          metadata: upload.metadata,
+          assetId: response.files[0].id // For future AssetReference connections
         });
         
         // Remove completed upload after delay
@@ -339,6 +399,18 @@ const DIRECTORY_MAPPING = {
       <p class="target-directory">
         Files will be uploaded to: {getTargetDirectory()}
       </p>
+      
+      {#if assetType === 'loras' || assetType === 'checkpoints'}
+        <p class="asset-hint">
+          💡 AI models will be available in Text-to-Image nodes
+        </p>
+      {/if}
+      
+      {#if assetType === 'controlmaps'}
+        <p class="asset-hint">
+          💡 Control maps enable precise image generation guidance
+        </p>
+      {/if}
     </div>
   </div>
   
@@ -358,6 +430,16 @@ const DIRECTORY_MAPPING = {
               <span class="file-size">{formatBytes(upload.file.size)}</span>
               {#if upload.lfsTracked}
                 <span class="lfs-badge" title="Tracked with Git LFS">LFS</span>
+              {/if}
+              {#if upload.metadata?.modelType}
+                <span class="model-badge" title="AI Model">
+                  {upload.metadata.modelType}
+                </span>
+              {/if}
+              {#if upload.metadata?.controlType && upload.metadata.controlType !== 'unknown'}
+                <span class="control-badge" title="Control Map Type">
+                  {upload.metadata.controlType}
+                </span>
               {/if}
               {#if upload.targetPath}
                 <span class="target-path" title={upload.targetPath}>
@@ -513,6 +595,27 @@ const DIRECTORY_MAPPING = {
     font-family: monospace;
     font-size: 0.75rem;
   }
+  
+  .model-badge, .control-badge {
+    background: var(--accent-color);
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  
+  .control-badge {
+    background: var(--secondary-color);
+  }
+  
+  .asset-hint {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
 </style>
 ```
 
@@ -529,6 +632,15 @@ export interface UploadResponse {
     mime_type: string;
     lfs_tracked: boolean; // Whether file is tracked by Git LFS
     created_at: string;
+    // Asset metadata for node connections
+    metadata?: {
+      assetType: string;
+      modelType?: string;
+      controlType?: string;
+      dimensions?: { width: number; height: number };
+      duration?: number; // For video/audio
+      nodeCompatibility?: string[];
+    };
   }>;
 }
 
@@ -544,9 +656,16 @@ export async function uploadFiles(
     formData.append('files', file);
   });
   
-  // Include target directory information
+  // Include target directory information and metadata
   formData.append('asset_type', assetType);
   formData.append('validate_structure', 'true');
+  
+  // Include metadata for each file if available
+  const metadata = files.map(file => {
+    const upload = Array.from(uploads.values()).find(u => u.file === file);
+    return upload?.metadata || {};
+  });
+  formData.append('metadata', JSON.stringify(metadata));
   
   const xhr = new XMLHttpRequest();
   
@@ -588,6 +707,28 @@ export interface UploadFile {
   error: string | null;
   targetPath?: string;
   lfsTracked?: boolean;
+  metadata?: Record<string, any>; // Asset metadata for node connections
+}
+
+export interface AssetMetadata {
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  fileExtension: string;
+  // AI Model specific
+  modelType?: 'safetensors' | 'checkpoint' | 'lora';
+  isAIModel?: boolean;
+  modelName?: string;
+  version?: string;
+  steps?: number;
+  // Control map specific
+  controlType?: 'depth' | 'canny' | 'openpose' | 'normal' | 'seg' | 'unknown';
+  requiresPreprocessing?: boolean;
+  // Style/Character specific
+  canBeReference?: boolean;
+  supportsLora?: boolean;
+  assetCategory?: string;
+  supportsMultipleVersions?: boolean;
 }
 
 export interface CeleryTask {
@@ -616,6 +757,52 @@ export function toProjectRelativePath(fullPath: string, projectId: string): stri
   }
   return fullPath;
 }
+```
+
+### AssetReference Preparation
+
+The upload component prepares assets for future node-based connections:
+
+```typescript
+// src/lib/types/assets.ts
+export interface AssetReference {
+  id: string;
+  type: 'character' | 'style' | 'lora' | 'checkpoint' | 'controlmap';
+  path: string;
+  metadata: AssetMetadata;
+  projectId: string;
+  createdAt: string;
+  // For node connections
+  nodeCompatibility: {
+    canConnectTo: string[]; // Node types this asset can connect to
+    requiredInputs?: string[]; // Additional inputs needed
+    outputType?: string; // What this asset produces
+  };
+}
+
+// Asset compatibility mapping for nodes
+export const ASSET_NODE_COMPATIBILITY = {
+  loras: {
+    canConnectTo: ['text-to-image', 'image-to-image', 'character-generator'],
+    outputType: 'model-modifier'
+  },
+  checkpoints: {
+    canConnectTo: ['text-to-image', 'image-to-image'],
+    outputType: 'base-model'
+  },
+  controlmaps: {
+    canConnectTo: ['controlnet', 'text-to-image'],
+    outputType: 'control-conditioning'
+  },
+  styles: {
+    canConnectTo: ['text-to-image', 'style-transfer'],
+    outputType: 'style-reference'
+  },
+  characters: {
+    canConnectTo: ['character-generator', 'text-to-image'],
+    outputType: 'character-definition'
+  }
+};
 ```
 
 ### WebSocket Integration Pattern
@@ -657,10 +844,15 @@ interface TaskProgressMessage {
 - [ ] Git LFS tracking is applied to large files
 - [ ] Container volume paths are correctly resolved
 - [ ] Celery task progress updates work correctly
+- [ ] AI model files (.safetensors, .ckpt) upload correctly
+- [ ] Control map detection works from filenames
+- [ ] Asset metadata is extracted and stored
+- [ ] LoRA file patterns are parsed correctly
+- [ ] Character and style assets are categorized properly
 
 ## Definition of Done
 - [ ] Component supports all required features
-- [ ] File validation implemented for all asset types
+- [ ] File validation implemented for all asset types including AI models
 - [ ] Progress tracking works for uploads (XHR and Celery)
 - [ ] Error states handled gracefully
 - [ ] Accessibility requirements met
@@ -670,6 +862,10 @@ interface TaskProgressMessage {
 - [ ] WebSocket progress updates working
 - [ ] Target directory displayed to users
 - [ ] LFS tracking status shown in UI
+- [ ] Asset metadata extraction implemented
+- [ ] AI model file support tested (.safetensors, .ckpt, .pt)
+- [ ] Control map type detection working
+- [ ] AssetReference data structure prepared for node connections
 
 ## Story Links
 - **Depends On**: STORY-004-file-management-api, STORY-011-api-client-setup

@@ -22,6 +22,9 @@ As a frontend developer, I need REST API endpoints for managing projects and fil
 - [ ] List files in project directories following the numbered structure
 - [ ] Handle file size limits appropriately (with Git LFS consideration)
 - [ ] Validate all operations against the directory contract
+- [ ] Generate deterministic output paths for node Takes (scene/shot/take structure)
+- [ ] Support relative path resolution for Function Runner volumes
+- [ ] Store and retrieve node output metadata in project state
 
 ### Technical Requirements
 - [ ] Implement async file I/O operations for performance
@@ -51,6 +54,13 @@ GET    /api/v1/projects/{id}/assets  # List assets by directory type
 GET    /api/v1/projects/{id}/assets/{path}  # Download with path validation
 DELETE /api/v1/projects/{id}/assets/{path}  # Delete with Git tracking
 
+# Takes Management Endpoints
+POST   /api/v1/projects/{id}/takes/register  # Register node output as Take
+GET    /api/v1/projects/{id}/takes/{scene}/{shot}  # List Takes for scene/shot
+GET    /api/v1/projects/{id}/takes/path     # Generate next Take path
+POST   /api/v1/projects/{id}/nodes/{node_id}/state  # Store node state/data
+GET    /api/v1/projects/{id}/nodes/{node_id}/state  # Retrieve node state
+
 GET    /api/v1/projects/{id}/git/status     # Get Git status for project
 POST   /api/v1/projects/{id}/git/track      # Track file in Git/LFS
 ```
@@ -68,14 +78,15 @@ from enum import Enum
 class DirectoryType(str, Enum):
     ASSETS = "01_Assets"
     SCRIPTS = "02_Scripts" 
-    CHARACTERS = "03_Characters"
-    STYLES = "04_Styles"
-    ENVIRONMENTS = "05_Environments"
-    AUDIO = "06_Audio"
-    VIDEO = "07_Video"
-    EXPORTS = "08_Exports"
-    CACHE = "09_Cache"
-    CONFIG = "10_Config"
+    RENDERS = "03_Renders"  # For node outputs and Takes
+    CHARACTERS = "04_Characters"
+    STYLES = "05_Styles"
+    ENVIRONMENTS = "06_Environments"
+    AUDIO = "07_Audio"
+    VIDEO = "08_Video"
+    EXPORTS = "09_Exports"
+    CACHE = "10_Cache"
+    CONFIG = "11_Config"
 
 class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -119,6 +130,38 @@ class FileUploadResponse(BaseModel):
     git_tracked: bool
     use_lfs: bool
 
+# Takes System Models
+class TakeMetadata(BaseModel):
+    take_number: int
+    scene: str
+    shot: str
+    node_id: str
+    node_type: str
+    parameters: Dict[str, Any]  # Node parameters for reproducibility
+    created_at: datetime
+    relative_path: str  # Path relative to project root
+    absolute_path: str  # Full path for Function Runner
+    
+class TakePathRequest(BaseModel):
+    scene: str = Field(..., pattern=r'^S\d{3}$')  # S001 format
+    shot: str = Field(..., pattern=r'^P\d{3}$')   # P001 format
+    node_type: str  # text-to-image, video-to-video, etc.
+    extension: str = ".png"  # File extension
+    
+class TakePathResponse(BaseModel):
+    take_number: int
+    relative_path: str  # e.g., "03_Renders/S001/P001/S001_P001_T001.png"
+    absolute_path: str  # Full path for container access
+    volume_path: str    # Path for Function Runner shared volume
+    
+class NodeStateData(BaseModel):
+    node_id: str
+    node_type: str
+    position: Dict[str, float]  # x, y coordinates
+    data: Dict[str, Any]  # Node-specific data
+    outputs: List[TakeMetadata]  # Generated Takes
+    connections: List[str]  # Connected node IDs
+
 class WorkspaceConfig(BaseModel):
     root_path: str
     total_size: int
@@ -142,6 +185,7 @@ from pathlib import Path
 DIRECTORY_EXTENSIONS = {
     DirectoryType.ASSETS: [".jpg", ".png", ".webp", ".svg"],
     DirectoryType.SCRIPTS: [".fdx", ".txt", ".md", ".fountain"],
+    DirectoryType.RENDERS: [".png", ".jpg", ".webp", ".mp4", ".mov"],  # Node outputs
     DirectoryType.CHARACTERS: [".json", ".yaml", ".safetensors"],
     DirectoryType.STYLES: [".jpg", ".png", ".webp", ".json"],
     DirectoryType.ENVIRONMENTS: [".hdr", ".exr", ".jpg", ".png"],
@@ -195,6 +239,57 @@ async def upload_assets(
         results.append(result)
     
     return {"files": results}
+
+# Takes Management Endpoints
+@router.post("/{project_id}/takes/register")
+async def register_take(
+    project_id: str,
+    take_data: TakeMetadata,
+    project_service: ProjectService = Depends(get_project_service)
+):
+    """Register a node output as a Take with metadata"""
+    result = await project_service.register_take(project_id, take_data)
+    return result
+
+@router.get("/{project_id}/takes/{scene}/{shot}")
+async def list_takes(
+    project_id: str,
+    scene: str,
+    shot: str,
+    project_service: ProjectService = Depends(get_project_service)
+):
+    """List all Takes for a given scene/shot"""
+    takes = await project_service.list_takes(project_id, scene, shot)
+    return {"takes": takes}
+
+@router.post("/{project_id}/takes/path")
+async def generate_take_path(
+    project_id: str,
+    request: TakePathRequest,
+    project_service: ProjectService = Depends(get_project_service)
+) -> TakePathResponse:
+    """Generate the next available Take path for a scene/shot"""
+    return await project_service.generate_take_path(project_id, request)
+
+@router.post("/{project_id}/nodes/{node_id}/state")
+async def save_node_state(
+    project_id: str,
+    node_id: str,
+    state_data: NodeStateData,
+    project_service: ProjectService = Depends(get_project_service)
+):
+    """Save node state and connections for project persistence"""
+    await project_service.save_node_state(project_id, node_id, state_data)
+    return {"status": "saved", "node_id": node_id}
+
+@router.get("/{project_id}/nodes/{node_id}/state")
+async def get_node_state(
+    project_id: str,
+    node_id: str,
+    project_service: ProjectService = Depends(get_project_service)
+) -> NodeStateData:
+    """Retrieve saved node state"""
+    return await project_service.get_node_state(project_id, node_id)
 ```
 
 ### Service Layer
@@ -226,6 +321,11 @@ class ProjectService:
         # Create numbered directory structure
         for dir_type in self.required_dirs:
             (project_path / dir_type.value).mkdir()
+        
+        # Create subdirectories for Takes in 03_Renders
+        renders_dir = project_path / DirectoryType.RENDERS.value
+        # Create example scene/shot structure
+        (renders_dir / "S001" / "P001").mkdir(parents=True, exist_ok=True)
         
         # Initialize project.json
         project_config = {
@@ -333,6 +433,103 @@ class ProjectService:
                 projects.append(project_info)
         
         return projects
+    
+    # Takes System Methods
+    async def generate_take_path(self, project_id: str, request: TakePathRequest) -> TakePathResponse:
+        """Generate deterministic path for next Take"""
+        project_path = self.workspace_root / project_id
+        renders_dir = project_path / DirectoryType.RENDERS.value
+        scene_dir = renders_dir / request.scene
+        shot_dir = scene_dir / request.shot
+        
+        # Ensure directories exist
+        shot_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Find next take number
+        existing_takes = list(shot_dir.glob(f"{request.scene}_{request.shot}_T*.{request.extension}"))
+        take_numbers = []
+        for take in existing_takes:
+            try:
+                # Extract take number from filename
+                take_part = take.stem.split('_T')[-1]
+                take_numbers.append(int(take_part))
+            except ValueError:
+                continue
+        
+        next_take = max(take_numbers) + 1 if take_numbers else 1
+        
+        # Generate filename
+        filename = f"{request.scene}_{request.shot}_T{next_take:03d}{request.extension}"
+        relative_path = f"{DirectoryType.RENDERS.value}/{request.scene}/{request.shot}/{filename}"
+        absolute_path = project_path / relative_path
+        
+        # Generate volume path for Function Runner
+        volume_path = f"/workspace/{project_id}/{relative_path}"
+        
+        return TakePathResponse(
+            take_number=next_take,
+            relative_path=relative_path,
+            absolute_path=str(absolute_path),
+            volume_path=volume_path
+        )
+    
+    async def register_take(self, project_id: str, take_data: TakeMetadata) -> TakeMetadata:
+        """Register a completed Take with metadata"""
+        project_path = self.workspace_root / project_id
+        takes_dir = project_path / DirectoryType.CONFIG.value / "takes"
+        takes_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save take metadata
+        take_file = takes_dir / f"{take_data.scene}_{take_data.shot}_T{take_data.take_number:03d}.json"
+        async with aiofiles.open(take_file, 'w') as f:
+            await f.write(take_data.json(indent=2))
+        
+        # Track in Git
+        if await self.git_service.is_git_repo(project_path):
+            await self.git_service.add_file(project_path, take_file)
+        
+        return take_data
+    
+    async def list_takes(self, project_id: str, scene: str, shot: str) -> List[TakeMetadata]:
+        """List all Takes for a scene/shot"""
+        project_path = self.workspace_root / project_id
+        takes_dir = project_path / DirectoryType.CONFIG.value / "takes"
+        
+        takes = []
+        if takes_dir.exists():
+            for take_file in takes_dir.glob(f"{scene}_{shot}_T*.json"):
+                async with aiofiles.open(take_file, 'r') as f:
+                    content = await f.read()
+                    take_data = TakeMetadata.parse_raw(content)
+                    takes.append(take_data)
+        
+        return sorted(takes, key=lambda t: t.take_number)
+    
+    async def save_node_state(self, project_id: str, node_id: str, state_data: NodeStateData):
+        """Save node state for project persistence"""
+        project_path = self.workspace_root / project_id
+        nodes_dir = project_path / DirectoryType.CONFIG.value / "nodes"
+        nodes_dir.mkdir(parents=True, exist_ok=True)
+        
+        node_file = nodes_dir / f"{node_id}.json"
+        async with aiofiles.open(node_file, 'w') as f:
+            await f.write(state_data.json(indent=2))
+        
+        # Track in Git
+        if await self.git_service.is_git_repo(project_path):
+            await self.git_service.add_file(project_path, node_file)
+    
+    async def get_node_state(self, project_id: str, node_id: str) -> NodeStateData:
+        """Retrieve saved node state"""
+        project_path = self.workspace_root / project_id
+        node_file = project_path / DirectoryType.CONFIG.value / "nodes" / f"{node_id}.json"
+        
+        if not node_file.exists():
+            raise ValueError(f"Node state not found for {node_id}")
+        
+        async with aiofiles.open(node_file, 'r') as f:
+            content = await f.read()
+            return NodeStateData.parse_raw(content)
 ```
 
 ### Error Handling
@@ -508,6 +705,7 @@ class Settings(BaseSettings):
     # Container volume mounts
     docker_workspace_path: Optional[Path] = None
     is_docker: bool = False
+    function_runner_volume: str = "/workspace"  # Shared volume for Function Runner
     
     @validator('workspace_root')
     def validate_workspace(cls, v):
@@ -540,6 +738,11 @@ class Settings(BaseSettings):
 - [ ] Git operations track files correctly
 - [ ] Workspace volume mounts work in Docker
 - [ ] Deleted projects clean up Git repositories
+- [ ] Take path generation creates correct scene/shot/take structure
+- [ ] Take numbers increment properly for multiple generations
+- [ ] Node state persistence saves and retrieves correctly
+- [ ] Volume paths work with Function Runner containers
+- [ ] Takes metadata stores all required reproducibility info
 
 ## Definition of Done
 - [ ] All endpoints implemented and documented
@@ -552,6 +755,11 @@ class Settings(BaseSettings):
 - [ ] Integration tests verify Git operations
 - [ ] API documentation updated in OpenAPI with structure details
 - [ ] Docker volume mount paths handled correctly
+- [ ] Takes management endpoints fully functional
+- [ ] Node state persistence integrated with project data
+- [ ] Scene/shot/take directory structure auto-created
+- [ ] Volume paths compatible with Function Runner architecture
+- [ ] Takes metadata includes all parameters for reproducibility
 
 ## Story Links
 - **Depends On**: STORY-002-project-structure-definition, STORY-003-fastapi-application-bootstrap

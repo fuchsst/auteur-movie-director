@@ -39,6 +39,9 @@ As a frontend developer, I need a well-structured TypeScript API client that han
 - **Tasks**: submit, getStatus, getResult, cancel, list active
 - **Docker**: health check, service status, container logs
 - **Quality**: lint, format, test, validate structure
+- **Nodes**: execute, getCapabilities, saveState, loadState
+- **Pipeline**: getQualityMappings, getNodeTypes, validatePipeline
+- **Takes**: generatePath, registerOutput, listTakes, getTakeMetadata
 
 ## Implementation Notes
 
@@ -495,6 +498,122 @@ export const dockerApi = {
   }
 };
 
+// src/lib/api/nodes.ts
+import { api } from './client';
+import type { NodeDefinition, NodeState, NodeExecution, NodeCapabilities } from '$types';
+
+export const nodesApi = {
+  async execute(nodeType: string, params: any, metadata?: any): Promise<NodeExecution> {
+    const response = await api.post<TaskSubmission>('/nodes/execute', {
+      node_type: nodeType,
+      params,
+      metadata
+    });
+    
+    return {
+      execution_id: response.task_id,
+      status: response.status,
+      poll: (onProgress?: (status: TaskStatus) => void) => 
+        response.poll(onProgress)
+    };
+  },
+  
+  async getCapabilities(nodeType: string): Promise<NodeCapabilities> {
+    return api.get<NodeCapabilities>(`/nodes/${nodeType}/capabilities`);
+  },
+  
+  async saveState(nodeId: string, state: NodeState): Promise<void> {
+    return api.post<void>('/nodes/state', {
+      node_id: nodeId,
+      state
+    });
+  },
+  
+  async loadState(nodeId: string): Promise<NodeState> {
+    return api.get<NodeState>(`/nodes/state/${nodeId}`);
+  },
+  
+  async listNodeTypes(): Promise<NodeDefinition[]> {
+    return api.get<NodeDefinition[]>('/nodes/types');
+  },
+  
+  async validateParams(nodeType: string, params: any): Promise<ValidationResult> {
+    return api.post<ValidationResult>(`/nodes/${nodeType}/validate`, params);
+  }
+};
+
+// src/lib/api/pipeline.ts
+import { api } from './client';
+import type { QualityMapping, PipelineConfig, NodeTypeInfo } from '$types';
+
+export const pipelineApi = {
+  async getQualityMappings(): Promise<QualityMapping[]> {
+    return api.get<QualityMapping[]>('/pipeline/quality-mappings');
+  },
+  
+  async getQualityMapping(quality: string, nodeType: string): Promise<PipelineConfig> {
+    return api.get<PipelineConfig>(`/pipeline/quality-mappings/${quality}/${nodeType}`);
+  },
+  
+  async getNodeTypes(): Promise<NodeTypeInfo[]> {
+    return api.get<NodeTypeInfo[]>('/pipeline/node-types');
+  },
+  
+  async validatePipeline(config: PipelineConfig): Promise<ValidationResult> {
+    return api.post<ValidationResult>('/pipeline/validate', config);
+  },
+  
+  async estimateResources(nodeType: string, params: any): Promise<ResourceEstimate> {
+    return api.post<ResourceEstimate>('/pipeline/estimate', {
+      node_type: nodeType,
+      params
+    });
+  }
+};
+
+// src/lib/api/takes.ts
+import { api } from './client';
+import type { Take, TakeMetadata, TakePath } from '$types';
+
+export const takesApi = {
+  async generatePath(projectId: string, nodeType: string, nodeId: string): Promise<TakePath> {
+    return api.post<TakePath>('/takes/generate-path', {
+      project_id: projectId,
+      node_type: nodeType,
+      node_id: nodeId
+    });
+  },
+  
+  async registerOutput(
+    projectId: string,
+    takePath: string,
+    metadata: TakeMetadata
+  ): Promise<Take> {
+    return api.post<Take>('/takes/register', {
+      project_id: projectId,
+      take_path: takePath,
+      metadata
+    });
+  },
+  
+  async listTakes(projectId: string, nodeId?: string): Promise<Take[]> {
+    const params = nodeId ? { node_id: nodeId } : undefined;
+    return api.get<Take[]>(`/projects/${projectId}/takes`, params);
+  },
+  
+  async getTakeMetadata(projectId: string, takePath: string): Promise<TakeMetadata> {
+    return api.get<TakeMetadata>(`/projects/${projectId}/takes/metadata`, {
+      take_path: takePath
+    });
+  },
+  
+  async deleteTake(projectId: string, takePath: string): Promise<void> {
+    return api.delete<void>(`/projects/${projectId}/takes`, {
+      take_path: takePath
+    });
+  }
+};
+
 // src/lib/api/quality.ts
 export const qualityApi = {
   async lint(projectId: string, paths?: string[]): Promise<QualityResult> {
@@ -561,6 +680,73 @@ api.interceptors.response.use(
     throw error;
   }
 );
+```
+
+### Node Execution Example
+```typescript
+// Using the API client for node execution
+import { nodesApi, pipelineApi, takesApi } from '$lib/api';
+import type { TextToImageParams } from '$types/nodes';
+
+// Get quality mapping for node
+const qualityConfig = await pipelineApi.getQualityMapping('standard', 'text_to_image');
+
+// Prepare node parameters
+const params: TextToImageParams = {
+  prompt: 'A beautiful sunset over mountains',
+  negative_prompt: 'blurry, low quality',
+  width: qualityConfig.params.width || 1024,
+  height: qualityConfig.params.height || 1024,
+  steps: qualityConfig.params.steps || 20,
+  cfg_scale: 7.5,
+  seed: 42,
+  model: qualityConfig.params.model || 'sdxl-base-1.0',
+  scheduler: qualityConfig.params.scheduler || 'euler',
+  batch_size: 1
+};
+
+// Validate parameters before execution
+const validation = await nodesApi.validateParams('text_to_image', params);
+if (!validation.is_valid) {
+  throw new Error(`Invalid parameters: ${validation.errors.join(', ')}`);
+}
+
+// Generate take path for output
+const takePath = await takesApi.generatePath(projectId, 'text_to_image', nodeId);
+
+// Execute node with progress tracking
+const execution = await nodesApi.execute('text_to_image', params, {
+  project_id: projectId,
+  node_id: nodeId,
+  take_path: takePath.path
+});
+
+// Poll for results
+const result = await execution.poll((status) => {
+  console.log(`Node execution: ${status.status} (${status.progress}%)`);
+  if (status.status === 'running' && status.details) {
+    console.log(`Current step: ${status.details.current_step}`);
+  }
+});
+
+// Register output as take
+if (result.success) {
+  await takesApi.registerOutput(projectId, takePath.path, {
+    node_type: 'text_to_image',
+    node_id: nodeId,
+    params,
+    output_files: result.outputs,
+    execution_time: result.execution_time,
+    quality: 'standard'
+  });
+}
+
+// Save node state
+await nodesApi.saveState(nodeId, {
+  params,
+  last_execution: execution.execution_id,
+  outputs: result.outputs
+});
 ```
 
 ### Type Definitions
@@ -645,6 +831,141 @@ export interface StructureValidation {
     severity: 'error' | 'warning';
   }>;
 }
+
+// Node execution types
+export interface NodeDefinition {
+  type: string;
+  category: string;
+  display_name: string;
+  description: string;
+  inputs: Record<string, ParameterDefinition>;
+  outputs: Record<string, OutputDefinition>;
+  capabilities: NodeCapabilities;
+}
+
+export interface ParameterDefinition {
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  required: boolean;
+  default?: any;
+  description: string;
+  constraints?: any;
+}
+
+export interface OutputDefinition {
+  type: string;
+  description: string;
+  multiple?: boolean;
+}
+
+export interface NodeCapabilities {
+  supports_batch: boolean;
+  supports_streaming: boolean;
+  estimated_vram: number;
+  estimated_time: number;
+  quality_levels: string[];
+}
+
+export interface NodeState {
+  params: any;
+  last_execution?: string;
+  outputs?: any[];
+  metadata?: Record<string, any>;
+}
+
+export interface NodeExecution {
+  execution_id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  poll: <T>(onProgress?: (status: TaskStatus) => void) => Promise<T>;
+}
+
+export interface TaskStatus {
+  task_id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress?: number;
+  result?: any;
+  error?: string;
+  details?: {
+    current_step?: string;
+    total_steps?: number;
+    message?: string;
+  };
+}
+
+// Pipeline types
+export interface QualityMapping {
+  quality: string;
+  node_type: string;
+  params: Record<string, any>;
+  resource_limits: {
+    max_vram: number;
+    max_time: number;
+  };
+}
+
+export interface PipelineConfig {
+  quality: string;
+  node_type: string;
+  params: Record<string, any>;
+  model_configs: Record<string, any>;
+  optimization_hints: string[];
+}
+
+export interface NodeTypeInfo {
+  type: string;
+  category: string;
+  backend: string;
+  supports_qualities: string[];
+  resource_requirements: {
+    min_vram: number;
+    recommended_vram: number;
+  };
+}
+
+export interface ResourceEstimate {
+  estimated_vram: number;
+  estimated_time: number;
+  warnings: string[];
+  optimization_suggestions: string[];
+}
+
+export interface ValidationResult {
+  is_valid: boolean;
+  errors: string[];
+  warnings: string[];
+  suggestions: string[];
+}
+
+// Takes system types
+export interface TakePath {
+  path: string;
+  full_path: string;
+  relative_path: string;
+  take_number: number;
+}
+
+export interface Take {
+  id: string;
+  project_id: string;
+  node_id: string;
+  take_path: string;
+  metadata: TakeMetadata;
+  created_at: string;
+  file_size: number;
+}
+
+export interface TakeMetadata {
+  node_type: string;
+  node_id: string;
+  params: any;
+  output_files: string[];
+  execution_time: number;
+  quality: string;
+  resolution?: {
+    width: number;
+    height: number;
+  };
+  tags?: string[];
+}
 ```
 
 ### Usage Example
@@ -710,6 +1031,12 @@ if (health.overall !== 'healthy') {
 - [ ] Git LFS operations handle large files properly
 - [ ] Docker health checks return accurate status
 - [ ] Quality checks integrate with task system
+- [ ] Node execution endpoints handle async tasks properly
+- [ ] Quality mapping retrieval works for all node types
+- [ ] Node state persistence functions correctly
+- [ ] Takes system generates unique paths
+- [ ] Parameter validation catches invalid inputs
+- [ ] Progress tracking provides meaningful updates
 
 ## Definition of Done
 - [ ] API client implemented with all methods
@@ -719,10 +1046,14 @@ if (health.overall !== 'healthy') {
 - [ ] Container-aware configuration implemented
 - [ ] Celery task polling with progress tracking
 - [ ] All new endpoints (workspace, git, tasks, docker, quality) implemented
+- [ ] Node execution endpoints with async task pattern
+- [ ] Pipeline configuration and quality mapping endpoints
+- [ ] Takes system endpoints for output management
 - [ ] Retry logic with exponential backoff
 - [ ] Documentation includes usage examples
 - [ ] Unit tests cover main functionality including retries and polling
 - [ ] Integration tests verify container networking
+- [ ] TypeScript interfaces match backend API contracts
 
 ## Story Links
 - **Depends On**: STORY-004-file-management-api
