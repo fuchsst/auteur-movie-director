@@ -75,22 +75,24 @@ from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
 
-class DirectoryType(str, Enum):
-    ASSETS = "01_Assets"
-    SCRIPTS = "02_Scripts" 
-    RENDERS = "03_Renders"  # For node outputs and Takes
-    CHARACTERS = "04_Characters"
-    STYLES = "05_Styles"
-    ENVIRONMENTS = "06_Environments"
-    AUDIO = "07_Audio"
-    VIDEO = "08_Video"
-    EXPORTS = "09_Exports"
-    CACHE = "10_Cache"
-    CONFIG = "11_Config"
+class AssetType(str, Enum):
+    # Aligned with generative pipeline asset types
+    CHARACTERS = "Characters"      # Character definitions & LoRAs
+    STYLES = "Styles"             # Visual style references
+    LOCATIONS = "Locations"       # Environment assets
+    MUSIC = "Music"               # Musical tracks and themes
+    
+class CreativeDocType(str, Enum):
+    # Creative documents that guide the pipeline
+    TREATMENTS = "Treatments"     # Story treatments
+    SCRIPTS = "Scripts"           # Screenplays & emotional beat sheets
+    SHOT_LISTS = "Shot_Lists"     # Generative shot lists
+    CANVAS = "Canvas"             # Node graph saves
 
 class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    quality: Literal["draft", "standard", "premium"] = "standard"
+    quality: Literal["low", "standard", "high"] = "standard"
+    narrative_structure: Literal["three-act", "hero-journey", "beat-sheet", "story-circle"] = "three-act"
     fps: int = Field(24, ge=1, le=120)
     resolution: tuple[int, int] = (1920, 1080)
     init_git: bool = True
@@ -130,14 +132,20 @@ class FileUploadResponse(BaseModel):
     git_tracked: bool
     use_lfs: bool
 
-# Takes System Models
+# Takes System Models (aligned with filmmaking hierarchy)
 class TakeMetadata(BaseModel):
     take_number: int
-    scene: str
-    shot: str
+    chapter: str  # Chapter in narrative structure
+    scene: str    # Scene identifier
+    shot: str     # Shot identifier
     node_id: str
     node_type: str
     parameters: Dict[str, Any]  # Node parameters for reproducibility
+    # Composite prompt data for reproducibility
+    text_prompt: str
+    character_refs: List[str] = []  # Character asset IDs used
+    style_refs: List[str] = []      # Style asset IDs used
+    location_ref: Optional[str] = None  # Location asset ID
     created_at: datetime
     relative_path: str  # Path relative to project root
     absolute_path: str  # Full path for Function Runner
@@ -181,16 +189,20 @@ from typing import List
 import aiofiles
 from pathlib import Path
 
-# Directory-based file type mapping
-DIRECTORY_EXTENSIONS = {
-    DirectoryType.ASSETS: [".jpg", ".png", ".webp", ".svg"],
-    DirectoryType.SCRIPTS: [".fdx", ".txt", ".md", ".fountain"],
-    DirectoryType.RENDERS: [".png", ".jpg", ".webp", ".mp4", ".mov"],  # Node outputs
-    DirectoryType.CHARACTERS: [".json", ".yaml", ".safetensors"],
-    DirectoryType.STYLES: [".jpg", ".png", ".webp", ".json"],
-    DirectoryType.ENVIRONMENTS: [".hdr", ".exr", ".jpg", ".png"],
-    DirectoryType.AUDIO: [".wav", ".mp3", ".ogg", ".flac"],
-    DirectoryType.VIDEO: [".mp4", ".mov", ".avi", ".webm"],
+# Asset type file mapping (aligned with generative pipeline)
+ASSET_EXTENSIONS = {
+    AssetType.CHARACTERS: [".json", ".yaml", ".safetensors", ".ckpt", ".png", ".jpg"],  # Includes LoRAs
+    AssetType.STYLES: [".jpg", ".png", ".webp", ".json", ".safetensors"],
+    AssetType.LOCATIONS: [".hdr", ".exr", ".jpg", ".png", ".json"],
+    AssetType.MUSIC: [".wav", ".mp3", ".ogg", ".flac", ".m4a"],
+}
+
+# Creative document extensions
+CREATIVE_DOC_EXTENSIONS = {
+    CreativeDocType.TREATMENTS: [".md", ".txt", ".docx"],
+    CreativeDocType.SCRIPTS: [".fountain", ".fdx", ".txt", ".md"],  # Includes beat sheets
+    CreativeDocType.SHOT_LISTS: [".json", ".csv", ".xlsx"],  # Generative shot lists
+    CreativeDocType.CANVAS: [".json"],  # Node graph saves
 }
 
 # Git LFS patterns for large files
@@ -318,19 +330,41 @@ class ProjectService:
         # Create base directory
         project_path.mkdir(parents=True)
         
-        # Create numbered directory structure
-        for dir_type in self.required_dirs:
-            (project_path / dir_type.value).mkdir()
+        # Create project structure (aligned with pipeline)
+        # 01_Assets subdirectories
+        assets_dir = project_path / "01_Assets"
+        for asset_type in AssetType:
+            (assets_dir / asset_type.value).mkdir(parents=True)
         
-        # Create subdirectories for Takes in 03_Renders
-        renders_dir = project_path / DirectoryType.RENDERS.value
-        # Create example scene/shot structure
-        (renders_dir / "S001" / "P001").mkdir(parents=True, exist_ok=True)
+        # 02_Source_Creative subdirectories
+        creative_dir = project_path / "02_Source_Creative"
+        for doc_type in CreativeDocType:
+            (creative_dir / doc_type.value).mkdir(parents=True)
         
-        # Initialize project.json
+        # 03_Renders - hierarchical structure for Takes
+        renders_dir = project_path / "03_Renders"
+        renders_dir.mkdir()
+        
+        # Other directories
+        (project_path / "04_Project_Files").mkdir()
+        (project_path / "05_Cache").mkdir()
+        (project_path / "06_Exports").mkdir()
+        
+        # Initialize project.json with narrative structure
         project_config = {
             "name": data.name,
             "quality": data.quality,
+            "narrative": {
+                "structure": data.narrative_structure,
+                "chapters": [],
+                "emotionalBeats": []
+            },
+            "assets": {
+                "characters": [],
+                "styles": [],
+                "locations": [],
+                "music": []
+            },
             "fps": data.fps,
             "resolution": data.resolution,
             "created": datetime.now().isoformat(),

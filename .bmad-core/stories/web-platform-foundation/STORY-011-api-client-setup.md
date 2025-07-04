@@ -32,8 +32,8 @@ As a frontend developer, I need a well-structured TypeScript API client that han
 - [ ] Support for Git LFS operations
 
 ### API Methods
-- **Projects**: create, list, get, update, delete, validate structure
-- **Files**: upload, list, download, delete, bulk operations
+- **Projects**: create, list, get, update, delete, validate structure, narrative setup
+- **Files**: upload, list, download, delete, bulk operations, asset categorization
 - **Workspace**: getConfig, updateSettings, initialize, validate
 - **Git**: commit, getStatus, getHistory, push, pull, LFS track/untrack
 - **Tasks**: submit, getStatus, getResult, cancel, list active
@@ -41,7 +41,10 @@ As a frontend developer, I need a well-structured TypeScript API client that han
 - **Quality**: lint, format, test, validate structure
 - **Nodes**: execute, getCapabilities, saveState, loadState
 - **Pipeline**: getQualityMappings, getNodeTypes, validatePipeline
-- **Takes**: generatePath, registerOutput, listTakes, getTakeMetadata
+- **Takes**: generatePath, registerOutput, listTakes, getTakeMetadata, scene/shot hierarchy
+- **Agents**: assignTask, getProgress, getCapabilities, handoff
+- **Assets**: categorize, extractMetadata, getCompatibility, compositePrompt
+- **Narrative**: getStructure, updateBeat, getEmotionalKeywords
 
 ## Implementation Notes
 
@@ -347,6 +350,10 @@ export const projectsApi = {
     return api.post<Project>('/projects', data);
   },
   
+  async getWithNarrative(id: string): Promise<Project> {
+    return api.get<Project>(`/projects/${id}?include=narrative,assets`);
+  },
+  
   async update(id: string, data: ProjectUpdate): Promise<Project> {
     return api.put<Project>(`/projects/${id}`, data);
   },
@@ -448,10 +455,11 @@ export const gitApi = {
 
 // src/lib/api/tasks.ts
 export const tasksApi = {
-  async submit(taskType: string, params: any): Promise<TaskSubmission> {
+  async submit(taskType: string, params: any, context?: TaskContext): Promise<TaskSubmission> {
     const response = await api.post<TaskSubmission>('/tasks/submit', {
       task_type: taskType,
-      params
+      params,
+      context  // Include filmmaking context
     });
     
     // Return enhanced response with polling helper
@@ -576,11 +584,23 @@ import { api } from './client';
 import type { Take, TakeMetadata, TakePath } from '$types';
 
 export const takesApi = {
-  async generatePath(projectId: string, nodeType: string, nodeId: string): Promise<TakePath> {
+  async generatePath(
+    projectId: string, 
+    nodeType: string, 
+    nodeId: string,
+    context: {
+      chapterId: string;
+      sceneId: string;
+      shotId: string;
+    }
+  ): Promise<TakePath> {
     return api.post<TakePath>('/takes/generate-path', {
       project_id: projectId,
       node_type: nodeType,
-      node_id: nodeId
+      node_id: nodeId,
+      chapter_id: context.chapterId,
+      scene_id: context.sceneId,
+      shot_id: context.shotId
     });
   },
   
@@ -596,9 +616,30 @@ export const takesApi = {
     });
   },
   
-  async listTakes(projectId: string, nodeId?: string): Promise<Take[]> {
-    const params = nodeId ? { node_id: nodeId } : undefined;
-    return api.get<Take[]>(`/projects/${projectId}/takes`, params);
+  async listTakes(
+    projectId: string, 
+    filters?: {
+      nodeId?: string;
+      sceneId?: string;
+      shotId?: string;
+      chapterId?: string;
+    }
+  ): Promise<Take[]> {
+    return api.get<Take[]>(`/projects/${projectId}/takes`, filters);
+  },
+  
+  async getSceneTakes(projectId: string, sceneId: string): Promise<Take[]> {
+    return api.get<Take[]>(`/projects/${projectId}/scenes/${sceneId}/takes`);
+  },
+  
+  async getShotTakes(projectId: string, shotId: string): Promise<Take[]> {
+    return api.get<Take[]>(`/projects/${projectId}/shots/${shotId}/takes`);
+  },
+  
+  async setActiveTake(projectId: string, shotId: string, takeId: string): Promise<void> {
+    return api.post<void>(`/projects/${projectId}/shots/${shotId}/active-take`, {
+      take_id: takeId
+    });
   },
   
   async getTakeMetadata(projectId: string, takePath: string): Promise<TakeMetadata> {
@@ -639,6 +680,130 @@ export const qualityApi = {
   
   async validateStructure(projectId: string): Promise<StructureValidation> {
     return api.get<StructureValidation>(`/projects/${projectId}/quality/validate`);
+  }
+};
+
+// src/lib/api/agents.ts
+import { api } from './client';
+import type { AgentTask, AgentCapabilities, AgentProgress } from '$types';
+
+export const agentsApi = {
+  async assignTask(
+    agentType: string,
+    task: AgentTask
+  ): Promise<TaskSubmission> {
+    const response = await api.post<TaskSubmission>('/agents/assign', {
+      agent_type: agentType,
+      task
+    });
+    
+    return {
+      ...response,
+      poll: (onProgress?: (status: AgentProgress) => void) => 
+        api.pollTask(response.task_id, onProgress)
+    };
+  },
+  
+  async getCapabilities(agentType: string): Promise<AgentCapabilities> {
+    return api.get<AgentCapabilities>(`/agents/${agentType}/capabilities`);
+  },
+  
+  async getProgress(taskId: string): Promise<AgentProgress> {
+    return api.get<AgentProgress>(`/agents/tasks/${taskId}/progress`);
+  },
+  
+  async handoff(
+    fromAgent: string,
+    toAgent: string,
+    payload: any
+  ): Promise<void> {
+    return api.post<void>('/agents/handoff', {
+      from_agent: fromAgent,
+      to_agent: toAgent,
+      payload
+    });
+  },
+  
+  async getVRAMUsage(): Promise<VRAMStatus> {
+    return api.get<VRAMStatus>('/agents/producer/vram-status');
+  }
+};
+
+// src/lib/api/assets.ts
+import { api } from './client';
+import type { AssetMetadata, CompositePrompt, AssetCompatibility } from '$types';
+
+export const assetsApi = {
+  async categorize(filePath: string): Promise<AssetMetadata> {
+    return api.post<AssetMetadata>('/assets/categorize', {
+      file_path: filePath
+    });
+  },
+  
+  async extractMetadata(assetId: string): Promise<AssetMetadata> {
+    return api.get<AssetMetadata>(`/assets/${assetId}/metadata`);
+  },
+  
+  async getCompatibility(assetId: string): Promise<AssetCompatibility> {
+    return api.get<AssetCompatibility>(`/assets/${assetId}/compatibility`);
+  },
+  
+  async buildCompositePrompt(
+    basePrompt: string,
+    context: {
+      characterIds?: string[];
+      styleIds?: string[];
+      locationId?: string;
+      emotionalBeat?: string;
+    }
+  ): Promise<CompositePrompt> {
+    return api.post<CompositePrompt>('/assets/composite-prompt', {
+      base_prompt: basePrompt,
+      ...context
+    });
+  },
+  
+  async getAssetsByAgent(agentType: string): Promise<AssetReference[]> {
+    return api.get<AssetReference[]>(`/assets/by-agent/${agentType}`);
+  }
+};
+
+// src/lib/api/narrative.ts
+import { api } from './client';
+import type { NarrativeStructure, EmotionalBeat } from '$types';
+
+export const narrativeApi = {
+  async getStructure(projectId: string): Promise<NarrativeStructure> {
+    return api.get<NarrativeStructure>(`/projects/${projectId}/narrative`);
+  },
+  
+  async updateStructure(
+    projectId: string,
+    structure: Partial<NarrativeStructure>
+  ): Promise<NarrativeStructure> {
+    return api.put<NarrativeStructure>(`/projects/${projectId}/narrative`, structure);
+  },
+  
+  async updateBeat(
+    projectId: string,
+    sceneId: string,
+    beat: EmotionalBeat
+  ): Promise<void> {
+    return api.post<void>(`/projects/${projectId}/scenes/${sceneId}/beat`, beat);
+  },
+  
+  async getEmotionalKeywords(beatName: string): Promise<string[]> {
+    return api.get<string[]>(`/narrative/beats/${beatName}/keywords`);
+  },
+  
+  async suggestNextBeat(
+    projectId: string,
+    currentSceneId: string
+  ): Promise<EmotionalBeat> {
+    return api.get<EmotionalBeat>(
+      `/projects/${projectId}/narrative/suggest-beat`,
+      { current_scene: currentSceneId }
+    );
   }
 };
 ```
@@ -684,16 +849,32 @@ api.interceptors.response.use(
 
 ### Node Execution Example
 ```typescript
-// Using the API client for node execution
-import { nodesApi, pipelineApi, takesApi } from '$lib/api';
+// Using the API client for node execution with filmmaking context
+import { nodesApi, pipelineApi, takesApi, assetsApi, narrativeApi } from '$lib/api';
 import type { TextToImageParams } from '$types/nodes';
 
 // Get quality mapping for node
 const qualityConfig = await pipelineApi.getQualityMapping('standard', 'text_to_image');
 
-// Prepare node parameters
+// Get narrative context
+const narrative = await narrativeApi.getStructure(projectId);
+const currentScene = narrative.chapters[0].scenes[0];
+const emotionalKeywords = await narrativeApi.getEmotionalKeywords(currentScene.emotionalBeat);
+
+// Build composite prompt with assets
+const compositePrompt = await assetsApi.buildCompositePrompt(
+  'A beautiful sunset over mountains',
+  {
+    characterIds: ['char_001'],
+    styleIds: ['style_cinematic'],
+    locationId: 'loc_mountains',
+    emotionalBeat: currentScene.emotionalBeat
+  }
+);
+
+// Prepare node parameters with composite prompt
 const params: TextToImageParams = {
-  prompt: 'A beautiful sunset over mountains',
+  prompt: compositePrompt.final_prompt,
   negative_prompt: 'blurry, low quality',
   width: qualityConfig.params.width || 1024,
   height: qualityConfig.params.height || 1024,
@@ -702,7 +883,9 @@ const params: TextToImageParams = {
   seed: 42,
   model: qualityConfig.params.model || 'sdxl-base-1.0',
   scheduler: qualityConfig.params.scheduler || 'euler',
-  batch_size: 1
+  batch_size: 1,
+  // Include LoRA models from composite prompt
+  loras: compositePrompt.lora_models
 };
 
 // Validate parameters before execution
@@ -711,8 +894,17 @@ if (!validation.is_valid) {
   throw new Error(`Invalid parameters: ${validation.errors.join(', ')}`);
 }
 
-// Generate take path for output
-const takePath = await takesApi.generatePath(projectId, 'text_to_image', nodeId);
+// Generate take path with scene/shot context
+const takePath = await takesApi.generatePath(
+  projectId, 
+  'text_to_image', 
+  nodeId,
+  {
+    chapterId: narrative.chapters[0].id,
+    sceneId: currentScene.id,
+    shotId: currentScene.shots[0].id
+  }
+);
 
 // Execute node with progress tracking
 const execution = await nodesApi.execute('text_to_image', params, {
@@ -729,7 +921,7 @@ const result = await execution.poll((status) => {
   }
 });
 
-// Register output as take
+// Register output as take with full context
 if (result.success) {
   await takesApi.registerOutput(projectId, takePath.path, {
     node_type: 'text_to_image',
@@ -737,8 +929,23 @@ if (result.success) {
     params,
     output_files: result.outputs,
     execution_time: result.execution_time,
-    quality: 'standard'
+    quality: 'standard',
+    // Filmmaking context
+    scene_id: currentScene.id,
+    shot_id: currentScene.shots[0].id,
+    emotional_beat: currentScene.emotionalBeat,
+    composite_prompt: compositePrompt,
+    agent_notes: {
+      art_director: 'Cinematic style applied',
+      cinematographer: 'Golden hour lighting'
+    }
   });
+  
+  // Set as active take if it's the first one
+  const shotTakes = await takesApi.getShotTakes(projectId, currentScene.shots[0].id);
+  if (shotTakes.length === 1) {
+    await takesApi.setActiveTake(projectId, currentScene.shots[0].id, result.take_id);
+  }
 }
 
 // Save node state
@@ -965,6 +1172,158 @@ export interface TakeMetadata {
     height: number;
   };
   tags?: string[];
+  // Filmmaking context
+  scene_id: string;
+  shot_id: string;
+  chapter_id?: string;
+  take_number: number;
+  emotional_beat?: string;
+  composite_prompt?: CompositePrompt;
+  agent_notes?: Record<string, string>;
+}
+
+// Additional types for filmmaking pipeline
+export interface TaskContext {
+  scene_id?: string;
+  shot_id?: string;
+  chapter_id?: string;
+  emotional_beat?: string;
+  assigned_agent?: string;
+  composite_prompt?: CompositePrompt;
+}
+
+export interface CompositePrompt {
+  base_prompt: string;
+  final_prompt: string;
+  character_refs: string[];
+  style_refs: string[];
+  location_ref?: string;
+  emotional_keywords: string[];
+  lora_models?: Array<{
+    model_path: string;
+    weight: number;
+    trigger_word?: string;
+  }>;
+  agent_contributions: Record<string, string>;
+}
+
+export interface AgentTask {
+  task_type: string;
+  priority: 'high' | 'medium' | 'low';
+  context: {
+    project_id: string;
+    scene_id?: string;
+    shot_id?: string;
+  };
+  payload: any;
+  dependencies?: string[];  // Other agent tasks
+}
+
+export interface AgentCapabilities {
+  agent_type: string;
+  supported_tasks: string[];
+  max_concurrent_tasks: number;
+  vram_requirements?: number;
+  estimated_duration: Record<string, number>;
+}
+
+export interface AgentProgress {
+  task_id: string;
+  agent_type: string;
+  status: 'assigned' | 'working' | 'completed' | 'failed';
+  progress: number;
+  current_step?: string;
+  vram_usage?: number;
+  outputs?: any;
+  handoff_to?: string;
+}
+
+export interface VRAMStatus {
+  total_vram: number;
+  used_vram: number;
+  available_vram: number;
+  agent_usage: Record<string, number>;
+  recommended_quality: 'low' | 'standard' | 'high';
+}
+
+export interface AssetReference {
+  id: string;
+  name: string;
+  path: string;
+  type: 'character' | 'style' | 'location' | 'music';
+  metadata: AssetMetadata;
+  trigger_word?: string;
+  agent_owner?: string;
+}
+
+export interface AssetMetadata {
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  fileExtension: string;
+  uploadedAt: string;
+  assetCategory: 'character' | 'style' | 'location' | 'music' | 'creative_document' | 'project_file';
+  // Character specific
+  characterName?: string;
+  triggerWord?: string;
+  trainingSteps?: number;
+  // Style specific
+  styleType?: string;
+  // Music specific
+  bpm?: number;
+  mood?: string;
+  // Agent integration
+  agentCompatible?: string[];
+  supportsCompositePrompts?: boolean;
+}
+
+export interface AssetCompatibility {
+  compatible_nodes: string[];
+  compatible_agents: string[];
+  composite_prompt_field?: string;
+  requirements?: string[];
+}
+
+export interface NarrativeStructure {
+  structure_type: 'three-act' | 'hero-journey' | 'beat-sheet' | 'story-circle';
+  chapters: Chapter[];
+  emotional_arc: EmotionalBeat[];
+  current_position: {
+    chapter: number;
+    scene: string;
+    beat?: string;
+  };
+}
+
+export interface Chapter {
+  id: string;
+  name: string;
+  order: number;
+  scenes: Scene[];
+}
+
+export interface Scene {
+  id: string;
+  name: string;
+  order: number;
+  shots: Shot[];
+  emotionalBeat?: string;
+}
+
+export interface Shot {
+  id: string;
+  name: string;
+  order: number;
+  takes: Take[];
+  activeTakeId?: string;
+}
+
+export interface EmotionalBeat {
+  id: string;
+  name: string;
+  sceneId: string;
+  keywords: string[];
+  intensity: number;
 }
 ```
 
@@ -1011,6 +1370,37 @@ const health = await dockerApi.healthCheck();
 if (health.overall !== 'healthy') {
   // Show service status warning
 }
+
+// Agent integration example
+import { agentsApi, assetsApi } from '$lib/api';
+
+// Check VRAM before assigning task
+const vramStatus = await agentsApi.getVRAMUsage();
+if (vramStatus.available_vram < 8) {
+  console.warn('Low VRAM, using lower quality preset');
+}
+
+// Assign task to Art Director
+const artDirectorTask = await agentsApi.assignTask('ArtDirector', {
+  task_type: 'style_curation',
+  priority: 'high',
+  context: {
+    project_id: projectId,
+    scene_id: 'S001'
+  },
+  payload: {
+    mood: 'cinematic',
+    time_of_day: 'golden_hour'
+  }
+});
+
+// Poll for completion
+const result = await artDirectorTask.poll((progress) => {
+  console.log(`Art Director: ${progress.current_step} (${progress.progress}%)`);
+});
+
+// Hand off to Cinematographer
+await agentsApi.handoff('ArtDirector', 'Cinematographer', result.outputs);
 ```
 
 ## Dependencies

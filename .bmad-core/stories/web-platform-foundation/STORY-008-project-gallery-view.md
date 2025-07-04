@@ -158,27 +158,29 @@ As a user, I need a hierarchical project browser in the left panel that shows my
   let loading = true;
   let error: string | null = null;
   
-  // Directory structure icons matching project blueprint
+  // Directory structure icons matching generative pipeline
   const DIRECTORY_ICONS = {
     '01_Assets': '📦',
-    '02_Generated': '🤖',
-    '03_Takes': '🎬',
-    '04_Previews': '👁️',
-    '05_Production': '🎭',
+    '02_Source_Creative': '✍️',
+    '03_Renders': '🎬',
+    '04_Project_Files': '📁',
+    '05_Cache': '💾',
     '06_Exports': '📤',
-    'Scripts': '📝',
+    // Asset subdirectories (aligned with pipeline)
     'Characters': '👤',
     'Styles': '🎨',
-    'Environments': '🏞️',
-    'Audio': '🎵',
-    'Images': '🖼️',
-    'Videos': '🎥',
-    'Metadata': '📊',
-    'Dailies': '📅',
-    'Rough_Cuts': '✂️',
-    'Scenes': '🎬',
-    'Shots': '📸',
-    'Timelines': '⏱️',
+    'Locations': '🏞️',
+    'Music': '🎵',
+    // Creative subdirectories (aligned with pipeline)
+    'Treatments': '📝',
+    'Scripts': '📜',
+    'Shot_Lists': '📋',
+    'Canvas': '🎯',
+    // Takes hierarchy (Chapter → Scene → Shot → Take)
+    'Chapter': '📖',
+    'Scene': '🎬',
+    'Shot': '📸',
+    // Export subdirectories
     'EDL': '📋',
     'Masters': '💎',
     'Deliverables': '📦'
@@ -215,55 +217,53 @@ As a user, I need a hierarchical project browser in the left panel that shows my
         icon: DIRECTORY_ICONS['01_Assets'],
         exists: !project.missingDirs?.includes('01_Assets'),
         children: [
-          { id: `${project.id}-01-scripts`, name: 'Scripts', type: 'directory', icon: DIRECTORY_ICONS['Scripts'] },
           { id: `${project.id}-01-characters`, name: 'Characters', type: 'directory', icon: DIRECTORY_ICONS['Characters'] },
           { id: `${project.id}-01-styles`, name: 'Styles', type: 'directory', icon: DIRECTORY_ICONS['Styles'] },
-          { id: `${project.id}-01-environments`, name: 'Environments', type: 'directory', icon: DIRECTORY_ICONS['Environments'] },
-          { id: `${project.id}-01-audio`, name: 'Audio', type: 'directory', icon: DIRECTORY_ICONS['Audio'] }
+          { id: `${project.id}-01-locations`, name: 'Locations', type: 'directory', icon: DIRECTORY_ICONS['Locations'] },
+          { id: `${project.id}-01-music`, name: 'Music', type: 'directory', icon: DIRECTORY_ICONS['Music'] }
         ]
       },
       {
         id: `${project.id}-02`,
-        name: '02_Generated',
+        name: '02_Source_Creative',
         type: 'directory',
-        icon: DIRECTORY_ICONS['02_Generated'],
-        exists: !project.missingDirs?.includes('02_Generated'),
+        icon: DIRECTORY_ICONS['02_Source_Creative'],
+        exists: !project.missingDirs?.includes('02_Source_Creative'),
         children: [
-          { id: `${project.id}-02-images`, name: 'Images', type: 'directory', icon: DIRECTORY_ICONS['Images'] },
-          { id: `${project.id}-02-videos`, name: 'Videos', type: 'directory', icon: DIRECTORY_ICONS['Videos'] },
-          { id: `${project.id}-02-audio`, name: 'Audio', type: 'directory', icon: DIRECTORY_ICONS['Audio'] },
-          { id: `${project.id}-02-metadata`, name: 'Metadata', type: 'directory', icon: DIRECTORY_ICONS['Metadata'] }
+          { id: `${project.id}-02-treatments`, name: 'Treatments', type: 'directory', icon: DIRECTORY_ICONS['Treatments'] },
+          { id: `${project.id}-02-scripts`, name: 'Scripts', type: 'directory', icon: DIRECTORY_ICONS['Scripts'] },
+          { id: `${project.id}-02-shot-lists`, name: 'Shot_Lists', type: 'directory', icon: DIRECTORY_ICONS['Shot_Lists'] },
+          { id: `${project.id}-02-canvas`, name: 'Canvas', type: 'directory', icon: DIRECTORY_ICONS['Canvas'] }
         ]
       },
       {
         id: `${project.id}-03`,
-        name: '03_Takes',
+        name: '03_Renders',
         type: 'directory',
-        icon: DIRECTORY_ICONS['03_Takes'],
-        exists: !project.missingDirs?.includes('03_Takes')
+        icon: DIRECTORY_ICONS['03_Renders'],
+        exists: !project.missingDirs?.includes('03_Renders'),
+        narrative: project.narrative,  // Pass narrative structure info
+        children: project.narrative?.chapters?.map((chapter, idx) => ({
+          id: `${project.id}-03-ch${idx + 1}`,
+          name: `Chapter_${String(idx + 1).padStart(2, '0')}`,
+          type: 'directory',
+          icon: DIRECTORY_ICONS['Chapter'],
+          children: [] // Scenes loaded on demand
+        })) || []
       },
       {
         id: `${project.id}-04`,
-        name: '04_Previews',
+        name: '04_Project_Files',
         type: 'directory',
-        icon: DIRECTORY_ICONS['04_Previews'],
-        exists: !project.missingDirs?.includes('04_Previews'),
-        children: [
-          { id: `${project.id}-04-dailies`, name: 'Dailies', type: 'directory', icon: DIRECTORY_ICONS['Dailies'] },
-          { id: `${project.id}-04-rough`, name: 'Rough_Cuts', type: 'directory', icon: DIRECTORY_ICONS['Rough_Cuts'] }
-        ]
+        icon: DIRECTORY_ICONS['04_Project_Files'],
+        exists: !project.missingDirs?.includes('04_Project_Files')
       },
       {
         id: `${project.id}-05`,
-        name: '05_Production',
+        name: '05_Cache',
         type: 'directory',
-        icon: DIRECTORY_ICONS['05_Production'],
-        exists: !project.missingDirs?.includes('05_Production'),
-        children: [
-          { id: `${project.id}-05-scenes`, name: 'Scenes', type: 'directory', icon: DIRECTORY_ICONS['Scenes'] },
-          { id: `${project.id}-05-shots`, name: 'Shots', type: 'directory', icon: DIRECTORY_ICONS['Shots'] },
-          { id: `${project.id}-05-timelines`, name: 'Timelines', type: 'directory', icon: DIRECTORY_ICONS['Timelines'] }
-        ]
+        icon: DIRECTORY_ICONS['05_Cache'],
+        exists: !project.missingDirs?.includes('05_Cache')
       },
       {
         id: `${project.id}-06`,

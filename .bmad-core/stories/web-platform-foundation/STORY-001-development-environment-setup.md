@@ -47,6 +47,11 @@ Host Machine Requirements:
 ├── Node.js 20+ (for IDE support)
 ├── Python 3.11+ (for local tooling)
 └── Make (for developer interface)
+
+Future Requirements (for generative pipeline):
+├── NVIDIA Docker Runtime (for GPU support)
+├── CUDA 11.8+ (for AI model execution)
+└── 16GB+ VRAM (recommended for quality generation)
 ```
 
 ### Docker Service Architecture
@@ -56,6 +61,7 @@ services:
   backend:    # FastAPI on port 8000
   worker:     # Celery background tasks
   redis:      # Message broker on port 6379
+  # Future: crew-orchestrator for multi-agent workflows
 ```
 
 ### Makefile Primary Targets
@@ -107,6 +113,11 @@ VITE_BACKEND_URL=http://backend:8000
 NODE_ENV=development
 LOG_LEVEL=INFO
 DEBUG=true
+
+# Creative Pipeline settings
+DEFAULT_QUALITY=standard
+ENABLE_TAKES_SYSTEM=true
+ASSET_LIBRARY_PATH=./workspace/Library
 ```
 
 ### Multi-Stage Frontend Dockerfile Pattern

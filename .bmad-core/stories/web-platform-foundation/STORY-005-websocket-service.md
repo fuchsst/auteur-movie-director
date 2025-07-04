@@ -65,6 +65,13 @@ As a frontend developer, I need a WebSocket connection to receive real-time upda
 - `task.failed` - Task execution failed
 - `task.cancelled` - Task was cancelled
 
+#### Creative Workflow Events
+- `agent.task.assigned` - Creative agent assigned task (e.g., Screenwriter)
+- `agent.task.progress` - Agent task progress update
+- `agent.task.completed` - Agent finished task
+- `take.created` - New Take generated
+- `take.selected` - Take marked as active
+
 #### File Events
 - `file.uploaded` - New file added
 - `file.deleted` - File removed
@@ -605,6 +612,65 @@ class EventBroadcaster:
             "changes": changes,
             "timestamp": datetime.utcnow().isoformat()
         })
+    
+    # Creative Workflow Events
+    @staticmethod
+    async def agent_task_assigned(project_id: str, agent_type: str, 
+                                 task_id: str, task_description: str):
+        """Broadcast creative agent task assignment"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "agent.task.assigned",
+            "agent_type": agent_type,  # Producer, Screenwriter, Art Director, etc.
+            "task_id": task_id,
+            "task_description": task_description,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def agent_task_progress(project_id: str, agent_type: str,
+                                 task_id: str, progress: float, message: str):
+        """Broadcast creative agent progress"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "agent.task.progress",
+            "agent_type": agent_type,
+            "task_id": task_id,
+            "progress": progress,
+            "message": message,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def agent_task_completed(project_id: str, agent_type: str,
+                                  task_id: str, output: Dict[str, Any]):
+        """Broadcast creative agent task completion"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "agent.task.completed",
+            "agent_type": agent_type,
+            "task_id": task_id,
+            "output": output,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    # Takes System Events
+    @staticmethod
+    async def take_created(project_id: str, node_id: str, take_info: Dict[str, Any]):
+        """Broadcast new Take creation"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "take.created",
+            "node_id": node_id,
+            "take_info": take_info,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def take_selected(project_id: str, node_id: str, take_id: str):
+        """Broadcast Take selection as active"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "take.selected",
+            "node_id": node_id,
+            "take_id": take_id,
+            "timestamp": datetime.utcnow().isoformat()
+        })
 ```
 
 ### Heartbeat Implementation
@@ -918,6 +984,60 @@ interface FileEvent {
 // System events
 interface SystemEvent {
   type: 'system.heartbeat' | 'container.reconnect';
+  timestamp: string;
+}
+
+// Creative workflow events
+interface AgentTaskAssignedEvent {
+  type: 'agent.task.assigned';
+  agent_type: 'Producer' | 'Screenwriter' | 'Art Director' | 'Casting Director' | 'Location Scout' | 'First AD';
+  task_id: string;
+  task_description: string;
+  timestamp: string;
+}
+
+interface AgentTaskProgressEvent {
+  type: 'agent.task.progress';
+  agent_type: string;
+  task_id: string;
+  progress: number;
+  message: string;
+  timestamp: string;
+}
+
+interface AgentTaskCompletedEvent {
+  type: 'agent.task.completed';
+  agent_type: string;
+  task_id: string;
+  output: {
+    asset_type?: string;
+    asset_ids?: string[];
+    document_path?: string;
+    [key: string]: any;
+  };
+  timestamp: string;
+}
+
+// Takes system events
+interface TakeCreatedEvent {
+  type: 'take.created';
+  node_id: string;
+  take_info: {
+    take_id: string;
+    take_number: number;
+    path: string;
+    chapter: string;
+    scene: string;
+    shot: string;
+    metadata: Record<string, any>;
+  };
+  timestamp: string;
+}
+
+interface TakeSelectedEvent {
+  type: 'take.selected';
+  node_id: string;
+  take_id: string;
   timestamp: string;
 }
 ```

@@ -7,7 +7,7 @@
 **Priority**: High  
 
 ## Story Description
-As a frontend developer, I need a robust WebSocket client implementation that maintains a persistent connection to the backend, handles reconnection automatically, supports container restarts and distributed events, and dispatches real-time events to the UI components including Celery task progress. The client must support production canvas node state management, tracking generation progress with granular step descriptions, and updating visual states for nodes based on backend events.
+As a frontend developer, I need a robust WebSocket client implementation that maintains a persistent connection to the backend, handles reconnection automatically, supports container restarts and distributed events, and dispatches real-time events to the UI components including Celery task progress. The client must support production canvas node state management, tracking generation progress with granular step descriptions, updating visual states for nodes based on backend events, and coordinating multi-agent creative workflows for the filmmaking pipeline.
 
 ## Acceptance Criteria
 
@@ -26,6 +26,10 @@ As a frontend developer, I need a robust WebSocket client implementation that ma
 - [ ] Update node visual states (borders, spinners, thumbnails)
 - [ ] Support start_generation message dispatch from nodes
 - [ ] Manage takes gallery updates on task completion
+- [ ] Handle multi-agent task coordination events
+- [ ] Support composite prompt assembly notifications
+- [ ] Track emotional beat associations with generations
+- [ ] Update narrative structure progress (Chapter/Scene/Shot)
 
 ### Technical Requirements
 - [ ] Implement exponential backoff for reconnection
@@ -47,6 +51,14 @@ As a frontend developer, I need a robust WebSocket client implementation that ma
 - `disconnected` - No active connection
 - `error` - Connection error occurred
 - `suspended` - Container restart detected
+
+### Agent Event Types
+- `agent.assigned` - Creative agent assigned to task
+- `agent.progress` - Agent task progress update
+- `agent.completed` - Agent finished task
+- `agent.handoff` - Agent passing work to next agent
+- `prompt.composite` - Composite prompt assembled
+- `narrative.beat` - Emotional beat reached
 
 ## Implementation Notes
 
@@ -83,6 +95,12 @@ export const nodeStates = writable<Record<string, NodeState>>({});
 // Store for active generations
 export const activeGenerations = writable<Set<string>>(new Set());
 
+// Store for agent activities
+export const agentActivities = writable<Record<string, AgentActivity>>({});
+
+// Store for narrative progress
+export const narrativeProgress = writable<NarrativeProgress>({});
+
 interface TaskProgress {
   task_id: string;
   state: 'PENDING' | 'STARTED' | 'PROGRESS' | 'SUCCESS' | 'FAILURE';
@@ -105,6 +123,29 @@ interface NodeState {
   thumbnail?: string;
   takes?: Take[];
   current_take?: number;
+  // Filmmaking pipeline additions
+  scene_id?: string;  // S001 format
+  shot_id?: string;   // P001 format
+  emotional_beat?: string;  // Current emotional beat
+  assigned_agent?: string;  // Current agent working on this
+}
+
+interface AgentActivity {
+  agent_type: 'Producer' | 'Screenwriter' | 'CastingDirector' | 'ArtDirector' | 'Cinematographer' | 'SoundDesigner' | 'Editor';
+  task_id: string;
+  status: 'idle' | 'working' | 'completed';
+  current_task?: string;
+  progress?: number;
+  vram_usage?: number;  // For Producer agent tracking
+}
+
+interface NarrativeProgress {
+  current_chapter?: number;
+  current_scene?: string;
+  current_shot?: string;
+  current_beat?: string;
+  completed_beats: string[];
+  structure_type: 'three-act' | 'hero-journey' | 'beat-sheet' | 'story-circle';
 }
 
 interface Take {
@@ -113,6 +154,21 @@ interface Take {
   thumbnail?: string;
   metadata?: any;
   created_at: string;
+  // Filmmaking pipeline additions
+  take_number: number;
+  scene_id: string;
+  shot_id: string;
+  composite_prompt?: CompositePrompt;
+  quality_preset: 'low' | 'standard' | 'high';
+}
+
+interface CompositePrompt {
+  base_prompt: string;
+  character_refs: string[];  // Character asset IDs
+  style_refs: string[];      // Style asset IDs
+  location_ref?: string;     // Location asset ID
+  emotional_keywords: string[];  // From emotional beat
+  agent_notes?: Record<string, string>;  // Notes from each agent
 }
 
 class WebSocketClient {
@@ -354,6 +410,70 @@ class WebSocketClient {
         }));
         break;
         
+      // Agent coordination events
+      case 'agent.assigned':
+        const agentAssignMsg = message as AgentAssignedMessage;
+        agentActivities.update(activities => ({
+          ...activities,
+          [agentAssignMsg.agent_type]: {
+            agent_type: agentAssignMsg.agent_type,
+            task_id: agentAssignMsg.task_id,
+            status: 'working',
+            current_task: agentAssignMsg.task_description,
+            progress: 0
+          }
+        }));
+        break;
+        
+      case 'agent.progress':
+        const agentProgressMsg = message as AgentProgressMessage;
+        agentActivities.update(activities => ({
+          ...activities,
+          [agentProgressMsg.agent_type]: {
+            ...activities[agentProgressMsg.agent_type],
+            progress: agentProgressMsg.progress,
+            current_task: agentProgressMsg.current_step,
+            vram_usage: agentProgressMsg.vram_usage
+          }
+        }));
+        break;
+        
+      case 'agent.completed':
+        const agentCompleteMsg = message as AgentCompletedMessage;
+        agentActivities.update(activities => ({
+          ...activities,
+          [agentCompleteMsg.agent_type]: {
+            ...activities[agentCompleteMsg.agent_type],
+            status: 'completed',
+            progress: 100
+          }
+        }));
+        break;
+        
+      case 'prompt.composite':
+        const promptMsg = message as CompositePromptMessage;
+        // Update node with composite prompt info
+        if (promptMsg.node_id) {
+          nodeStates.update(states => ({
+            ...states,
+            [promptMsg.node_id]: {
+              ...states[promptMsg.node_id],
+              composite_prompt: promptMsg.composite_prompt
+            }
+          }));
+        }
+        break;
+        
+      case 'narrative.beat':
+        const beatMsg = message as NarrativeBeatMessage;
+        narrativeProgress.update(progress => ({
+          ...progress,
+          current_beat: beatMsg.beat_name,
+          current_scene: beatMsg.scene_id,
+          completed_beats: [...(progress.completed_beats || []), beatMsg.beat_name]
+        }));
+        break;
+        
       case 'structure.changed':
       case 'git.commit':
       case 'git.push':
@@ -511,12 +631,24 @@ class WebSocketClient {
     });
   }
   
-  // Send generation request
-  startGeneration(nodeId: string, params: any) {
+  // Send generation request with filmmaking context
+  startGeneration(
+    nodeId: string, 
+    params: any,
+    context?: {
+      scene_id?: string;
+      shot_id?: string;
+      emotional_beat?: string;
+      character_refs?: string[];
+      style_refs?: string[];
+      location_ref?: string;
+    }
+  ) {
     this.send({
       type: 'start_generation',
       node_id: nodeId,
       params,
+      context,
       timestamp: new Date().toISOString()
     });
   }
@@ -735,6 +867,60 @@ export interface StartGenerationMessage extends WSMessage {
   type: 'start_generation';
   node_id: string;
   params: any;
+  context?: {
+    scene_id?: string;
+    shot_id?: string;
+    emotional_beat?: string;
+    character_refs?: string[];
+    style_refs?: string[];
+    location_ref?: string;
+  };
+}
+
+// Agent coordination messages
+export interface AgentAssignedMessage extends WSMessage {
+  type: 'agent.assigned';
+  agent_type: string;
+  task_id: string;
+  task_description: string;
+  estimated_duration?: number;
+}
+
+export interface AgentProgressMessage extends WSMessage {
+  type: 'agent.progress';
+  agent_type: string;
+  task_id: string;
+  progress: number;
+  current_step?: string;
+  vram_usage?: number;  // For Producer agent
+}
+
+export interface AgentCompletedMessage extends WSMessage {
+  type: 'agent.completed';
+  agent_type: string;
+  task_id: string;
+  output?: any;
+  handoff_to?: string;  // Next agent in pipeline
+}
+
+export interface CompositePromptMessage extends WSMessage {
+  type: 'prompt.composite';
+  node_id?: string;
+  composite_prompt: {
+    base_prompt: string;
+    character_refs: string[];
+    style_refs: string[];
+    location_ref?: string;
+    emotional_keywords: string[];
+    agent_notes: Record<string, string>;
+  };
+}
+
+export interface NarrativeBeatMessage extends WSMessage {
+  type: 'narrative.beat';
+  beat_name: string;
+  scene_id: string;
+  keywords: string[];
 }
 
 export interface StructureEvent extends WSMessage {
@@ -1087,6 +1273,16 @@ export interface GitEvent extends WSMessage {
   function handleGenerate() {
     const client = getWebSocketClient();
     if (client && canGenerate) {
+      // Include filmmaking context
+      const context = {
+        scene_id: nodeData.scene_id,
+        shot_id: nodeData.shot_id,
+        emotional_beat: nodeData.emotional_beat,
+        character_refs: nodeData.selected_characters || [],
+        style_refs: nodeData.selected_styles || [],
+        location_ref: nodeData.selected_location
+      };
+      
       client.startGeneration(nodeId, {
         prompt: nodeData.prompt,
         negative_prompt: nodeData.negativePrompt,
@@ -1095,7 +1291,7 @@ export interface GitEvent extends WSMessage {
         steps: nodeData.steps,
         cfg_scale: nodeData.cfgScale,
         seed: nodeData.seed
-      });
+      }, context);
     }
   }
   
@@ -1142,6 +1338,168 @@ export interface GitEvent extends WSMessage {
     </div>
   </div>
 </NodeStateVisuals>
+```
+
+#### Agent Activity Monitor
+```svelte
+<!-- src/lib/components/AgentActivityMonitor.svelte -->
+<script lang="ts">
+  import { agentActivities, narrativeProgress } from '$stores/websocket';
+  
+  const agentIcons = {
+    Producer: '🎬',
+    Screenwriter: '✍️',
+    CastingDirector: '👥',
+    ArtDirector: '🎨',
+    Cinematographer: '📹',
+    SoundDesigner: '🎵',
+    Editor: '✂️'
+  };
+</script>
+
+<div class="agent-monitor">
+  <div class="narrative-status">
+    {#if $narrativeProgress.current_beat}
+      <div class="current-beat">
+        <span class="label">Current Beat:</span>
+        <span class="value">{$narrativeProgress.current_beat}</span>
+      </div>
+    {/if}
+    {#if $narrativeProgress.current_scene}
+      <div class="current-scene">
+        <span class="label">Scene:</span>
+        <span class="value">{$narrativeProgress.current_scene}</span>
+      </div>
+    {/if}
+  </div>
+  
+  <div class="agent-grid">
+    {#each Object.entries($agentActivities) as [agentType, activity]}
+      <div class="agent-card" class:active={activity.status === 'working'}>
+        <div class="agent-header">
+          <span class="agent-icon">{agentIcons[agentType]}</span>
+          <span class="agent-name">{agentType}</span>
+        </div>
+        
+        {#if activity.status === 'working'}
+          <div class="agent-task">
+            {activity.current_task}
+          </div>
+          <div class="agent-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: {activity.progress || 0}%"></div>
+            </div>
+          </div>
+          {#if activity.vram_usage}
+            <div class="vram-usage">
+              VRAM: {activity.vram_usage}GB
+            </div>
+          {/if}
+        {:else if activity.status === 'completed'}
+          <div class="agent-status completed">✓ Completed</div>
+        {:else}
+          <div class="agent-status idle">Idle</div>
+        {/if}
+      </div>
+    {/each}
+  </div>
+</div>
+
+<style>
+  .agent-monitor {
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+  
+  .narrative-status {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+  }
+  
+  .current-beat, .current-scene {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+  }
+  
+  .label {
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  
+  .agent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .agent-card {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+  
+  .agent-card.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.2);
+  }
+  
+  .agent-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .agent-icon {
+    font-size: 1.5rem;
+  }
+  
+  .agent-name {
+    font-weight: 600;
+  }
+  
+  .agent-task {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-bar {
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: var(--primary-color);
+    transition: width 0.3s ease;
+  }
+  
+  .vram-usage {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+  }
+  
+  .agent-status {
+    font-size: 0.875rem;
+  }
+  
+  .agent-status.completed {
+    color: var(--color-success);
+  }
+  
+  .agent-status.idle {
+    color: var(--text-secondary);
+  }
+</style>
 ```
 
 ## Dependencies

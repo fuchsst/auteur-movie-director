@@ -868,6 +868,7 @@ async def test_makefile_integration():
 - [ ] Verify backend health at http://localhost:8000/health
 - [ ] Check Redis connection with `docker-compose exec redis redis-cli ping`
 - [ ] Verify worker logs with `docker-compose logs worker`
+- [ ] Check agent endpoints at http://localhost:8000/api/v1/agents/*/capabilities
 
 ### Project Creation (Containerized)
 - [ ] Create project with short name (< 10 chars)
@@ -875,16 +876,24 @@ async def test_makefile_integration():
 - [ ] Create project with special characters (spaces, dashes)
 - [ ] Try to create duplicate project name
 - [ ] Create projects with each quality tier
+- [ ] Select narrative structure (three-act, hero-journey, etc.)
 - [ ] Verify project appears in shared volume
+- [ ] Check asset subdirectories created (Characters, Styles, Locations, Music)
+- [ ] Verify narrative structure in project.json
 
 ### File Operations (with Git LFS)
 - [ ] Upload single small file (< 1MB)
 - [ ] Upload single large file (> 50MB) - verify Git LFS
+- [ ] Upload character LoRA (.safetensors) - verify metadata extraction
+- [ ] Upload style model - check Art Director compatibility
+- [ ] Upload location HDR - verify environment detection
+- [ ] Upload music file - check BPM/mood extraction
+- [ ] Upload screenplay (.fountain) - verify Screenwriter compatibility
+- [ ] Upload beat sheet - check emotional beat detection
 - [ ] Upload multiple files at once
-- [ ] Upload video file (*.mp4) - check LFS pointer
-- [ ] Upload audio file (*.wav) - check LFS pointer
 - [ ] Cancel upload in progress
 - [ ] Verify files accessible across containers
+- [ ] Check assets routed to correct directories
 
 ### Cross-Container Testing
 - [ ] Create project in one browser, see it in another

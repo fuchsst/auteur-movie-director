@@ -7,7 +7,7 @@
 **Priority**: Medium  
 
 ## Story Description
-As a user, I need an intuitive drag-and-drop file upload interface so that I can easily add scripts, images, audio, AI models (LoRAs, checkpoints), control maps, and other assets to my project with visual feedback on upload progress. The system must automatically organize files according to the numbered directory structure, track large files with Git LFS, provide real-time progress updates via WebSocket/Celery integration, and capture metadata for future node-based connections.
+As a user, I need an intuitive drag-and-drop file upload interface so that I can easily add scripts, images, audio, AI models (LoRAs, checkpoints), control maps, and other assets to my project with visual feedback on upload progress. The system must automatically organize files according to the numbered directory structure, track large files with Git LFS, provide real-time progress updates via WebSocket/Celery integration, capture metadata for future node-based connections, and support the generative filmmaking pipeline by properly categorizing character LoRAs, style references, location assets, and creative documents.
 
 ## Acceptance Criteria
 
@@ -57,17 +57,23 @@ The component must understand the numbered directory structure and route files a
 
 ```typescript
 const DIRECTORY_MAPPING = {
+  // Creative documents (aligned with pipeline)
+  treatments: '02_Source_Creative/Treatments',
   scripts: '02_Source_Creative/Scripts',
-  characters: '01_Assets/Generative_Assets/Characters',
-  styles: '01_Assets/Generative_Assets/Styles', 
-  environments: '01_Assets/Environments',
-  audio: '01_Assets/Audio',
-  media: '01_Assets/Media',
-  models: '01_Assets/Models',
-  // AI-specific asset directories
-  loras: '01_Assets/Generative_Assets/Characters/LoRAs',
-  controlmaps: '01_Assets/Generative_Assets/ControlMaps',
-  checkpoints: '01_Assets/Models/Checkpoints'
+  shotlists: '02_Source_Creative/Shot_Lists',
+  beatsheets: '02_Source_Creative/Scripts',  // Emotional beat sheets
+  canvas: '02_Source_Creative/Canvas',
+  // Asset categories (aligned with pipeline)
+  characters: '01_Assets/Characters',
+  styles: '01_Assets/Styles',
+  locations: '01_Assets/Locations',
+  music: '01_Assets/Music',
+  // AI-specific subdirectories
+  loras: '01_Assets/Characters',  // Character LoRAs go with characters
+  stylemodels: '01_Assets/Styles',  // Style LoRAs/models
+  controlmaps: '01_Assets/Styles',  // Control maps for style guidance
+  // Project files
+  projectfiles: '04_Project_Files'
 };
 ```
 
@@ -96,17 +102,23 @@ const DIRECTORY_MAPPING = {
   let taskSubscriptions: Map<string, () => void> = new Map();
   
   const ALLOWED_EXTENSIONS: Record<AssetType, string[]> = {
-    scripts: ['.fdx', '.txt', '.md', '.fountain'],
-    characters: ['.json', '.yaml', '.png', '.jpg', '.safetensors', '.ckpt'],
-    styles: ['.jpg', '.png', '.webp', '.gif', '.safetensors', '.ckpt'],
-    environments: ['.hdr', '.exr', '.jpg', '.png'],
-    audio: ['.wav', '.mp3', '.ogg', '.m4a'],
-    media: ['.mp4', '.mov', '.webm', '.avi'],
-    models: ['.glb', '.gltf', '.usdz', '.fbx'],
-    // AI-specific asset types
+    // Creative documents
+    treatments: ['.md', '.txt', '.docx', '.pdf'],
+    scripts: ['.fountain', '.fdx', '.txt', '.md'],
+    shotlists: ['.json', '.csv', '.xlsx'],
+    beatsheets: ['.json', '.yaml', '.csv'],
+    canvas: ['.json'],  // Node graph saves
+    // Asset categories (aligned with pipeline)
+    characters: ['.safetensors', '.ckpt', '.pt', '.json', '.yaml', '.png', '.jpg'],
+    styles: ['.safetensors', '.ckpt', '.jpg', '.png', '.webp'],
+    locations: ['.hdr', '.exr', '.jpg', '.png', '.json'],
+    music: ['.wav', '.mp3', '.ogg', '.flac', '.m4a'],
+    // AI-specific
     loras: ['.safetensors', '.ckpt', '.pt'],
+    stylemodels: ['.safetensors', '.ckpt'],
     controlmaps: ['.png', '.jpg', '.exr', '.tiff'],
-    checkpoints: ['.safetensors', '.ckpt']
+    // Project files
+    projectfiles: ['.blend', '.ma', '.mb', '.c4d', '.hip']
   };
   
   const LFS_EXTENSIONS = [
@@ -209,45 +221,110 @@ const DIRECTORY_MAPPING = {
     return true;
   }
   
-  // Extract metadata for AI assets to support node connections
+  // Extract metadata for AI assets to support node connections and filmmaking pipeline
   function extractAssetMetadata(file: File, type: AssetType): Record<string, any> {
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     const metadata: Record<string, any> = {
       originalName: file.name,
       fileSize: file.size,
       mimeType: file.type || 'application/octet-stream',
-      fileExtension: ext
+      fileExtension: ext,
+      uploadedAt: new Date().toISOString()
     };
     
-    // Add asset-specific metadata
-    if (type === 'loras' || type === 'checkpoints') {
-      metadata.modelType = ext === '.safetensors' ? 'safetensors' : 'checkpoint';
-      metadata.isAIModel = true;
-      // Extract model info from filename if follows common patterns
-      const loraMatch = file.name.match(/(.+?)[-_]v?(\d+\.?\d*)[-_]?(\d+)?/i);
-      if (loraMatch) {
-        metadata.modelName = loraMatch[1];
-        metadata.version = loraMatch[2];
-        metadata.steps = loraMatch[3] || null;
+    // Character assets (including LoRAs)
+    if (type === 'characters' || type === 'loras') {
+      metadata.assetCategory = 'character';
+      metadata.isAIModel = ext === '.safetensors' || ext === '.ckpt' || ext === '.pt';
+      
+      // Extract character info from filename patterns
+      const characterMatch = file.name.match(/(.+?)[-_]v?(\d+\.?\d*)[-_]?(\d+)?/i);
+      if (characterMatch) {
+        metadata.characterName = characterMatch[1];
+        metadata.version = characterMatch[2];
+        metadata.trainingSteps = characterMatch[3] || null;
+      }
+      
+      // Extract trigger word from filename if present
+      const triggerMatch = file.name.match(/\[(.+?)\]/);  // e.g., hero_v1.5[hero_character].safetensors
+      if (triggerMatch) {
+        metadata.triggerWord = triggerMatch[1];
+      }
+      
+      metadata.supportsCompositePrompts = true;
+      metadata.agentCompatible = ['CastingDirector'];
+    }
+    
+    // Style assets (including style LoRAs)
+    if (type === 'styles' || type === 'stylemodels') {
+      metadata.assetCategory = 'style';
+      metadata.isAIModel = ext === '.safetensors' || ext === '.ckpt';
+      metadata.canBeReference = true;
+      
+      // Detect style type from filename
+      const styleTypes = ['cinematic', 'anime', 'realistic', 'painterly', 'abstract'];
+      const detectedStyle = styleTypes.find(s => file.name.toLowerCase().includes(s));
+      metadata.styleType = detectedStyle || 'general';
+      
+      metadata.supportsCompositePrompts = true;
+      metadata.agentCompatible = ['ArtDirector'];
+    }
+    
+    // Location assets
+    if (type === 'locations') {
+      metadata.assetCategory = 'location';
+      metadata.isEnvironment = ext === '.hdr' || ext === '.exr';
+      metadata.is360 = file.name.toLowerCase().includes('360') || file.name.toLowerCase().includes('spherical');
+      metadata.supportsCompositePrompts = true;
+      metadata.agentCompatible = ['ArtDirector', 'Cinematographer'];
+    }
+    
+    // Music assets
+    if (type === 'music') {
+      metadata.assetCategory = 'music';
+      // Extract BPM from filename if present
+      const bpmMatch = file.name.match(/(\d+)bpm/i);
+      if (bpmMatch) {
+        metadata.bpm = parseInt(bpmMatch[1]);
+      }
+      // Extract mood/genre from filename
+      const moods = ['dramatic', 'upbeat', 'sad', 'tense', 'romantic', 'action'];
+      const detectedMood = moods.find(m => file.name.toLowerCase().includes(m));
+      metadata.mood = detectedMood || 'neutral';
+      metadata.agentCompatible = ['SoundDesigner'];
+    }
+    
+    // Creative documents
+    if (type === 'scripts' || type === 'treatments' || type === 'beatsheets') {
+      metadata.assetCategory = 'creative_document';
+      metadata.documentType = type;
+      metadata.agentCompatible = ['Screenwriter', 'Producer'];
+      
+      // Detect if it's an emotional beat sheet
+      if (file.name.toLowerCase().includes('beat') || file.name.toLowerCase().includes('emotion')) {
+        metadata.hasEmotionalBeats = true;
       }
     }
     
+    if (type === 'shotlists') {
+      metadata.assetCategory = 'creative_document';
+      metadata.documentType = 'shot_list';
+      metadata.agentCompatible = ['Cinematographer', 'Producer'];
+    }
+    
+    if (type === 'canvas') {
+      metadata.assetCategory = 'project_file';
+      metadata.documentType = 'node_graph';
+      metadata.canRestore = true;
+    }
+    
+    // Control maps
     if (type === 'controlmaps') {
-      // Detect control map type from filename
-      const mapTypes = ['depth', 'canny', 'openpose', 'normal', 'seg'];
+      const mapTypes = ['depth', 'canny', 'openpose', 'normal', 'seg', 'mlsd', 'scribble'];
       const detectedType = mapTypes.find(t => file.name.toLowerCase().includes(t));
       metadata.controlType = detectedType || 'unknown';
       metadata.requiresPreprocessing = false;
-    }
-    
-    if (type === 'styles') {
-      metadata.canBeReference = true;
-      metadata.supportsLora = ext === '.safetensors' || ext === '.ckpt';
-    }
-    
-    if (type === 'characters') {
-      metadata.assetCategory = 'character';
-      metadata.supportsMultipleVersions = true;
+      metadata.agentCompatible = ['Cinematographer'];
     }
     
     return metadata;
@@ -400,15 +477,33 @@ const DIRECTORY_MAPPING = {
         Files will be uploaded to: {getTargetDirectory()}
       </p>
       
-      {#if assetType === 'loras' || assetType === 'checkpoints'}
+      {#if assetType === 'characters' || assetType === 'loras'}
         <p class="asset-hint">
-          💡 AI models will be available in Text-to-Image nodes
+          💡 Character assets will be managed by the Casting Director agent
+        </p>
+      {/if}
+      
+      {#if assetType === 'styles' || assetType === 'stylemodels'}
+        <p class="asset-hint">
+          💡 Style references will be curated by the Art Director agent
+        </p>
+      {/if}
+      
+      {#if assetType === 'locations'}
+        <p class="asset-hint">
+          💡 Location assets define the environments for your scenes
+        </p>
+      {/if}
+      
+      {#if assetType === 'scripts' || assetType === 'beatsheets'}
+        <p class="asset-hint">
+          💡 Creative documents guide the narrative structure and emotional beats
         </p>
       {/if}
       
       {#if assetType === 'controlmaps'}
         <p class="asset-hint">
-          💡 Control maps enable precise image generation guidance
+          💡 Control maps enable precise cinematographic guidance
         </p>
       {/if}
     </div>
@@ -436,9 +531,29 @@ const DIRECTORY_MAPPING = {
                   {upload.metadata.modelType}
                 </span>
               {/if}
+              {#if upload.metadata?.triggerWord}
+                <span class="trigger-badge" title="Trigger Word">
+                  [{upload.metadata.triggerWord}]
+                </span>
+              {/if}
+              {#if upload.metadata?.styleType}
+                <span class="style-badge" title="Style Type">
+                  {upload.metadata.styleType}
+                </span>
+              {/if}
               {#if upload.metadata?.controlType && upload.metadata.controlType !== 'unknown'}
                 <span class="control-badge" title="Control Map Type">
                   {upload.metadata.controlType}
+                </span>
+              {/if}
+              {#if upload.metadata?.mood}
+                <span class="mood-badge" title="Music Mood">
+                  {upload.metadata.mood}
+                </span>
+              {/if}
+              {#if upload.metadata?.hasEmotionalBeats}
+                <span class="beats-badge" title="Contains Emotional Beats">
+                  Beats
                 </span>
               {/if}
               {#if upload.targetPath}
@@ -596,9 +711,7 @@ const DIRECTORY_MAPPING = {
     font-size: 0.75rem;
   }
   
-  .model-badge, .control-badge {
-    background: var(--accent-color);
-    color: white;
+  .model-badge, .control-badge, .trigger-badge, .style-badge, .mood-badge, .beats-badge {
     padding: 0.125rem 0.375rem;
     border-radius: 3px;
     font-size: 0.75rem;
@@ -606,8 +719,36 @@ const DIRECTORY_MAPPING = {
     text-transform: uppercase;
   }
   
+  .model-badge {
+    background: var(--accent-color);
+    color: white;
+  }
+  
   .control-badge {
     background: var(--secondary-color);
+    color: white;
+  }
+  
+  .trigger-badge {
+    background: var(--primary-color);
+    color: white;
+    font-family: monospace;
+    text-transform: none;
+  }
+  
+  .style-badge {
+    background: var(--tertiary-color);
+    color: white;
+  }
+  
+  .mood-badge {
+    background: var(--info-color);
+    color: white;
+  }
+  
+  .beats-badge {
+    background: var(--warning-color);
+    color: var(--text-dark);
   }
   
   .asset-hint {
@@ -667,6 +808,11 @@ export async function uploadFiles(
   });
   formData.append('metadata', JSON.stringify(metadata));
   
+  // Include context for agent processing if applicable
+  if (metadata.some(m => m.agentCompatible?.length > 0)) {
+    formData.append('notify_agents', 'true');
+  }
+  
   const xhr = new XMLHttpRequest();
   
   return new Promise((resolve, reject) => {
@@ -715,20 +861,43 @@ export interface AssetMetadata {
   fileSize: number;
   mimeType: string;
   fileExtension: string;
+  uploadedAt: string;
+  assetCategory: 'character' | 'style' | 'location' | 'music' | 'creative_document' | 'project_file';
+  
+  // Character specific (including LoRAs)
+  characterName?: string;
+  triggerWord?: string;  // For LoRA activation
+  trainingSteps?: number;
+  
   // AI Model specific
-  modelType?: 'safetensors' | 'checkpoint' | 'lora';
   isAIModel?: boolean;
-  modelName?: string;
+  modelType?: 'safetensors' | 'checkpoint' | 'lora';
   version?: string;
-  steps?: number;
+  
+  // Style specific
+  styleType?: 'cinematic' | 'anime' | 'realistic' | 'painterly' | 'abstract' | 'general';
+  
+  // Location specific
+  isEnvironment?: boolean;
+  is360?: boolean;
+  
+  // Music specific
+  bpm?: number;
+  mood?: 'dramatic' | 'upbeat' | 'sad' | 'tense' | 'romantic' | 'action' | 'neutral';
+  
+  // Creative document specific
+  documentType?: 'treatment' | 'script' | 'shot_list' | 'beat_sheet' | 'node_graph';
+  hasEmotionalBeats?: boolean;
+  
   // Control map specific
-  controlType?: 'depth' | 'canny' | 'openpose' | 'normal' | 'seg' | 'unknown';
+  controlType?: 'depth' | 'canny' | 'openpose' | 'normal' | 'seg' | 'mlsd' | 'scribble' | 'unknown';
   requiresPreprocessing?: boolean;
-  // Style/Character specific
+  
+  // Pipeline integration
+  supportsCompositePrompts?: boolean;
+  agentCompatible?: string[];  // Which agents can use this asset
   canBeReference?: boolean;
-  supportsLora?: boolean;
-  assetCategory?: string;
-  supportsMultipleVersions?: boolean;
+  canRestore?: boolean;  // For canvas saves
 }
 
 export interface CeleryTask {
@@ -780,27 +949,49 @@ export interface AssetReference {
   };
 }
 
-// Asset compatibility mapping for nodes
+// Asset compatibility mapping for nodes and agents
 export const ASSET_NODE_COMPATIBILITY = {
-  loras: {
-    canConnectTo: ['text-to-image', 'image-to-image', 'character-generator'],
-    outputType: 'model-modifier'
+  characters: {
+    canConnectTo: ['text-to-image', 'image-to-image', 'character-consistency'],
+    outputType: 'character-reference',
+    agentOwner: 'CastingDirector',
+    compositePromptField: 'character_refs'
   },
-  checkpoints: {
-    canConnectTo: ['text-to-image', 'image-to-image'],
-    outputType: 'base-model'
+  styles: {
+    canConnectTo: ['text-to-image', 'style-transfer', 'image-to-image'],
+    outputType: 'style-reference',
+    agentOwner: 'ArtDirector',
+    compositePromptField: 'style_refs'
+  },
+  locations: {
+    canConnectTo: ['text-to-image', 'environment-generator'],
+    outputType: 'location-reference',
+    agentOwner: 'ArtDirector',
+    compositePromptField: 'location_ref'
+  },
+  music: {
+    canConnectTo: ['audio-generator', 'music-composer'],
+    outputType: 'audio-reference',
+    agentOwner: 'SoundDesigner',
+    compositePromptField: 'music_ref'
   },
   controlmaps: {
     canConnectTo: ['controlnet', 'text-to-image'],
-    outputType: 'control-conditioning'
+    outputType: 'control-conditioning',
+    agentOwner: 'Cinematographer',
+    compositePromptField: 'control_ref'
   },
-  styles: {
-    canConnectTo: ['text-to-image', 'style-transfer'],
-    outputType: 'style-reference'
+  scripts: {
+    canConnectTo: ['script-analyzer', 'prompt-generator'],
+    outputType: 'narrative-reference',
+    agentOwner: 'Screenwriter',
+    compositePromptField: null  // Not directly used in prompts
   },
-  characters: {
-    canConnectTo: ['character-generator', 'text-to-image'],
-    outputType: 'character-definition'
+  beatsheets: {
+    canConnectTo: ['emotion-analyzer', 'prompt-enhancer'],
+    outputType: 'emotional-reference',
+    agentOwner: 'Screenwriter',
+    compositePromptField: 'emotional_keywords'
   }
 };
 ```

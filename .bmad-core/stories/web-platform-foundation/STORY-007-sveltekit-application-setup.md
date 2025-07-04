@@ -457,15 +457,32 @@ PORT=3000
 ```typescript
 // src/lib/types/index.ts
 
-// Hierarchical project structure
+// Hierarchical project structure (aligned with filmmaking pipeline)
 export interface Project {
   id: string;
   name: string;
   created: string;
   modified: string;
   quality: 'low' | 'standard' | 'high';
-  chapters: Chapter[];
+  narrative: {
+    structure: 'three-act' | 'hero-journey' | 'beat-sheet' | 'story-circle';
+    chapters: Chapter[];
+    emotionalBeats?: EmotionalBeat[];
+  };
+  assets: {
+    characters: Asset[];
+    styles: Asset[];
+    locations: Asset[];
+    music: Asset[];
+  };
   settings: ProjectSettings;
+}
+
+export interface EmotionalBeat {
+  id: string;
+  beat: string;  // e.g., "Catalyst", "All Is Lost"
+  sceneId: string;
+  keywords: string[];  // Mood keywords for prompting
 }
 
 export interface Chapter {
@@ -505,16 +522,32 @@ export interface TakeMetadata {
   generatedAt: string;
 }
 
-// Asset types
+// Asset types (aligned with generative pipeline)
 export interface Asset {
   id: string;
   name: string;
   category: AssetCategory;
+  path: string;
   preview?: string;
+  metadata: Record<string, any>;
+  // For composite prompts
+  triggerWord?: string;  // For LoRA models
+  keywords?: string[];   // For style assets
+}
+
+export type AssetCategory = 'characters' | 'styles' | 'locations' | 'music';
+
+// Creative documents
+export interface CreativeDocument {
+  id: string;
+  type: CreativeDocType;
+  name: string;
+  path: string;
+  content?: string;
   metadata: Record<string, any>;
 }
 
-export type AssetCategory = 'locations' | 'characters' | 'music' | 'styles';
+export type CreativeDocType = 'treatment' | 'screenplay' | 'beat-sheet' | 'shot-list';
 
 // UI state types
 export interface PanelSizes {

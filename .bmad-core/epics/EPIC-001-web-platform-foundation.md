@@ -1,14 +1,14 @@
 # Epic: Web Platform Foundation
 
 ## Epic Description
-Establish the foundational web-based platform architecture for the Generative Media Studio, transforming AI-powered film production into a browser-accessible creative tool. This epic focuses on building a simple, working local development system with SvelteKit frontend and FastAPI backend, implementing file-based project management and preparing the infrastructure for the Function Runner pattern.
+Establish the foundational web-based platform architecture for the Auteur Movie Director, enabling the systematic translation of creative vision into AI-executable instructions. This epic focuses on building a simple, working local development system with SvelteKit frontend and FastAPI backend, implementing file-based project management that supports the hierarchical filmmaking structure (Project → Chapter → Scene → Shot → Take), and preparing the infrastructure for the Function Runner pattern that will execute the generative pipeline.
 
 ## Business Value
-- **Immediate Accessibility**: Browser-based interface removes installation barriers
-- **Professional Workflow**: Git-based project management enables version control
-- **Extensible Foundation**: Function Runner pattern allows easy AI model integration
-- **Developer Velocity**: Simple architecture enables rapid feature development
-- **Future-Ready**: Clean separation prepares for cloud deployment when needed
+- **Creative Translation**: Systematic framework for converting narrative concepts into machine-executable instructions
+- **Professional Workflow**: Git-based project management with Takes system enables non-destructive iteration
+- **Modular Control**: Separation of concerns for character identity, aesthetic language, narrative action, and emotional tone
+- **Collaborative Foundation**: Prepares for multi-agent creative workflows (Producer, Screenwriter, Art Director, etc.)
+- **Extensible Architecture**: Function Runner pattern allows integration of diverse AI models for each creative task
 
 ## Scope & Boundaries
 
@@ -31,6 +31,8 @@ Establish the foundational web-based platform architecture for the Generative Me
 - Hierarchical project structure (Project → Chapter → Scene → Shot → Take)
 - Basic project CRUD operations (create, read, update, delete)
 - Asset management system with categories (Locations, Characters, Music, Styles)
+- Support for narrative structure templates (Three-Act, Hero's Journey, etc.)
+- Creative asset types foundation (Treatment, Screenplay, Emotional Beat Sheet, Shot List)
 - WebSocket connection for real-time updates with typed events
 - Simple user session management (local development)
 - Project manifest (project.json) handling
@@ -62,19 +64,21 @@ Establish the foundational web-based platform architecture for the Generative Me
 
 ### Functional Criteria
 - [ ] Three-panel layout displays correctly with resizable boundaries
-- [ ] User can create a new project with name and quality tier
+- [ ] User can create a new project with name, quality tier, and narrative structure
 - [ ] Projects are created in correct workspace directory structure
 - [ ] Project directories follow numbered folder structure (01_Assets through 06_Exports)
 - [ ] Project Browser shows hierarchical tree (Project/Chapter/Scene/Shot/Take)
 - [ ] Asset Browser displays categorized assets (Locations, Characters, Music, Styles)
-- [ ] Project manifest (project.json) saves/loads correctly
-- [ ] Files can be uploaded to project assets folder
-- [ ] Asset abstraction hides file complexity from users
+- [ ] Project manifest (project.json) saves/loads correctly with narrative metadata
+- [ ] Files can be uploaded to appropriate asset category folders
+- [ ] Asset abstraction supports Character, Location, Style, and Music types
+- [ ] Creative documents (treatments, scripts, shot lists) can be created and stored
+- [ ] Takes system creates versioned outputs (e.g., S01_S01_take01.png)
 - [ ] WebSocket connects and maintains connection
 - [ ] File changes trigger real-time UI updates in all panels
 - [ ] Projects initialize as Git repositories with proper .gitignore and .gitattributes
 - [ ] Git LFS properly configured for all media file types
-- [ ] Properties Inspector updates based on selection
+- [ ] Properties Inspector updates based on selection type
 - [ ] Progress Area shows task status and notifications
 - [ ] Celery workers process async generation tasks
 - [ ] Redis maintains task queue persistence
@@ -145,10 +149,12 @@ Establish the foundational web-based platform architecture for the Generative Me
    - Configure environment variables
    - Document development workflow
 
-2. **Project Structure Definition** (3 points)
+2. **Project Structure Definition** (5 points)
    - Implement workspace/project directory creation
-   - Define project.json schema
+   - Define project.json schema with narrative support
    - Create Git initialization for projects
+   - Add narrative structure templates
+   - Support creative document organization
 
 ### Backend Stories
 3. **FastAPI Application Bootstrap** (3 points)
@@ -263,18 +269,27 @@ Establish the foundational web-based platform architecture for the Generative Me
     - Configure worker for container orchestration readiness
     - Add model storage directory structure
 
+22. **Takes System Implementation** (3 points)
+    - Create deterministic take naming system
+    - Implement non-destructive output versioning
+    - Add takes gallery data structure
+    - Support active take selection
+    - Integrate with Git LFS for media storage
+
 ## Estimated Effort
-**Total Story Points**: 73 points (updated with Function Runner foundation)
-**Estimated Duration**: 3-4 sprints (6-8 weeks)
+**Total Story Points**: 78 points (includes narrative structure and Takes system)
+**Estimated Duration**: 4 sprints (8 weeks)
 **Team Size**: 2 developers (1 frontend, 1 backend)
 
 ## Success Metrics
-- Projects created successfully with correct structure
-- WebSocket maintains stable connection
-- File uploads complete without errors
-- Git repositories initialize properly
+- Projects created with narrative structure and correct directory layout
+- Creative assets (Characters, Locations, Styles) properly categorized
+- Takes system generates versioned outputs without overwrites
+- WebSocket maintains stable connection for real-time updates
+- File uploads route to appropriate asset categories
+- Git repositories initialize with LFS for media files
 - API responds quickly (< 200ms local)
-- UI updates reflect file changes
+- UI reflects hierarchical project structure (Chapter → Scene → Shot → Take)
 
 ## Technical Architecture Notes
 
@@ -425,6 +440,28 @@ interface AssetAddedEvent {
   category: 'locations' | 'characters' | 'music' | 'styles';
   asset: AssetData;
 }
+
+// Creative Workflow Events
+interface NarrativeStructureChangedEvent {
+  type: 'narrative_structure_changed';
+  projectId: string;
+  structure: 'three-act' | 'hero-journey' | 'beat-sheet' | 'story-circle';
+}
+
+interface CreativeDocumentUpdatedEvent {
+  type: 'creative_document_updated';
+  projectId: string;
+  documentType: 'treatment' | 'screenplay' | 'beat-sheet' | 'shot-list';
+  path: string;
+}
+
+interface TakeCreatedEvent {
+  type: 'take_created';
+  nodeId: string;
+  shotId: string;
+  takePath: string;
+  takeNumber: number;
+}
 ```
 
 ### Project.json Schema
@@ -434,6 +471,17 @@ interface AssetAddedEvent {
   "name": "My Film Project",
   "created": "2025-01-02T10:00:00Z",
   "quality": "standard",
+  "narrative": {
+    "structure": "three-act",  // or "hero-journey", "beat-sheet", "story-circle"
+    "chapters": [],
+    "emotionalBeats": []
+  },
+  "assets": {
+    "characters": [],
+    "locations": [],
+    "styles": [],
+    "music": []
+  },
   "canvas": {
     "nodes": [],
     "edges": [],
@@ -441,7 +489,8 @@ interface AssetAddedEvent {
   },
   "settings": {
     "fps": 24,
-    "resolution": [1920, 1080]
+    "resolution": [1920, 1080],
+    "aspectRatio": "16:9"
   }
 }
 ```
@@ -553,52 +602,73 @@ make up-with-comfyui    # Start with ComfyUI model
 
 ### Project Directory Structure
 ```
-/Generative_Studio_Workspace/
+/Auteur_Workspace/
 ├── Projects/
 │   └── MyFilm/
-│       ├── project.json         # Project manifest
+│       ├── project.json         # Project manifest with narrative structure
 │       ├── .git/                # Version control
 │       ├── .gitignore           # Ignore patterns
 │       ├── .gitattributes       # LFS configuration
 │       ├── 01_Assets/           # Source materials
-│       ├── 02_Source_Creative/  # Canvas saves & scripts
-│       ├── 03_Renders/          # Generated content
+│       │   ├── Characters/      # Character references
+│       │   ├── Locations/       # Location references
+│       │   ├── Music/           # Music tracks
+│       │   └── Styles/          # Style references
+│       ├── 02_Source_Creative/  # Creative documents
+│       │   ├── Treatments/      # Story treatments
+│       │   ├── Scripts/         # Screenplays & beat sheets
+│       │   ├── ShotLists/       # Generative shot lists
+│       │   └── Canvas/          # Node graph saves
+│       ├── 03_Renders/          # Generated content (Takes)
+│       │   └── Chapter_01/
+│       │       └── Scene_01/
+│       │           └── Shot_01/
+│       │               ├── S01_S01_take01.png
+│       │               └── S01_S01_take02.png
 │       ├── 04_Project_Files/    # External app files
 │       ├── 05_Cache/            # Temporary (ignored)
 │       └── 06_Exports/          # Final deliverables
 └── Library/                     # Workspace-level assets
-    ├── Pipeline_Templates/
-    ├── Stock_Media/
-    ├── Characters/
-    ├── Styles/
-    ├── Locations/
+    ├── Narrative_Templates/     # Story structure templates
+    ├── Pipeline_Templates/      # Workflow presets
+    ├── Stock_Media/            # Reusable media
     └── AI_Models/              # Model storage (Function Runner prep)
 ```
 
 ### Function Runner Foundation
-The platform architecture is designed to support the Function Runner pattern for AI model execution:
+The platform architecture is designed to support the Function Runner pattern for AI model execution, enabling the systematic translation of creative intent into machine-executable instructions:
 
 #### Task Dispatcher Architecture
 ```python
 # Dispatcher service maps quality settings to pipeline configurations
 QUALITY_PIPELINE_MAPPING = {
     "low": {
-        "pipeline_id": "gms-flux:1.0-low-vram",
+        "pipeline_id": "auteur-flux:1.0-draft",
         "target_vram": 12,
-        "optimizations": ["cpu_offloading", "sequential"]
+        "optimizations": ["cpu_offloading", "sequential"],
+        "use_case": "rapid iteration and previz"
     },
     "standard": {
-        "pipeline_id": "gms-flux:1.0-standard",
+        "pipeline_id": "auteur-flux:1.0-standard",
         "target_vram": 16,
-        "optimizations": ["moderate_parallel"]
+        "optimizations": ["moderate_parallel"],
+        "use_case": "production quality"
     },
     "high": {
-        "pipeline_id": "gms-flux:1.0-high-fidelity",
+        "pipeline_id": "auteur-flux:1.0-cinematic",
         "target_vram": 24,
-        "optimizations": ["full_parallel"]
+        "optimizations": ["full_parallel"],
+        "use_case": "final renders"
     }
 }
 ```
+
+#### Composite Prompt Assembly
+The system supports multi-modal instruction sets composed of:
+- **Direct Instructions**: Text prompts with shot descriptions
+- **Identity Instructions**: Character asset references (future LoRA integration)
+- **Aesthetic Instructions**: Style asset references with visual keywords
+- **Context Instructions**: Scene and emotional beat metadata
 
 #### Celery Task Structure
 ```python
@@ -621,7 +691,7 @@ def execute_generation(node_id: str, project_id: str, parameters: dict):
 
 ---
 
-**Epic Version**: 1.3  
+**Epic Version**: 1.4  
 **Created**: 2025-01-02  
 **Updated**: 2025-01-03  
 **Owner**: Auteur Movie Director Development Team  

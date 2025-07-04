@@ -38,26 +38,28 @@ workspace/                    # Two-tier hierarchy root
     ├── .gitattributes       # Auto-generated LFS tracking rules
     ├── project.json         # Project manifest (source of truth)
     ├── 01_Assets/           # Source materials (numbered for consistency)
-    │   ├── Scripts/         # Screenplay files (.fountain, .md)
     │   ├── Characters/      # Character definitions & LoRAs
-    │   ├── Styles/          # Visual style references
-    │   ├── Environments/    # Location assets & references
-    │   └── Audio/           # Sound effects & music
-    ├── 02_Generated/        # AI-generated content
-    │   ├── Images/          # Generated frames & stills
-    │   ├── Videos/          # Generated video clips
-    │   ├── Audio/           # Generated dialogue & sounds
-    │   └── Metadata/        # Generation parameters & logs
-    ├── 03_Takes/            # Version history (non-destructive)
-    │   └── {timestamp}/     # Timestamped snapshots
-    ├── 04_Previews/         # Working previews
-    │   ├── Dailies/         # Low-res daily outputs
-    │   └── Rough_Cuts/      # Assembly edits
-    ├── 05_Production/       # Production workspace
-    │   ├── Scenes/          # Scene organization
-    │   ├── Shots/           # Shot breakdowns
-    │   └── Timelines/       # Edit timelines
-    └── 06_Exports/          # Final deliverables
+    │   ├── Styles/          # Visual style references  
+    │   ├── Locations/       # Environment assets & references
+    │   ├── Music/           # Music tracks & themes
+    │   └── Scripts/         # Reference materials
+    ├── 02_Source_Creative/  # Creative documents
+    │   ├── Treatments/      # Story treatments & outlines
+    │   ├── Scripts/         # Screenplays (.fountain) & beat sheets
+    │   ├── Shot_Lists/      # Generative shot lists (Table 3)
+    │   └── Canvas/          # Node graph saves
+    ├── 03_Renders/          # Generated content (Takes system)
+    │   └── {Chapter}/       # Hierarchical organization
+    │       └── {Scene}/     # Project->Chapter->Scene->Shot->Take
+    │           └── {Shot}/  # Individual shot outputs
+    │               └── {Shot_ID}_take{N}.{ext}  # Non-destructive takes
+    ├── 04_Project_Files/    # External application files
+    │   ├── ComfyUI/         # ComfyUI workflows
+    │   ├── Blender/         # 3D project files
+    │   └── DaVinci/         # Edit project files
+    ├── 05_Cache/            # Temporary data (git-ignored)
+    │   └── Models/          # Downloaded AI models
+    └── 06_Exports/          # Final deliverables (git-ignored)
         ├── EDL/             # Edit decision lists
         ├── Masters/         # Final renders
         └── Deliverables/    # Distribution formats
@@ -75,7 +77,29 @@ interface ProjectManifest {
   created: string;      // ISO 8601 timestamp
   modified: string;     // ISO 8601 timestamp
   version: string;      // Schema version (1.0.0)
-  quality: 'draft' | 'standard' | 'premium';
+  quality: 'low' | 'standard' | 'high';  // Maps to pipeline configurations
+  
+  narrative: {
+    structure: 'three-act' | 'hero-journey' | 'beat-sheet' | 'story-circle';
+    chapters: Array<{
+      id: string;
+      name: string;
+      order: number;
+      scenes: string[];  // Scene IDs
+    }>;
+    emotionalBeats?: Array<{
+      beat: string;     // e.g., "Catalyst", "All Is Lost"
+      sceneId: string;
+      keywords: string[];  // Mood keywords for prompting
+    }>;
+  };
+  
+  assets: {
+    characters: AssetReference[];
+    styles: AssetReference[];
+    locations: AssetReference[];
+    music: AssetReference[];
+  };
   
   settings: {
     fps: number;        // Default 24
@@ -97,7 +121,16 @@ interface ProjectManifest {
     gitCommit?: string;
     lastExport?: string;
     totalFrames?: number;
+    activeTakes?: Record<string, string>;  // nodeId -> takeId mapping
   };
+}
+
+interface AssetReference {
+  id: string;
+  name: string;
+  type: 'character' | 'style' | 'location' | 'music';
+  path: string;  // Relative to project root
+  metadata?: Record<string, any>;
 }
 ```
 
@@ -107,40 +140,50 @@ interface ProjectManifest {
 class WorkspaceService:
     # Numbered directories as API contract
     REQUIRED_STRUCTURE = [
-        "01_Assets/Scripts",
         "01_Assets/Characters",
         "01_Assets/Styles",
-        "01_Assets/Environments",
-        "01_Assets/Audio",
-        "02_Generated/Images",
-        "02_Generated/Videos",
-        "02_Generated/Audio",
-        "02_Generated/Metadata",
-        "03_Takes",
-        "04_Previews/Dailies",
-        "04_Previews/Rough_Cuts",
-        "05_Production/Scenes",
-        "05_Production/Shots",
-        "05_Production/Timelines",
+        "01_Assets/Locations",
+        "01_Assets/Music",
+        "01_Assets/Scripts",
+        "02_Source_Creative/Treatments",
+        "02_Source_Creative/Scripts",
+        "02_Source_Creative/Shot_Lists",
+        "02_Source_Creative/Canvas",
+        "03_Renders",  # Dynamic chapter/scene/shot hierarchy
+        "04_Project_Files/ComfyUI",
+        "04_Project_Files/Blender",
+        "04_Project_Files/DaVinci",
+        "05_Cache/Models",
         "06_Exports/EDL",
         "06_Exports/Masters",
         "06_Exports/Deliverables"
     ]
     
-    def create_project_structure(self, project_name: str) -> Path:
-        """Create enforced project directory structure"""
+    # Narrative structure templates
+    NARRATIVE_STRUCTURES = {
+        "three-act": ["Act I: Setup", "Act II: Confrontation", "Act III: Resolution"],
+        "hero-journey": ["Ordinary World", "Call to Adventure", "Ordeal", "Return"],
+        "beat-sheet": ["Opening Image", "Catalyst", "Midpoint", "All Is Lost", "Finale"],
+        "story-circle": ["You", "Need", "Go", "Search", "Find", "Take", "Return", "Change"]
+    }
+    
+    def create_project_structure(self, project_name: str, narrative_structure: str) -> Path:
+        """Create enforced project directory structure with narrative framework"""
         
     def initialize_git_with_lfs(self, project_path: Path) -> None:
         """Initialize Git repository with LFS and .gitattributes template"""
         
     def generate_gitattributes(self, project_path: Path) -> None:
-        """Generate .gitattributes with proper LFS tracking rules"""
+        """Generate .gitattributes with proper LFS tracking rules for media files"""
         
     def validate_structure(self, project_path: Path) -> bool:
         """Validate project structure integrity (breaking change detection)"""
         
     def create_project_manifest(self, project_path: Path, config: dict) -> None:
-        """Create and save project.json as source of truth"""
+        """Create and save project.json with narrative structure as source of truth"""
+        
+    def create_hierarchical_path(self, chapter: str, scene: str, shot: str) -> Path:
+        """Generate Takes system path: 03_Renders/{chapter}/{scene}/{shot}/"""
 ```
 
 ### Makefile Integration

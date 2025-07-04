@@ -179,18 +179,39 @@ class Settings(BaseSettings):
     ws_heartbeat_interval: int = 30  # seconds
     ws_message_queue_size: int = 100
     
-    # Quality Settings
+    # Quality Settings (aligned with generative pipeline)
     quality_presets: Dict[str, Dict] = {
-        "draft": {"steps": 10, "resolution": "512x512"},
-        "standard": {"steps": 20, "resolution": "1024x1024"},
-        "high": {"steps": 30, "resolution": "1536x1536"},
-        "ultra": {"steps": 50, "resolution": "2048x2048"}
+        "low": {
+            "pipeline_id": "auteur-flux:1.0-draft",
+            "target_vram": 12,
+            "steps": 10,
+            "resolution": "512x512",
+            "use_case": "rapid iteration and previz"
+        },
+        "standard": {
+            "pipeline_id": "auteur-flux:1.0-standard", 
+            "target_vram": 16,
+            "steps": 20,
+            "resolution": "1024x1024",
+            "use_case": "production quality"
+        },
+        "high": {
+            "pipeline_id": "auteur-flux:1.0-cinematic",
+            "target_vram": 24,
+            "steps": 30,
+            "resolution": "1920x1080",
+            "use_case": "final renders"
+        }
     }
     default_quality: str = "standard"
     
     # Task Dispatcher
     task_timeout: int = 300  # 5 minutes
     max_concurrent_tasks: int = 3
+    
+    # Future: Multi-agent settings
+    enable_crew_ai: bool = False
+    crew_orchestrator_url: Optional[str] = None
     
     # Logging
     log_level: str = "INFO"
@@ -292,6 +313,10 @@ class StartGenerationMessage(WebSocketMessage):
     task_type: str  # e.g., "text_to_image", "image_to_video"
     params: Dict[str, Any]
     quality: str = "standard"
+    # Support for composite prompts
+    character_refs: Optional[List[str]] = None  # Character asset IDs
+    style_refs: Optional[List[str]] = None     # Style asset IDs
+    location_ref: Optional[str] = None          # Location asset ID
     
 class ProgressMessage(WebSocketMessage):
     """Progress update from backend"""
