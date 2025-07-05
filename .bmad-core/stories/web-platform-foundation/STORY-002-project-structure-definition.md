@@ -39,6 +39,10 @@ workspace/                    # Two-tier hierarchy root
     ├── project.json         # Project manifest (source of truth)
     ├── 01_Assets/           # Source materials (numbered for consistency)
     │   ├── Characters/      # Character definitions & LoRAs
+    │   │   └── {name}/      # Per-character directory
+    │   │       ├── base_face.png  # Canonical face image
+    │   │       ├── lora/    # LoRA model files
+    │   │       └── variations/  # Expression/pose library
     │   ├── Styles/          # Visual style references  
     │   ├── Locations/       # Environment assets & references
     │   ├── Music/           # Music tracks & themes
@@ -95,7 +99,7 @@ interface ProjectManifest {
   };
   
   assets: {
-    characters: AssetReference[];
+    characters: CharacterAsset[];
     styles: AssetReference[];
     locations: AssetReference[];
     music: AssetReference[];
@@ -132,6 +136,18 @@ interface AssetReference {
   path: string;  // Relative to project root
   metadata?: Record<string, any>;
 }
+
+interface CharacterAsset extends AssetReference {
+  assetId: string;  // UUID
+  assetType: 'Character';
+  description: string;  // Character appearance/personality
+  triggerWord?: string;  // LoRA activation token
+  baseFaceImagePath?: string;  // Canonical face image
+  loraModelPath?: string;  // Trained LoRA file
+  loraTrainingStatus: 'untrained' | 'training' | 'completed' | 'failed';
+  variations: Record<string, string>;  // variation_type -> image_path
+  usage: string[];  // Shot IDs where character is used
+}
 ```
 
 ### Python Service Implementation
@@ -140,7 +156,7 @@ interface AssetReference {
 class WorkspaceService:
     # Numbered directories as API contract
     REQUIRED_STRUCTURE = [
-        "01_Assets/Characters",
+        "01_Assets/Characters",  # Character assets with subdirs
         "01_Assets/Styles",
         "01_Assets/Locations",
         "01_Assets/Music",
@@ -184,6 +200,13 @@ class WorkspaceService:
         
     def create_hierarchical_path(self, chapter: str, scene: str, shot: str) -> Path:
         """Generate Takes system path: 03_Renders/{chapter}/{scene}/{shot}/"""
+        
+    def create_character_structure(self, project_path: Path, character_name: str) -> Path:
+        """Create character-specific directory structure for assets"""
+        char_path = project_path / "01_Assets" / "Characters" / character_name
+        (char_path / "lora").mkdir(parents=True, exist_ok=True)
+        (char_path / "variations").mkdir(exist_ok=True)
+        return char_path
 ```
 
 ### Makefile Integration

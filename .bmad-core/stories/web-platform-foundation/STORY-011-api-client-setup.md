@@ -45,6 +45,7 @@ As a frontend developer, I need a well-structured TypeScript API client that han
 - **Agents**: assignTask, getProgress, getCapabilities, handoff
 - **Assets**: categorize, extractMetadata, getCompatibility, compositePrompt
 - **Narrative**: getStructure, updateBeat, getEmotionalKeywords
+- **Characters**: create, list, get, update, uploadBaseFace, uploadVariation, uploadLoRA, findUsage, updateLoRAStatus
 
 ## Implementation Notes
 
@@ -806,6 +807,185 @@ export const narrativeApi = {
     );
   }
 };
+
+// src/lib/api/characters.ts
+import { api } from './client';
+import type { 
+  CharacterAsset, 
+  CharacterCreate, 
+  CharacterUpdate,
+  CharacterUsage,
+  LoRAStatus,
+  CharacterVariation 
+} from '$types';
+
+export const charactersApi = {
+  async create(
+    projectId: string, 
+    character: CharacterCreate
+  ): Promise<CharacterAsset> {
+    return api.post<CharacterAsset>(`/projects/${projectId}/characters`, character);
+  },
+  
+  async list(projectId: string): Promise<CharacterAsset[]> {
+    return api.get<CharacterAsset[]>(`/projects/${projectId}/characters`);
+  },
+  
+  async get(projectId: string, characterId: string): Promise<CharacterAsset> {
+    return api.get<CharacterAsset>(`/projects/${projectId}/characters/${characterId}`);
+  },
+  
+  async update(
+    projectId: string, 
+    characterId: string, 
+    updates: CharacterUpdate
+  ): Promise<CharacterAsset> {
+    return api.put<CharacterAsset>(
+      `/projects/${projectId}/characters/${characterId}`, 
+      updates
+    );
+  },
+  
+  async uploadBaseFace(
+    projectId: string,
+    characterId: string,
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<CharacterAsset> {
+    const response = await api.upload(
+      `/projects/${projectId}/characters/${characterId}/base-face`,
+      [file],
+      onProgress
+    );
+    return response.character;
+  },
+  
+  async uploadVariation(
+    projectId: string,
+    characterId: string,
+    variationType: string,
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<CharacterAsset> {
+    const response = await api.upload(
+      `/projects/${projectId}/characters/${characterId}/variations?type=${variationType}`,
+      [file],
+      onProgress
+    );
+    return response.character;
+  },
+  
+  async uploadLoRA(
+    projectId: string,
+    characterId: string,
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<CharacterAsset> {
+    const response = await api.upload(
+      `/projects/${projectId}/characters/${characterId}/lora`,
+      [file],
+      onProgress
+    );
+    return response.character;
+  },
+  
+  async trainLoRA(
+    projectId: string,
+    characterId: string,
+    trainingParams?: {
+      epochs?: number;
+      learningRate?: number;
+      batchSize?: number;
+    }
+  ): Promise<TaskSubmission> {
+    const response = await api.post<TaskSubmission>(
+      `/projects/${projectId}/characters/${characterId}/lora/train`,
+      trainingParams || {}
+    );
+    
+    return {
+      ...response,
+      poll: (onProgress?: (status: LoRAStatus) => void) => 
+        api.pollTask(response.task_id, onProgress)
+    };
+  },
+  
+  async findUsage(
+    projectId: string,
+    characterId: string
+  ): Promise<CharacterUsage> {
+    return api.get<CharacterUsage>(
+      `/projects/${projectId}/characters/${characterId}/usage`
+    );
+  },
+  
+  async updateLoRAStatus(
+    projectId: string,
+    characterId: string,
+    status: LoRAStatus
+  ): Promise<CharacterAsset> {
+    return api.post<CharacterAsset>(
+      `/projects/${projectId}/characters/${characterId}/lora/status`,
+      status
+    );
+  },
+  
+  async getVariations(
+    projectId: string,
+    characterId: string
+  ): Promise<Record<string, CharacterVariation>> {
+    return api.get<Record<string, CharacterVariation>>(
+      `/projects/${projectId}/characters/${characterId}/variations`
+    );
+  },
+  
+  async deleteVariation(
+    projectId: string,
+    characterId: string,
+    variationType: string
+  ): Promise<CharacterAsset> {
+    return api.delete<CharacterAsset>(
+      `/projects/${projectId}/characters/${characterId}/variations/${variationType}`
+    );
+  },
+  
+  async generateVariations(
+    projectId: string,
+    characterId: string,
+    types: string[] = ['happy', 'sad', 'angry', 'surprised', 'neutral']
+  ): Promise<TaskSubmission> {
+    const response = await api.post<TaskSubmission>(
+      `/projects/${projectId}/characters/${characterId}/variations/generate`,
+      { variation_types: types }
+    );
+    
+    return {
+      ...response,
+      poll: (onProgress?: (status: TaskStatus) => void) => 
+        api.pollTask(response.task_id, onProgress)
+    };
+  },
+  
+  async getTriggerWord(
+    projectId: string,
+    characterId: string
+  ): Promise<{ triggerWord: string }> {
+    return api.get<{ triggerWord: string }>(
+      `/projects/${projectId}/characters/${characterId}/trigger-word`
+    );
+  },
+  
+  async updateTriggerWord(
+    projectId: string,
+    characterId: string,
+    triggerWord: string
+  ): Promise<CharacterAsset> {
+    return api.post<CharacterAsset>(
+      `/projects/${projectId}/characters/${characterId}/trigger-word`,
+      { trigger_word: triggerWord }
+    );
+  }
+};
 ```
 
 ### Store Integration
@@ -1325,6 +1505,71 @@ export interface EmotionalBeat {
   keywords: string[];
   intensity: number;
 }
+
+// Character-specific types
+export interface CharacterAsset extends AssetReference {
+  assetId: string;  // UUID
+  assetType: 'Character';
+  description: string;  // Character appearance/personality
+  triggerWord?: string;  // LoRA activation token
+  baseFaceImagePath?: string;  // Canonical face image
+  loraModelPath?: string;  // Trained LoRA file
+  loraTrainingStatus: 'untrained' | 'training' | 'completed' | 'failed';
+  variations: Record<string, string>;  // variation_type -> image_path
+  usage: string[];  // Shot IDs where character is used
+}
+
+export interface CharacterCreate {
+  name: string;
+  description: string;
+  triggerWord?: string;
+}
+
+export interface CharacterUpdate {
+  name?: string;
+  description?: string;
+  triggerWord?: string;
+  loraTrainingStatus?: 'untrained' | 'training' | 'completed' | 'failed';
+}
+
+export interface CharacterUsage {
+  characterId: string;
+  shotIds: string[];
+  sceneIds: string[];
+  totalUsages: number;
+  usageDetails: Array<{
+    shotId: string;
+    sceneId: string;
+    takeIds: string[];
+    lastUsed: string;
+  }>;
+}
+
+export interface LoRAStatus {
+  status: 'untrained' | 'training' | 'completed' | 'failed';
+  progress?: number;
+  currentStep?: string;
+  totalSteps?: number;
+  trainingParams?: {
+    epochs: number;
+    learningRate: number;
+    batchSize: number;
+  };
+  startedAt?: string;
+  completedAt?: string;
+  error?: string;
+}
+
+export interface CharacterVariation {
+  type: string;  // 'happy', 'sad', 'angry', etc.
+  imagePath: string;
+  generatedAt: string;
+  generationParams?: {
+    prompt: string;
+    seed: number;
+    model: string;
+  };
+}
 ```
 
 ### Usage Example
@@ -1401,6 +1646,66 @@ const result = await artDirectorTask.poll((progress) => {
 
 // Hand off to Cinematographer
 await agentsApi.handoff('ArtDirector', 'Cinematographer', result.outputs);
+
+// Character API usage example
+import { charactersApi, assetsApi } from '$lib/api';
+
+// Create a new character
+const newCharacter = await charactersApi.create(projectId, {
+  name: 'Sarah Connor',
+  description: 'Strong female protagonist, athletic build, determined expression',
+  triggerWord: 'sarahconnor_lora'
+});
+
+// Upload base face image
+const baseFaceFile = new File([baseFaceBlob], 'sarah_base_face.png');
+await charactersApi.uploadBaseFace(
+  projectId, 
+  newCharacter.assetId, 
+  baseFaceFile,
+  (progress) => console.log(`Upload progress: ${progress}%`)
+);
+
+// Train LoRA model
+const trainingTask = await charactersApi.trainLoRA(projectId, newCharacter.assetId, {
+  epochs: 10,
+  learningRate: 0.0001,
+  batchSize: 4
+});
+
+// Poll for training progress
+await trainingTask.poll((status) => {
+  console.log(`LoRA training: ${status.status} (${status.progress}%)`);
+  if (status.currentStep) {
+    console.log(`Current step: ${status.currentStep} of ${status.totalSteps}`);
+  }
+});
+
+// Generate character variations
+const variationTask = await charactersApi.generateVariations(
+  projectId,
+  newCharacter.assetId,
+  ['happy', 'sad', 'angry', 'determined', 'surprised']
+);
+
+await variationTask.poll((status) => {
+  console.log(`Generating variations: ${status.progress}%`);
+});
+
+// Use character in composite prompt
+const compositePrompt = await assetsApi.buildCompositePrompt(
+  'A woman standing in a post-apocalyptic wasteland',
+  {
+    characterIds: [newCharacter.assetId],
+    styleIds: ['style_cinematic_action'],
+    locationId: 'loc_wasteland',
+    emotionalBeat: 'determination'
+  }
+);
+
+// Find character usage across project
+const usage = await charactersApi.findUsage(projectId, newCharacter.assetId);
+console.log(`Character used in ${usage.totalUsages} shots across ${usage.sceneIds.length} scenes`);
 ```
 
 ## Dependencies
@@ -1427,6 +1732,11 @@ await agentsApi.handoff('ArtDirector', 'Cinematographer', result.outputs);
 - [ ] Takes system generates unique paths
 - [ ] Parameter validation catches invalid inputs
 - [ ] Progress tracking provides meaningful updates
+- [ ] Character API endpoints handle CRUD operations
+- [ ] Character asset uploads track progress correctly
+- [ ] LoRA training status updates via task polling
+- [ ] Character variation generation completes successfully
+- [ ] Character usage tracking returns accurate data
 
 ## Definition of Done
 - [ ] API client implemented with all methods
@@ -1440,6 +1750,8 @@ await agentsApi.handoff('ArtDirector', 'Cinematographer', result.outputs);
 - [ ] Pipeline configuration and quality mapping endpoints
 - [ ] Takes system endpoints for output management
 - [ ] Retry logic with exponential backoff
+- [ ] Character API endpoints implemented with full type safety
+- [ ] Character asset management (base face, variations, LoRA) functional
 - [ ] Documentation includes usage examples
 - [ ] Unit tests cover main functionality including retries and polling
 - [ ] Integration tests verify container networking

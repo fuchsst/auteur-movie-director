@@ -63,6 +63,16 @@ GET    /api/v1/projects/{id}/nodes/{node_id}/state  # Retrieve node state
 
 GET    /api/v1/projects/{id}/git/status     # Get Git status for project
 POST   /api/v1/projects/{id}/git/track      # Track file in Git/LFS
+
+# Character Asset Management Endpoints
+POST   /api/v1/projects/{id}/characters     # Create new character asset
+GET    /api/v1/projects/{id}/characters     # List all character assets
+GET    /api/v1/projects/{id}/characters/{char_id}  # Get character details
+PUT    /api/v1/projects/{id}/characters/{char_id}  # Update character metadata
+POST   /api/v1/projects/{id}/characters/{char_id}/base-face  # Upload base face image
+POST   /api/v1/projects/{id}/characters/{char_id}/lora       # Upload LoRA model
+POST   /api/v1/projects/{id}/characters/{char_id}/variations # Upload variations
+GET    /api/v1/projects/{id}/characters/{char_id}/usage     # Find character usage
 ```
 
 ## Implementation Notes
@@ -179,6 +189,46 @@ class WorkspaceConfig(BaseModel):
     git_available: bool
     lfs_available: bool
     structure_version: str = "1.0"
+
+# Character Asset Models
+class CharacterCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str = Field(..., min_length=10)
+    triggerWord: Optional[str] = None  # Auto-generated if not provided
+    
+class CharacterUpdate(BaseModel):
+    description: Optional[str] = None
+    triggerWord: Optional[str] = None
+    
+class CharacterVariationType(str, Enum):
+    EXPRESSION_NEUTRAL = "expression_neutral"
+    EXPRESSION_HAPPY = "expression_happy"
+    EXPRESSION_ANGRY = "expression_angry"
+    EXPRESSION_SURPRISED = "expression_surprised"
+    EXPRESSION_SAD = "expression_sad"
+    ANGLE_LEFT = "angle_left"
+    ANGLE_RIGHT = "angle_right"
+    ANGLE_PROFILE_LEFT = "angle_profile_left"
+    ANGLE_PROFILE_RIGHT = "angle_profile_right"
+    POSE_BUST = "pose_bust"
+    POSE_UPPER_BODY = "pose_upper_body"
+    POSE_FULL_STANDING = "pose_full_standing"
+    POSE_WALKING = "pose_walking"
+    POSE_SITTING = "pose_sitting"
+    
+class CharacterResponse(BaseModel):
+    assetId: str
+    assetType: Literal["Character"] = "Character"
+    name: str
+    description: str
+    triggerWord: str
+    baseFaceImagePath: Optional[str] = None
+    loraModelPath: Optional[str] = None
+    loraTrainingStatus: Literal["untrained", "training", "completed", "failed"]
+    variations: Dict[str, str] = {}
+    usage: List[str] = []
+    created: datetime
+    modified: datetime
 ```
 
 ### File Upload Handling
@@ -251,6 +301,76 @@ async def upload_assets(
         results.append(result)
     
     return {"files": results}
+
+# Character Asset Endpoints
+@router.post("/{project_id}/characters")
+async def create_character(
+    project_id: str,
+    character_data: CharacterCreate,
+    project_service: ProjectService = Depends(get_project_service)
+) -> CharacterResponse:
+    """Create new character asset with directory structure"""
+    character = await project_service.create_character(project_id, character_data)
+    return character
+
+@router.get("/{project_id}/characters")
+async def list_characters(
+    project_id: str,
+    project_service: ProjectService = Depends(get_project_service)
+) -> List[CharacterResponse]:
+    """List all character assets in project"""
+    characters = await project_service.list_characters(project_id)
+    return characters
+
+@router.get("/{project_id}/characters/{char_id}")
+async def get_character(
+    project_id: str,
+    char_id: str,
+    project_service: ProjectService = Depends(get_project_service)
+) -> CharacterResponse:
+    """Get character asset details"""
+    character = await project_service.get_character(project_id, char_id)
+    return character
+
+@router.post("/{project_id}/characters/{char_id}/base-face")
+async def upload_base_face(
+    project_id: str,
+    char_id: str,
+    file: UploadFile = File(...),
+    project_service: ProjectService = Depends(get_project_service)
+) -> CharacterResponse:
+    """Upload character's canonical base face image"""
+    if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        raise HTTPException(400, "Base face must be PNG or JPEG")
+    
+    character = await project_service.upload_character_base_face(
+        project_id, char_id, file
+    )
+    return character
+
+@router.post("/{project_id}/characters/{char_id}/variations")
+async def upload_variations(
+    project_id: str,
+    char_id: str,
+    variation_type: CharacterVariationType,
+    file: UploadFile = File(...),
+    project_service: ProjectService = Depends(get_project_service)
+) -> CharacterResponse:
+    """Upload character variation image"""
+    character = await project_service.upload_character_variation(
+        project_id, char_id, variation_type, file
+    )
+    return character
+
+@router.get("/{project_id}/characters/{char_id}/usage")
+async def find_character_usage(
+    project_id: str,
+    char_id: str,
+    project_service: ProjectService = Depends(get_project_service)
+) -> Dict[str, List[str]]:
+    """Find all shots where character is used"""
+    usage = await project_service.find_character_usage(project_id, char_id)
+    return {"usage": usage}
 
 # Takes Management Endpoints
 @router.post("/{project_id}/takes/register")
@@ -722,6 +842,114 @@ __pycache__/
     async def is_git_repo(self, project_path: Path) -> bool:
         """Check if path is a Git repository"""
         return (project_path / ".git").exists()
+    
+    # Character Asset Methods
+    async def create_character(self, project_id: str, character_data: CharacterCreate) -> CharacterResponse:
+        """Create new character asset with proper directory structure"""
+        project_path = self.workspace_root / project_id
+        
+        # Generate unique ID and trigger word
+        char_id = f"char-{uuid.uuid4().hex[:8]}"
+        trigger_word = character_data.triggerWord or f"{character_data.name.lower().replace(' ', '')}v1"
+        
+        # Create character directory structure
+        char_dir = project_path / "01_Assets" / "Characters" / character_data.name
+        (char_dir / "lora").mkdir(parents=True, exist_ok=True)
+        (char_dir / "variations").mkdir(exist_ok=True)
+        
+        # Create character data
+        character = {
+            "assetId": char_id,
+            "assetType": "Character",
+            "name": character_data.name,
+            "description": character_data.description,
+            "triggerWord": trigger_word,
+            "baseFaceImagePath": None,
+            "loraModelPath": None,
+            "loraTrainingStatus": "untrained",
+            "variations": {},
+            "usage": [],
+            "created": datetime.now().isoformat(),
+            "modified": datetime.now().isoformat()
+        }
+        
+        # Update project.json
+        await self._update_project_characters(project_id, character)
+        
+        return CharacterResponse(**character)
+    
+    async def upload_character_base_face(self, project_id: str, char_id: str, file: UploadFile) -> CharacterResponse:
+        """Upload and set character's base face image"""
+        character = await self.get_character(project_id, char_id)
+        
+        # Save base face image
+        char_dir = self.workspace_root / project_id / "01_Assets" / "Characters" / character.name
+        base_face_path = char_dir / "base_face.png"
+        
+        async with aiofiles.open(base_face_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        # Update character data
+        character.baseFaceImagePath = f"/01_Assets/Characters/{character.name}/base_face.png"
+        character.loraTrainingStatus = "untrained"  # Reset training status
+        character.modified = datetime.now()
+        
+        # Track in Git LFS
+        if await self.git_service.is_git_repo(self.workspace_root / project_id):
+            await self.git_service.track_lfs(self.workspace_root / project_id, base_face_path)
+        
+        await self._update_character_in_project(project_id, character)
+        return character
+    
+    async def upload_character_variation(self, project_id: str, char_id: str, 
+                                       variation_type: CharacterVariationType, 
+                                       file: UploadFile) -> CharacterResponse:
+        """Upload character variation image"""
+        character = await self.get_character(project_id, char_id)
+        
+        # Save variation image
+        char_dir = self.workspace_root / project_id / "01_Assets" / "Characters" / character.name
+        variation_dir = char_dir / "variations"
+        variation_path = variation_dir / f"{variation_type.value}.png"
+        
+        async with aiofiles.open(variation_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        # Update character variations
+        character.variations[variation_type.value] = f"/01_Assets/Characters/{character.name}/variations/{variation_type.value}.png"
+        character.modified = datetime.now()
+        
+        # Track in Git LFS
+        if await self.git_service.is_git_repo(self.workspace_root / project_id):
+            await self.git_service.track_lfs(self.workspace_root / project_id, variation_path)
+        
+        await self._update_character_in_project(project_id, character)
+        return character
+    
+    async def find_character_usage(self, project_id: str, char_id: str) -> List[str]:
+        """Find all shots where character is used"""
+        # Read project.json and scan canvas nodes
+        project_data = await self._read_project_json(project_id)
+        usage = []
+        
+        # Scan canvas nodes for character references
+        if "canvas" in project_data and "nodes" in project_data["canvas"]:
+            for node in project_data["canvas"]["nodes"]:
+                if node.get("type") == "CharacterAsset" and node.get("data", {}).get("assetId") == char_id:
+                    # Find connected shot nodes
+                    node_id = node.get("id")
+                    for edge in project_data["canvas"].get("edges", []):
+                        if edge.get("source") == node_id:
+                            target_node = next((n for n in project_data["canvas"]["nodes"] 
+                                              if n.get("id") == edge.get("target")), None)
+                            if target_node and target_node.get("type") == "ShotNode":
+                                shot_id = target_node.get("data", {}).get("shotId")
+                                if shot_id and shot_id not in usage:
+                                    usage.append(shot_id)
+        
+        return usage
 ```
 
 ### Workspace Path Configuration
@@ -777,6 +1005,11 @@ class Settings(BaseSettings):
 - [ ] Node state persistence saves and retrieves correctly
 - [ ] Volume paths work with Function Runner containers
 - [ ] Takes metadata stores all required reproducibility info
+- [ ] Character assets created with proper directory structure
+- [ ] Character base face uploads work with Git LFS
+- [ ] Character variations organized by type
+- [ ] Character usage tracking finds all shot references
+- [ ] Character metadata updates persist to project.json
 
 ## Definition of Done
 - [ ] All endpoints implemented and documented
@@ -794,6 +1027,10 @@ class Settings(BaseSettings):
 - [ ] Scene/shot/take directory structure auto-created
 - [ ] Volume paths compatible with Function Runner architecture
 - [ ] Takes metadata includes all parameters for reproducibility
+- [ ] Character asset API endpoints fully functional
+- [ ] Character file structure matches specification
+- [ ] Character LoRA path management implemented
+- [ ] Character variation type validation working
 
 ## Story Links
 - **Depends On**: STORY-002-project-structure-definition, STORY-003-fastapi-application-bootstrap

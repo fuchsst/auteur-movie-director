@@ -22,9 +22,12 @@ As a user, I need a hierarchical project browser in the left panel that shows my
 - [ ] Show active/selected state for current directory/file
 - [ ] Asset Browser displays in lower portion of left panel
 - [ ] Routes assets to correct numbered directories based on file type
+- [ ] Special handling for character assets in 01_Assets/Characters
+- [ ] Shows character-specific metadata (description, trigger word, LoRA status)
 - [ ] Respects Git LFS tracking for large media files
 - [ ] Shows file size with LFS indicator for tracked files
 - [ ] Display asset previews/thumbnails with lazy loading
+- [ ] Character base face images highlighted with special indicator
 - [ ] Drag-and-drop respects directory structure constraints
 
 ### Workspace/Project Structure Requirements
@@ -171,6 +174,10 @@ As a user, I need a hierarchical project browser in the left panel that shows my
     'Styles': '🎨',
     'Locations': '🏞️',
     'Music': '🎵',
+    // Character-specific subdirectories
+    'base_face.png': '🎭',
+    'lora': '🧠',
+    'variations': '🎲',
     // Creative subdirectories (aligned with pipeline)
     'Treatments': '📝',
     'Scripts': '📜',
@@ -697,8 +704,14 @@ export const workspaceHealth = derived(
   // Enhanced directory mapping with file type associations
   const ASSET_DIRECTORIES = {
     '01_Assets': {
-      subdirs: ['Scripts', 'Characters', 'Styles', 'Environments', 'Audio'],
-      accepts: ['text', 'json', 'lora', 'style', 'audio', 'image']
+      subdirs: ['Characters', 'Styles', 'Locations', 'Music', 'Scripts'],
+      accepts: ['text', 'json', 'lora', 'style', 'audio', 'image'],
+      special: {
+        'Characters': {
+          structure: ['base_face.png', 'lora/', 'variations/'],
+          metadata: true
+        }
+      }
     },
     '02_Generated': {
       subdirs: ['Images', 'Videos', 'Audio', 'Metadata'],
@@ -786,6 +799,20 @@ export const workspaceHealth = derived(
       
       const response = await api.get(`/api/v1/projects/${$selectedProject.id}/assets`, { params });
       
+      // If viewing Characters directory, also load character metadata
+      let characterData = {};
+      if (selectedDirectory === '01_Assets' && selectedSubdir === 'Characters') {
+        try {
+          const charResponse = await api.get(`/api/v1/projects/${$selectedProject.id}/characters`);
+          characterData = charResponse.data.reduce((acc, char) => {
+            acc[char.name] = char;
+            return acc;
+          }, {});
+        } catch (error) {
+          console.error('Failed to load character metadata:', error);
+        }
+      }
+      
       assets = await Promise.all(response.data.map(async (file: any) => {
         const asset = {
           ...file,
@@ -796,6 +823,17 @@ export const workspaceHealth = derived(
           projectId: $selectedProject.id,
           fileType: getFileType(file.name, file.mime_type)
         };
+        
+        // Add character metadata if this is a character asset
+        if (selectedSubdir === 'Characters' && file.path) {
+          const charName = file.path.split('/')[0];
+          if (characterData[charName]) {
+            asset.characterMeta = characterData[charName];
+            asset.isBaseFace = file.name === 'base_face.png';
+            asset.isLoRA = file.path.includes('/lora/');
+            asset.isVariation = file.path.includes('/variations/');
+          }
+        }
         
         // Load preview for supported file types
         if (asset.fileType === 'image' && !asset.isLFS) {
@@ -1004,6 +1042,16 @@ export const workspaceHealth = derived(
               <span class="git-badge modified" title="Modified">M</span>
             {:else if asset.git_status === 'untracked'}
               <span class="git-badge untracked" title="Untracked">U</span>
+            {/if}
+            {#if asset.isBaseFace}
+              <span class="character-badge base-face" title="Character Base Face">👤</span>
+            {:else if asset.isLoRA}
+              <span class="character-badge lora" title="LoRA Model">🧠</span>
+            {:else if asset.isVariation}
+              <span class="character-badge variation" title="Character Variation">🎲</span>
+            {/if}
+            {#if asset.characterMeta?.loraTrainingStatus === 'training'}
+              <span class="character-badge training" title="LoRA Training">⏳</span>
             {/if}
           </div>
         {/each}
@@ -1224,6 +1272,42 @@ export const workspaceHealth = derived(
     color: var(--error-color);
   }
   
+  .character-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 0.6rem;
+    padding: 1px 3px;
+    border-radius: 2px;
+  }
+  
+  .character-badge.base-face {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+  }
+  
+  .character-badge.lora {
+    background: var(--accent-bg);
+    color: var(--accent-color);
+  }
+  
+  .character-badge.variation {
+    background: var(--secondary-bg);
+    color: var(--text-primary);
+  }
+  
+  .character-badge.training {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+    animation: pulse 1s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
   .no-project, .empty, .loading {
     padding: 2rem;
     text-align: center;
@@ -1259,6 +1343,10 @@ export const workspaceHealth = derived(
 - [ ] Drag-and-drop includes proper source paths
 - [ ] Structure repair function fixes missing directories
 - [ ] Warning displays when Git/LFS not available
+- [ ] Character assets display with metadata (trigger word, LoRA status)
+- [ ] Character base face images show special indicator
+- [ ] Character variations organized within character folders
+- [ ] LoRA training status displays correctly
 
 ## Definition of Done
 - [ ] Left panel component implemented with Project and Asset browsers
@@ -1276,6 +1364,8 @@ export const workspaceHealth = derived(
 - [ ] Structure repair functionality for missing directories
 - [ ] Container volume mount status displayed
 - [ ] Component tests written for all features
+- [ ] Character asset special handling implemented
+- [ ] Character metadata integration working
 
 ## Story Links
 - **Depends On**: STORY-004-file-management-api, STORY-007-sveltekit-application-setup, STORY-011-api-client-setup

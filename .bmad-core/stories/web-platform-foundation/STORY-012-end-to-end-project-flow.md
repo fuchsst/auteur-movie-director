@@ -19,6 +19,11 @@ As a developer, I need to verify that the complete project creation flow works e
 - [ ] Project appears in gallery after creation with real-time updates
 - [ ] WebSocket broadcasts project creation event across containers
 - [ ] Files can be uploaded to the new project (including large media files via Git LFS)
+- [ ] Character assets can be created and managed through full lifecycle
+- [ ] Character base face uploads route to 01_Assets/Characters directory
+- [ ] LoRA training tasks execute through worker with progress tracking
+- [ ] Character variations generate and store in proper subdirectories
+- [ ] Character usage tracking works across scenes and shots
 - [ ] Project can be deleted and cleaned up from all containers
 - [ ] Structure enforcement validates project organization
 
@@ -57,6 +62,11 @@ As a developer, I need to verify that the complete project creation flow works e
 13. **Redis Event Relay**: Confirm pub/sub broadcasts task updates correctly
 14. **Output Path Validation**: Ensure renders go to 03_Renders directory
 15. **Node State Sync**: UI reflects real-time task progress and completion
+16. **Character Creation**: Full character asset lifecycle from creation to usage
+17. **LoRA Training**: Async LoRA training with WebSocket progress updates
+18. **Character Variations**: Generation of character emotional variations
+19. **Character Sheet UI**: Display of character with all variations and metadata
+20. **Character Usage**: Track character usage across multiple shots/scenes
 
 ## Implementation Notes
 
@@ -406,6 +416,126 @@ test.describe('End-to-End Project Flow - Containerized', () => {
     const gitignore = await docker.readFile('backend', `/workspace/${projectName}/.gitignore`);
     expect(gitignore).toContain('/temp/');
   });
+  
+  test('character asset lifecycle across containers', async ({ page }) => {
+    const projectName = `character-test-${Date.now()}`;
+    
+    // 1. Create project
+    const response = await api.post('http://localhost:8000/api/v1/projects', {
+      name: projectName,
+      quality: 'standard'
+    });
+    const project = response.json();
+    
+    // 2. Navigate to project
+    await page.goto(`http://localhost:3000/project/${project.id}`);
+    
+    // 3. Create new character through UI
+    await page.click('button:has-text("New Character")');
+    await page.fill('input[name="characterName"]', 'Sarah Connor');
+    await page.fill('textarea[name="description"]', 'Strong female protagonist');
+    await page.fill('input[name="triggerWord"]', 'sarahconnor_lora');
+    await page.click('button[type="submit"]');
+    
+    // 4. Verify character created in backend
+    const characters = await api.get(`http://localhost:8000/api/v1/projects/${project.id}/characters`);
+    expect(characters.length).toBe(1);
+    expect(characters[0].name).toBe('Sarah Connor');
+    
+    // 5. Upload base face image
+    const characterId = characters[0].assetId;
+    const baseFaceInput = page.locator('input[data-character-base-face]');
+    await baseFaceInput.setInputFiles('./tests/fixtures/sarah_base_face.png');
+    
+    // 6. Verify file stored in correct directory
+    const baseFaceCheck = await docker.exec(
+      'backend',
+      `ls -la /workspace/${projectName}/01_Assets/Characters/${characterId}/`
+    );
+    expect(baseFaceCheck).toContain('base_face.png');
+    
+    // 7. Trigger LoRA training
+    await page.click('button:has-text("Train LoRA")');
+    
+    // 8. Monitor WebSocket for training progress
+    const wsMessages = [];
+    page.on('websocket', ws => {
+      ws.on('framereceived', event => {
+        const data = JSON.parse(event.payload);
+        if (data.type === 'character.lora.status') {
+          wsMessages.push(data);
+        }
+      });
+    });
+    
+    // 9. Verify training task queued in Redis
+    const trainingTask = await docker.exec(
+      'redis',
+      `redis-cli LRANGE task:queue:lora 0 -1`
+    );
+    expect(trainingTask).toContain(characterId);
+    
+    // 10. Wait for training progress updates
+    await page.waitForTimeout(2000);
+    
+    // Verify progress messages received
+    const progressMsg = wsMessages.find(m => m.status === 'training');
+    expect(progressMsg).toBeDefined();
+    expect(progressMsg.char_id).toBe(characterId);
+    expect(progressMsg.progress).toBeGreaterThan(0);
+    
+    // 11. Generate character variations
+    await page.click('button:has-text("Generate Variations")');
+    const variations = ['happy', 'sad', 'angry', 'surprised', 'neutral'];
+    
+    // 12. Wait for variations to complete
+    await page.waitForSelector('[data-variations-complete]', { timeout: 30000 });
+    
+    // 13. Verify variations stored in subdirectory
+    const variationsCheck = await docker.exec(
+      'backend',
+      `ls -la /workspace/${projectName}/01_Assets/Characters/${characterId}/variations/`
+    );
+    for (const variation of variations) {
+      expect(variationsCheck).toContain(`${variation}.png`);
+    }
+    
+    // 14. Test character usage in composite prompt
+    await page.goto(`http://localhost:3000/project/${project.id}/canvas`);
+    await page.click('button:has-text("Add Text to Image Node")');
+    
+    // Select character in node
+    await page.click('[data-node-character-select]');
+    await page.click(`text="Sarah Connor"`);
+    
+    // Generate image with character
+    await page.fill('[data-node-prompt]', 'A woman in a post-apocalyptic setting');
+    await page.click('button:has-text("Generate")');
+    
+    // 15. Verify character usage tracked
+    const usage = await api.get(
+      `http://localhost:8000/api/v1/projects/${project.id}/characters/${characterId}/usage`
+    );
+    expect(usage.totalUsages).toBe(1);
+    expect(usage.shotIds.length).toBeGreaterThan(0);
+    
+    // 16. Verify Character Sheet UI displays all data
+    await page.goto(`http://localhost:3000/project/${project.id}/characters/${characterId}`);
+    
+    // Check base face displayed
+    await expect(page.locator('img[data-base-face]')).toBeVisible();
+    
+    // Check all variations displayed
+    for (const variation of variations) {
+      await expect(page.locator(`img[data-variation="${variation}"]`)).toBeVisible();
+    }
+    
+    // Check LoRA status
+    await expect(page.locator('[data-lora-status]')).toContainText('completed');
+    
+    // Check usage stats
+    await expect(page.locator('[data-usage-count]')).toContainText('1');
+  });
 });
 ```
 
@@ -487,6 +617,145 @@ async def test_complete_project_flow_containerized(client, tmp_workspace):
     response = await client.delete(f"/api/v1/projects/{project['id']}")
     assert response.status_code == 204
     assert not project_path.exists()
+
+@pytest.mark.asyncio
+async def test_character_lifecycle_containerized(client, tmp_workspace):
+    """Test complete character asset lifecycle in containers"""
+    
+    # 1. Create project
+    response = await client.post("/api/v1/projects", json={
+        "name": "character-backend-test",
+        "quality": "standard"
+    })
+    assert response.status_code == 201
+    project = response.json()
+    project_path = Path("/workspace") / "character-backend-test"
+    
+    # 2. Create character
+    response = await client.post(f"/api/v1/projects/{project['id']}/characters", json={
+        "name": "John Wick",
+        "description": "Professional assassin, dark suit, intense gaze",
+        "triggerWord": "johnwick_lora"
+    })
+    assert response.status_code == 201
+    character = response.json()
+    assert character["name"] == "John Wick"
+    assert character["loraTrainingStatus"] == "untrained"
+    
+    # 3. Verify character directory structure
+    char_path = project_path / "01_Assets" / "Characters" / character["assetId"]
+    assert char_path.exists()
+    assert (char_path / "variations").exists()
+    
+    # 4. Upload base face via multipart
+    with open("tests/fixtures/john_base_face.png", "rb") as f:
+        response = await client.post(
+            f"/api/v1/projects/{project['id']}/characters/{character['assetId']}/base-face",
+            files={"file": ("base_face.png", f, "image/png")}
+        )
+    assert response.status_code == 200
+    
+    # 5. Verify base face stored correctly
+    base_face_path = char_path / "base_face.png"
+    assert base_face_path.exists()
+    assert base_face_path.stat().st_size > 1000  # Not empty
+    
+    # 6. Trigger LoRA training task
+    response = await client.post(
+        f"/api/v1/projects/{project['id']}/characters/{character['assetId']}/lora/train",
+        json={
+            "epochs": 10,
+            "learningRate": 0.0001,
+            "batchSize": 4
+        }
+    )
+    assert response.status_code == 202
+    task = response.json()
+    assert task["status"] == "pending"
+    
+    # 7. Verify task queued in Redis
+    redis = await RedisService.get_client()
+    task_data = await redis.get(f"task:{task['task_id']}")
+    assert task_data is not None
+    task_obj = json.loads(task_data)
+    assert task_obj["type"] == "lora_training"
+    assert task_obj["character_id"] == character["assetId"]
+    
+    # 8. Simulate worker updating status
+    await redis.publish(
+        f"task:{project['id']}",
+        json.dumps({
+            "type": "character.lora.status",
+            "data": {
+                "char_id": character["assetId"],
+                "status": "training",
+                "progress": 50,
+                "currentStep": 5,
+                "totalSteps": 10
+            }
+        })
+    )
+    
+    # 9. Check character status updated
+    response = await client.get(
+        f"/api/v1/projects/{project['id']}/characters/{character['assetId']}"
+    )
+    updated_char = response.json()
+    assert updated_char["loraTrainingStatus"] == "training"
+    
+    # 10. Generate variations
+    response = await client.post(
+        f"/api/v1/projects/{project['id']}/characters/{character['assetId']}/variations/generate",
+        json={"variation_types": ["happy", "sad", "angry"]}
+    )
+    assert response.status_code == 202
+    variations_task = response.json()
+    
+    # 11. Simulate variation generation completion
+    for variation_type in ["happy", "sad", "angry"]:
+        variation_path = char_path / "variations" / f"{variation_type}.png"
+        variation_path.parent.mkdir(exist_ok=True)
+        variation_path.write_bytes(b"mock image data")
+    
+    # 12. Verify variations accessible
+    response = await client.get(
+        f"/api/v1/projects/{project['id']}/characters/{character['assetId']}/variations"
+    )
+    variations = response.json()
+    assert len(variations) == 3
+    assert "happy" in variations
+    
+    # 13. Test character usage tracking
+    # Simulate usage in a shot
+    await client.post(
+        f"/api/v1/projects/{project['id']}/characters/{character['assetId']}/usage",
+        json={
+            "shotId": "shot_001",
+            "sceneId": "scene_001",
+            "takeId": "take_001"
+        }
+    )
+    
+    # 14. Verify usage tracked
+    response = await client.get(
+        f"/api/v1/projects/{project['id']}/characters/{character['assetId']}/usage"
+    )
+    usage = response.json()
+    assert usage["totalUsages"] == 1
+    assert "shot_001" in usage["shotIds"]
+    
+    # 15. Test composite prompt building with character
+    response = await client.post(
+        "/api/v1/assets/composite-prompt",
+        json={
+            "base_prompt": "A man in a nightclub",
+            "characterIds": [character["assetId"]],
+            "emotionalBeat": "intense"
+        }
+    )
+    composite = response.json()
+    assert character["triggerWord"] in composite["final_prompt"]
+    assert len(composite["lora_models"]) == 1
 
 @pytest.mark.asyncio
 async def test_cross_container_communication(client):
@@ -949,6 +1218,22 @@ async def test_makefile_integration():
 - [ ] Concurrent task execution doesn't conflict
 - [ ] Task retry on failure works properly
 
+### Character Asset Testing
+- [ ] Create character with name, description, trigger word
+- [ ] Upload base face image - verify stored in 01_Assets/Characters/{id}/
+- [ ] Base face appears in Character Sheet UI
+- [ ] Train LoRA - monitor WebSocket progress updates
+- [ ] LoRA training status transitions: untrained → training → completed
+- [ ] Generate character variations (happy, sad, angry, etc.)
+- [ ] All variations display in Character Sheet grid
+- [ ] Variations stored in /variations subdirectory
+- [ ] Use character in text-to-image node
+- [ ] Character trigger word injected into prompt
+- [ ] Track character usage across multiple shots
+- [ ] Character usage statistics display correctly
+- [ ] Delete character removes all associated files
+- [ ] Character persists across container restarts
+
 ### Performance Testing (Distributed)
 - [ ] Create 50+ projects across multiple workers
 - [ ] Upload 100+ files with worker processing
@@ -957,6 +1242,8 @@ async def test_makefile_integration():
 - [ ] High Redis message throughput
 - [ ] Container resource limits respected
 - [ ] Async task throughput meets requirements
+- [ ] Train multiple LoRAs concurrently
+- [ ] Generate variations for 10+ characters
 ```
 
 ### Monitoring Setup
@@ -1120,6 +1407,11 @@ services:
 - [ ] Node state synchronizes with backend task status
 - [ ] Worker processes can access shared workspace volume
 - [ ] Function Runner foundation supports concurrent tasks
+- [ ] Character creation and management flows work end-to-end
+- [ ] LoRA training tasks execute with progress tracking
+- [ ] Character variations generate and store correctly
+- [ ] Character usage tracking integrates with shot management
+- [ ] Character assets persist across container lifecycle
 
 ## Definition of Done
 - [ ] Integration tests pass consistently in containers
@@ -1138,6 +1430,10 @@ services:
 - [ ] Function Runner foundation validated with concurrent tasks
 - [ ] Task output directory structure enforced (03_Renders)
 - [ ] Worker-backend shared volume access confirmed
+- [ ] Character lifecycle tests pass (create, train, generate, track)
+- [ ] Character WebSocket events broadcast correctly
+- [ ] Character file structure validated (base_face.png, variations/, lora/)
+- [ ] Character-node integration tested end-to-end
 
 ## Story Links
 - **Depends On**: All other stories in epic

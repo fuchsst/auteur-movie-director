@@ -83,6 +83,14 @@ As a frontend developer, I need a WebSocket connection to receive real-time upda
 - `runner.heartbeat` - Function runner health check
 - `runner.completed` - Function runner finished execution
 
+#### Character Events
+- `character.created` - New character asset created
+- `character.updated` - Character metadata updated
+- `character.baseFace.uploaded` - Base face image uploaded
+- `character.variation.generated` - Character variation generated
+- `character.lora.status` - LoRA training status update
+- `character.usage.updated` - Character usage in shots updated
+
 ## Implementation Notes
 
 ### WebSocket Manager with Event Relay Pattern
@@ -671,6 +679,72 @@ class EventBroadcaster:
             "take_id": take_id,
             "timestamp": datetime.utcnow().isoformat()
         })
+    
+    # Character Events
+    @staticmethod
+    async def character_created(project_id: str, character_data: Dict[str, Any]):
+        """Broadcast character creation"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "character.created",
+            "character": character_data,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def character_updated(project_id: str, char_id: str, updates: Dict[str, Any]):
+        """Broadcast character updates"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "character.updated",
+            "char_id": char_id,
+            "updates": updates,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def character_base_face_uploaded(project_id: str, char_id: str, 
+                                         image_path: str):
+        """Broadcast base face upload"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "character.baseFace.uploaded",
+            "char_id": char_id,
+            "image_path": image_path,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def character_variation_generated(project_id: str, char_id: str,
+                                          variation_type: str, image_path: str):
+        """Broadcast character variation generation"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "character.variation.generated",
+            "char_id": char_id,
+            "variation_type": variation_type,
+            "image_path": image_path,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def character_lora_status(project_id: str, char_id: str,
+                                   status: str, progress: Optional[float] = None):
+        """Broadcast LoRA training status"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "character.lora.status",
+            "char_id": char_id,
+            "status": status,
+            "progress": progress,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    @staticmethod
+    async def character_usage_updated(project_id: str, char_id: str,
+                                    usage: List[str]):
+        """Broadcast character usage update"""
+        await manager.broadcast_to_project(project_id, {
+            "type": "character.usage.updated",
+            "char_id": char_id,
+            "usage": usage,
+            "timestamp": datetime.utcnow().isoformat()
+        })
 ```
 
 ### Heartbeat Implementation
@@ -1040,6 +1114,55 @@ interface TakeSelectedEvent {
   take_id: string;
   timestamp: string;
 }
+
+// Character events
+interface CharacterCreatedEvent {
+  type: 'character.created';
+  character: {
+    assetId: string;
+    name: string;
+    description: string;
+    triggerWord: string;
+  };
+  timestamp: string;
+}
+
+interface CharacterUpdatedEvent {
+  type: 'character.updated';
+  char_id: string;
+  updates: Record<string, any>;
+  timestamp: string;
+}
+
+interface CharacterBaseFaceUploadedEvent {
+  type: 'character.baseFace.uploaded';
+  char_id: string;
+  image_path: string;
+  timestamp: string;
+}
+
+interface CharacterVariationGeneratedEvent {
+  type: 'character.variation.generated';
+  char_id: string;
+  variation_type: string;
+  image_path: string;
+  timestamp: string;
+}
+
+interface CharacterLoraStatusEvent {
+  type: 'character.lora.status';
+  char_id: string;
+  status: 'untrained' | 'training' | 'completed' | 'failed';
+  progress?: number;
+  timestamp: string;
+}
+
+interface CharacterUsageUpdatedEvent {
+  type: 'character.usage.updated';
+  char_id: string;
+  usage: string[];
+  timestamp: string;
+}
 ```
 
 ## Dependencies
@@ -1068,6 +1191,10 @@ interface TakeSelectedEvent {
 - [ ] Task cancellation propagates properly
 - [ ] Function Runner events are received
 - [ ] Project-specific Redis channels are managed efficiently
+- [ ] Character creation events broadcast correctly
+- [ ] Character update events include all metadata
+- [ ] LoRA training status updates with progress
+- [ ] Character usage tracking updates in real-time
 
 ## Definition of Done
 - [ ] Project-specific WebSocket endpoints implemented
@@ -1083,6 +1210,8 @@ interface TakeSelectedEvent {
 - [ ] Environment configuration tested
 - [ ] Redis channel lifecycle management working
 - [ ] Event broadcasting service complete
+- [ ] Character event broadcasting methods implemented
+- [ ] TypeScript interfaces for character events defined
 
 ### Container Reconnection Handling
 ```python

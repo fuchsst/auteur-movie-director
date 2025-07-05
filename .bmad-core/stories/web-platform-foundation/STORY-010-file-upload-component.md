@@ -237,12 +237,34 @@ const DIRECTORY_MAPPING = {
       metadata.assetCategory = 'character';
       metadata.isAIModel = ext === '.safetensors' || ext === '.ckpt' || ext === '.pt';
       
-      // Extract character info from filename patterns
-      const characterMatch = file.name.match(/(.+?)[-_]v?(\d+\.?\d*)[-_]?(\d+)?/i);
-      if (characterMatch) {
-        metadata.characterName = characterMatch[1];
-        metadata.version = characterMatch[2];
-        metadata.trainingSteps = characterMatch[3] || null;
+      // Check if this is a base face image
+      if (file.name.toLowerCase() === 'base_face.png' || 
+          file.name.toLowerCase().includes('base_face')) {
+        metadata.isBaseFace = true;
+        metadata.characterSubdir = '';  // Goes in character root
+      }
+      
+      // Check if this is a variation
+      const variationTypes = ['expression', 'angle', 'pose', 'lighting'];
+      const variationType = variationTypes.find(v => file.name.toLowerCase().includes(v));
+      if (variationType) {
+        metadata.isVariation = true;
+        metadata.variationType = variationType;
+        metadata.characterSubdir = 'variations';
+      }
+      
+      // Check if this is a LoRA model
+      if (metadata.isAIModel) {
+        metadata.characterSubdir = 'lora';
+        metadata.requiresTraining = false;  // Already trained
+        
+        // Extract character info from filename patterns
+        const characterMatch = file.name.match(/(.+?)[-_]v?(\d+\.?\d*)[-_]?(\d+)?/i);
+        if (characterMatch) {
+          metadata.characterName = characterMatch[1];
+          metadata.version = characterMatch[2];
+          metadata.trainingSteps = characterMatch[3] || null;
+        }
       }
       
       // Extract trigger word from filename if present
@@ -481,6 +503,15 @@ const DIRECTORY_MAPPING = {
         <p class="asset-hint">
           💡 Character assets will be managed by the Casting Director agent
         </p>
+        <p class="asset-hint">
+          📸 Upload "base_face.png" to set character's canonical appearance
+        </p>
+        <p class="asset-hint">
+          🧠 LoRA models (.safetensors) will be placed in the lora/ subdirectory
+        </p>
+        <p class="asset-hint">
+          🎲 Character variations (expressions, poses) go to variations/ folder
+        </p>
       {/if}
       
       {#if assetType === 'styles' || assetType === 'stylemodels'}
@@ -554,6 +585,21 @@ const DIRECTORY_MAPPING = {
               {#if upload.metadata?.hasEmotionalBeats}
                 <span class="beats-badge" title="Contains Emotional Beats">
                   Beats
+                </span>
+              {/if}
+              {#if upload.metadata?.isBaseFace}
+                <span class="character-badge" title="Character Base Face">
+                  Base Face
+                </span>
+              {/if}
+              {#if upload.metadata?.isVariation}
+                <span class="character-badge variation" title="Character Variation">
+                  {upload.metadata.variationType}
+                </span>
+              {/if}
+              {#if upload.metadata?.characterSubdir}
+                <span class="subdir-badge" title="Subdirectory">
+                  → {upload.metadata.characterSubdir}/
                 </span>
               {/if}
               {#if upload.targetPath}
@@ -757,6 +803,29 @@ const DIRECTORY_MAPPING = {
     margin-top: 0.5rem;
     font-style: italic;
   }
+  
+  .character-badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .character-badge.variation {
+    background: var(--secondary-color);
+    text-transform: capitalize;
+  }
+  
+  .subdir-badge {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
 </style>
 ```
 
@@ -800,6 +869,21 @@ export async function uploadFiles(
   // Include target directory information and metadata
   formData.append('asset_type', assetType);
   formData.append('validate_structure', 'true');
+  
+  // For character assets, include subdirectory routing
+  if (assetType === 'characters') {
+    const characterMeta = files.map(file => {
+      const upload = Array.from(uploads.values()).find(u => u.file === file);
+      return {
+        filename: file.name,
+        subdirectory: upload?.metadata?.characterSubdir || '',
+        isBaseFace: upload?.metadata?.isBaseFace || false,
+        isVariation: upload?.metadata?.isVariation || false,
+        isLoRA: upload?.metadata?.isAIModel || false
+      };
+    });
+    formData.append('character_routing', JSON.stringify(characterMeta));
+  }
   
   // Include metadata for each file if available
   const metadata = files.map(file => {
@@ -1040,6 +1124,9 @@ interface TaskProgressMessage {
 - [ ] Asset metadata is extracted and stored
 - [ ] LoRA file patterns are parsed correctly
 - [ ] Character and style assets are categorized properly
+- [ ] Character base face images identified and routed correctly
+- [ ] Character variations organized into proper subdirectories
+- [ ] LoRA training status updated on model upload
 
 ## Definition of Done
 - [ ] Component supports all required features

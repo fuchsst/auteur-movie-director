@@ -6,6 +6,7 @@ Establish the foundational web-based platform architecture for the Auteur Movie 
 ## Business Value
 - **Creative Translation**: Systematic framework for converting narrative concepts into machine-executable instructions
 - **Professional Workflow**: Git-based project management with Takes system enables non-destructive iteration
+- **Character Identity Management**: Living character assets with consistent visual identity through LoRA models
 - **Modular Control**: Separation of concerns for character identity, aesthetic language, narrative action, and emotional tone
 - **Collaborative Foundation**: Prepares for multi-agent creative workflows (Producer, Screenwriter, Art Director, etc.)
 - **Extensible Architecture**: Function Runner pattern allows integration of diverse AI models for each creative task
@@ -31,8 +32,13 @@ Establish the foundational web-based platform architecture for the Auteur Movie 
 - Hierarchical project structure (Project → Chapter → Scene → Shot → Take)
 - Basic project CRUD operations (create, read, update, delete)
 - Asset management system with categories (Locations, Characters, Music, Styles)
+- Character asset lifecycle management (concept → visual identity → production-ready)
+- Character Sheet UI with identity hub functionality
 - Support for narrative structure templates (Three-Act, Hero's Journey, etc.)
 - Creative asset types foundation (Treatment, Screenplay, Emotional Beat Sheet, Shot List)
+- Character data model with LoRA integration support
+- Variation storage structure for character image sets
+- Asset usage tracking and dependency management
 - WebSocket connection for real-time updates with typed events
 - Simple user session management (local development)
 - Project manifest (project.json) handling
@@ -50,8 +56,10 @@ Establish the foundational web-based platform architecture for the Auteur Movie 
 - .gitignore and .gitattributes configuration
 
 ### Out of Scope
-- Production Canvas node editor (PRD-002)
-- Function Runner containers (PRD-003)
+- Production Canvas node editor (PRD-002) - except Character-Node integration foundation
+- Function Runner containers (PRD-003) - except LoRA training pipeline
+- Character face generation node graph (requires Production Canvas)
+- Automated variation generation (requires Function Runner)
 - Advanced authentication (JWT, OAuth)
 - Multi-user collaboration features
 - Cloud deployment configuration
@@ -72,6 +80,10 @@ Establish the foundational web-based platform architecture for the Auteur Movie 
 - [ ] Project manifest (project.json) saves/loads correctly with narrative metadata
 - [ ] Files can be uploaded to appropriate asset category folders
 - [ ] Asset abstraction supports Character, Location, Style, and Music types
+- [ ] Character assets display dedicated Character Sheet UI when selected
+- [ ] Character data model includes fields for LoRA path, trigger word, and variations
+- [ ] Character Sheet shows metadata, generation controls, and usage tracking
+- [ ] Asset usage tracking identifies all scenes/shots using a character
 - [ ] Creative documents (treatments, scripts, shot lists) can be created and stored
 - [ ] Takes system creates versioned outputs (e.g., S01_S01_take01.png)
 - [ ] WebSocket connects and maintains connection
@@ -276,14 +288,45 @@ Establish the foundational web-based platform architecture for the Auteur Movie 
     - Support active take selection
     - Integrate with Git LFS for media storage
 
+23. **Character Asset Data Model** (3 points)
+    - Define complete character data structure with LoRA support
+    - Implement asset abstraction layer for file management
+    - Create character-specific manifest fields
+    - Add variation storage dictionary structure
+    - Include usage tracking array
+
+24. **Character Sheet UI Implementation** (5 points)
+    - Create Character Asset View component
+    - Implement header with character preview
+    - Add metadata panel with description and prompt fields
+    - Create generation panel with placeholder controls
+    - Add usage panel showing scene/shot dependencies
+
+25. **Character-Node Integration Foundation** (3 points)
+    - Create Character Asset Node specification
+    - Define typed outputs (LoRA reference, image set, base face)
+    - Establish data flow for future node-to-sheet communication
+    - Add character asset to node type registry
+    - Create foundation for variation access
+
+26. **Asset Usage Tracking System** (3 points)
+    - Implement bidirectional dependency tracking
+    - Create "Find Usages" search functionality
+    - Add usage manifest to Character Sheet
+    - Update project.json when assets are connected
+    - Enable cross-reference navigation
+
 ## Estimated Effort
-**Total Story Points**: 78 points (includes narrative structure and Takes system)
-**Estimated Duration**: 4 sprints (8 weeks)
+**Total Story Points**: 92 points (includes character system foundation)
+**Estimated Duration**: 4-5 sprints (8-10 weeks)
 **Team Size**: 2 developers (1 frontend, 1 backend)
 
 ## Success Metrics
 - Projects created with narrative structure and correct directory layout
 - Creative assets (Characters, Locations, Styles) properly categorized
+- Character assets display full Character Sheet UI with all panels
+- Character data model supports LoRA paths and variation storage
+- Asset usage tracking accurately shows character dependencies
 - Takes system generates versioned outputs without overwrites
 - WebSocket maintains stable connection for real-time updates
 - File uploads route to appropriate asset categories
@@ -311,7 +354,13 @@ frontend/
 │   │   │   ├── project/
 │   │   │   │   └── ProjectBrowser.svelte
 │   │   │   ├── asset/
-│   │   │   │   └── AssetBrowser.svelte
+│   │   │   │   ├── AssetBrowser.svelte
+│   │   │   │   └── CharacterSheet.svelte
+│   │   │   ├── character/
+│   │   │   │   ├── CharacterHeader.svelte
+│   │   │   │   ├── CharacterMetadata.svelte
+│   │   │   │   ├── CharacterGeneration.svelte
+│   │   │   │   └── CharacterUsage.svelte
 │   │   │   ├── properties/
 │   │   │   │   └── PropertiesInspector.svelte
 │   │   │   └── progress/
@@ -462,6 +511,34 @@ interface TakeCreatedEvent {
   takePath: string;
   takeNumber: number;
 }
+
+// Character Events
+interface CharacterCreatedEvent {
+  type: 'character_created';
+  assetId: string;
+  name: string;
+  fromConcept: boolean;
+}
+
+interface CharacterLoraStatusEvent {
+  type: 'character_lora_status';
+  assetId: string;
+  status: 'untrained' | 'training' | 'completed' | 'failed';
+  progress?: number;
+}
+
+interface CharacterVariationGeneratedEvent {
+  type: 'character_variation_generated';
+  assetId: string;
+  variationType: string;
+  variationPath: string;
+}
+
+interface CharacterUsageUpdatedEvent {
+  type: 'character_usage_updated';
+  assetId: string;
+  usage: string[];
+}
 ```
 
 ### Project.json Schema
@@ -477,7 +554,25 @@ interface TakeCreatedEvent {
     "emotionalBeats": []
   },
   "assets": {
-    "characters": [],
+    "characters": [
+      {
+        "assetId": "char-uuid-here",
+        "assetType": "Character",
+        "name": "Character Name",
+        "description": "Detailed character description",
+        "triggerWord": "charnamev1",
+        "baseFaceImagePath": "/assets/characters/name/base_face.png",
+        "loraModelPath": "/assets/characters/name/lora/model.safetensors",
+        "loraTrainingStatus": "completed",
+        "variations": {
+          "base_face": "/assets/characters/name/base_face.png",
+          "expression_happy": "/assets/characters/name/variations/expression_happy.png",
+          "expression_angry": "/assets/characters/name/variations/expression_angry.png",
+          "pose_walking": "/assets/characters/name/variations/pose_walking.png"
+        },
+        "usage": ["shot-001", "shot-005"]
+      }
+    ],
     "locations": [],
     "styles": [],
     "music": []
@@ -691,8 +786,8 @@ def execute_generation(node_id: str, project_id: str, parameters: dict):
 
 ---
 
-**Epic Version**: 1.4  
+**Epic Version**: 1.5  
 **Created**: 2025-01-02  
-**Updated**: 2025-01-03  
+**Updated**: 2025-01-05  
 **Owner**: Auteur Movie Director Development Team  
-**Status**: Ready for Development
+**Status**: Ready for Development with Character System Foundation
