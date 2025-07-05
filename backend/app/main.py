@@ -1,40 +1,100 @@
 """Main FastAPI application entry point"""
 
+import logging
 import os
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(
-    title="Auteur Movie Director API",
-    description="Backend API for director-centric AI-powered film production",
-    version="0.1.0",
+from app.api import router
+from app.api.websocket import websocket_router
+from app.config import settings
+from app.core.dispatcher import EchoTaskHandler, task_dispatcher
+from app.middleware import setup_middleware
+from app.redis_client import redis_client
+
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, settings.log_level),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    if settings.log_format != "json"
+    else None,
 )
-
-# CORS configuration for development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+logger = logging.getLogger(__name__)
 
 
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {"message": "Auteur Movie Director API"}
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application"""
+    app = FastAPI(
+        title=settings.app_name,
+        description="Backend API for director-centric AI-powered film production",
+        version=settings.version,
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+    )
+
+    # Setup middleware
+    setup_middleware(app)
+
+    # Include routers
+    app.include_router(router.api_router, prefix="/api/v1")
+    app.include_router(websocket_router, prefix="/ws")
+
+    # Root endpoint
+    @app.get("/")
+    async def root():
+        """Root endpoint"""
+        return {"message": settings.app_name, "version": settings.version, "docs": "/api/docs"}
+
+    # Startup event
+    @app.on_event("startup")
+    async def startup_event():
+        logger.info(f"Starting {settings.app_name} v{settings.version}")
+        logger.info(f"Environment: {'Docker' if settings.is_docker else 'Local'}")
+        logger.info(f"Workspace: {settings.workspace_root}")
+
+        # Ensure workspace exists
+        settings.workspace_root.mkdir(parents=True, exist_ok=True)
+
+        # Connect to Redis
+        try:
+            await redis_client.connect()
+            logger.info("Redis connected successfully")
+        except Exception as e:
+            logger.error(f"Failed to connect to Redis: {e}")
+            # Continue without Redis for development
+
+        # Register task handlers
+        task_dispatcher.register_handler("echo", EchoTaskHandler())
+        logger.info("Task dispatcher initialized")
+
+    # Shutdown event
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        logger.info("Shutting down application...")
+
+        # Cancel active tasks
+        await task_dispatcher.shutdown()
+
+        # Disconnect from Redis
+        await redis_client.disconnect()
+
+        logger.info("Shutdown complete")
+
+    return app
 
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy"}
+# Create application instance
+app = create_app()
 
 
 if __name__ == "__main__":
     import uvicorn
 
     port = int(os.getenv("BACKEND_PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port, reload=True)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True,
+        log_config=None,  # Use our logging config
+    )

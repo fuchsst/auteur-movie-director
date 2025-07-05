@@ -43,11 +43,20 @@ help:
 	@echo "  make services-docker      - Start all services in Docker"
 	@echo "  make services-docker-stop - Stop Docker services"
 	@echo ""
-	@echo "Docker Compose (Alternative):"
-	@echo "  make docker-up     - Start services with docker-compose"
-	@echo "  make docker-down   - Stop docker-compose services"
-	@echo "  make docker-logs   - View docker-compose logs"
-	@echo "  make docker-status - Check docker-compose status"
+	@echo "Docker Core Services:"
+	@echo "  make up            - Start all core services (frontend, backend, worker, redis)"
+	@echo "  make down          - Stop all core services"
+	@echo "  make logs          - View core service logs"
+	@echo "  make build         - Build all Docker images"
+	@echo "  make shell-backend - Interactive backend shell"
+	@echo "  make shell-frontend - Interactive frontend shell"
+	@echo ""
+	@echo "Docker AI Services:"
+	@echo "  make docker-up     - Start AI services with docker-compose"
+	@echo "  make docker-down   - Stop AI services"
+	@echo "  make docker-logs   - View AI service logs"
+	@echo "  make docker-status - Check AI service status"
+	@echo "  make up-with-comfyui - Start core + AI services together"
 	@echo ""
 	@echo "Distribution:"
 	@echo "  make package     - Create distribution package"
@@ -133,6 +142,32 @@ docker-logs:
 
 docker-status:
 	@docker-compose ps
+
+# Docker Core Services - main application
+up: ## Start all core services
+	@docker-compose -f docker-compose.core.yml up -d
+
+down: ## Stop all core services
+	@docker-compose -f docker-compose.core.yml down
+
+logs: ## View core service logs
+	@docker-compose -f docker-compose.core.yml logs -f
+
+build: ## Build all Docker images
+	@docker-compose -f docker-compose.core.yml build
+
+shell-backend: ## Interactive backend shell
+	@docker-compose -f docker-compose.core.yml exec backend /bin/bash
+
+shell-frontend: ## Interactive frontend shell  
+	@docker-compose -f docker-compose.core.yml exec frontend /bin/sh
+
+new-project: ## Scaffold new project in workspace
+	@python scripts/create_project.py $(if $(NAME),$(NAME),"untitled_project")
+
+up-with-comfyui: ## Start core + AI services together
+	@docker-compose -f docker-compose.core.yml up -d
+	@docker-compose up -d
 
 # Distribution
 package:

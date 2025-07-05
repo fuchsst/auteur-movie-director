@@ -4,8 +4,33 @@ A web-based platform that transforms narrative concepts into cinematic sequences
 
 ## Quick Start
 
+### Option 1: Docker Development (Recommended)
+
 ```bash
+# Prerequisites: Docker, Docker Compose, Git with Git LFS
+
 # Clone the repository
+git clone https://github.com/yourusername/auteur-movie-director.git
+cd auteur-movie-director
+
+# Build and start all core services
+make build
+make up
+
+# View logs in another terminal
+make logs
+
+# Open in browser
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:8000/docs
+```
+
+### Option 2: Local Development
+
+```bash
+# Prerequisites: Node.js 20+, Python 3.11+, Git with Git LFS
+
+# Clone the repository  
 git clone https://github.com/yourusername/auteur-movie-director.git
 cd auteur-movie-director
 
@@ -16,7 +41,7 @@ npm run setup
 npm run dev
 
 # Open in browser
-# Frontend: http://localhost:3000
+# Frontend: http://localhost:5173
 # Backend API: http://localhost:8000/docs
 ```
 
@@ -24,7 +49,7 @@ For detailed setup instructions, see [docs/SETUP.md](./docs/SETUP.md).
 
 ## Overview
 
-**Auteur Movie Director** is a revolutionary web-based platform that empowers directors to transform their narrative visions into cinematic sequences using AI agents and distributed processing. Built on modern web technologies and the regenerative content model, it provides a director-centric workflow that enables creative visionaries to maintain artistic control while leveraging AI-powered production capabilities. Global teams can collaborate in real-time on professional film production without hardware limitations.
+**Auteur Movie Director** is a web-based platform that empowers directors to transform their narrative visions into cinematic sequences using AI agents and distributed processing. It provides a director-centric workflow that enables creative visionaries to maintain artistic control while leveraging AI-powered production capabilities. Global teams can collaborate in real-time on professional film production without hardware limitations.
 
 ### Key Features
 

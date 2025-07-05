@@ -1,0 +1,130 @@
+# Core services for Auteur Movie Director development
+# This file contains the main application services
+version: '3.8'
+
+services:
+  # Frontend - SvelteKit application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: amd-frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./workspace:/workspace:rw
+    environment:
+      - NODE_ENV=development
+      - VITE_BACKEND_URL=http://backend:8000
+      - VITE_WS_URL=ws://backend:8000/ws
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - amd-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend - FastAPI application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: amd-backend
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - ./workspace:/workspace:rw
+    environment:
+      - PYTHONPATH=/app
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8000
+      - WORKSPACE_ROOT=/workspace
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEBUG=${DEBUG:-true}
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - amd-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker - Celery background tasks
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: amd-worker
+    volumes:
+      - ./backend:/app
+      - ./workspace:/workspace:rw
+    environment:
+      - PYTHONPATH=/app
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - WORKSPACE_ROOT=/workspace
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+    networks:
+      - amd-network
+    command: celery -A app.worker worker --loglevel=info
+
+  # Redis - Message broker and cache
+  redis:
+    image: redis:7-alpine
+    container_name: amd-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - amd-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Development database (if needed in future)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: amd-postgres
+  #   ports:
+  #     - "${POSTGRES_PORT:-5432}:5432"
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_USER=${POSTGRES_USER:-auteur}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-auteur}
+  #     - POSTGRES_DB=${POSTGRES_DB:-auteur}
+  #   restart: unless-stopped
+  #   networks:
+  #     - amd-network
+
+networks:
+  amd-network:
+    name: ${DOCKER_NETWORK:-amd-network}
+    driver: bridge
+
+volumes:
+  redis-data:
+  # postgres-data:
