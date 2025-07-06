@@ -287,6 +287,7 @@ async def upload_files_batch(
 
         # Commit all files at once if requested
         if auto_commit and results:
+            workspace_service = get_workspace_service()
             project_path = workspace_service.get_project_path(project_id)
             if project_path:
                 file_paths = [r["path"] for r in results if "path" in r]

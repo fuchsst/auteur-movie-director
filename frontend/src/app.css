@@ -17,6 +17,19 @@
   --color-panel: #ffffff;
   --color-border: #e5e7eb;
   --color-primary: #3b82f6;
+
+  /* Progress Area */
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --bg-tertiary-light: #f9fafb;
+  --bg-hover: #f9fafb;
+  --border-hover: #d1d5db;
+  --border-active: #3b82f6;
+  --text-tertiary: #9ca3af;
+  --color-primary-dim: #93bbfc;
+  --color-primary-hover: #2563eb;
+  --color-error: #ef4444;
+  --color-error-hover: #dc2626;
 }
 
 /* Dark theme */
@@ -37,6 +50,19 @@
   --color-panel: #1a1a1a;
   --color-border: #2a2a2a;
   --color-primary: #4a9eff;
+
+  /* Progress Area - Dark */
+  --bg-secondary: #1f1f1f;
+  --bg-tertiary: #2a2a2a;
+  --bg-tertiary-light: #333333;
+  --bg-hover: #2a2a2a;
+  --border-hover: #404040;
+  --border-active: #4a9eff;
+  --text-tertiary: #6b7280;
+  --color-primary-dim: #2c5aa0;
+  --color-primary-hover: #5eaaff;
+  --color-error: #f87171;
+  --color-error-hover: #ef4444;
 }
 
 * {

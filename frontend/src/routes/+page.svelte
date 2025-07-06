@@ -4,6 +4,7 @@
   import ProjectBrowser from '$lib/components/project/ProjectBrowser.svelte';
   import AssetBrowser from '$lib/components/asset/AssetBrowser.svelte';
   import PropertiesInspector from '$lib/components/properties/PropertiesInspector.svelte';
+  import ProgressArea from '$lib/components/progress/ProgressArea.svelte';
   import WebSocketStatus from '$lib/components/common/WebSocketStatus.svelte';
   import { initializeApp } from '$lib/stores';
   import { selectionStore } from '$lib/stores/selection';
@@ -70,8 +71,9 @@
   </div>
 
   <!-- Right Panel: Properties/Details -->
-  <div slot="right" class="panel-section">
+  <div slot="right" class="panel-section right-panel">
     <PropertiesInspector selection={currentSelection} />
+    <ProgressArea />
   </div>
 </ThreePanelLayout>
 
@@ -80,6 +82,20 @@
     height: 1px;
     background: var(--border-color);
     margin: 1.5rem 0;
+  }
+
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .right-panel :global(.properties-inspector) {
+    flex: 1;
+  }
+
+  .right-panel :global(.progress-area) {
+    flex-shrink: 0;
   }
 
   .status-left {
