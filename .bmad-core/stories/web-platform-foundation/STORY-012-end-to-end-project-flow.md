@@ -5,6 +5,7 @@
 **Type**: Integration  
 **Points**: 5 (Medium)  
 **Priority**: High  
+**Status**: 🔲 Not Started  
 
 ## Story Description
 As a developer, I need to verify that the complete project creation flow works end-to-end in a containerized environment, from creating a new project through the UI to verifying the file structure and Git initialization on disk, ensuring all distributed components integrate correctly across Docker containers.

@@ -5,6 +5,7 @@
 **Type**: Backend  
 **Points**: 5 (Medium)  
 **Priority**: High  
+**Status**: ✅ Completed  
 
 ## Story Description
 As a frontend developer, I need a WebSocket connection to receive real-time updates about file changes, processing status, node state changes, task execution progress, and system events so that the UI can reflect the current state without polling. The service acts as the nervous system of the application, relaying events from the Function Runner architecture through Redis pub/sub for decoupled event publishing. The service must support container orchestration environments and handle connection management across container restarts.

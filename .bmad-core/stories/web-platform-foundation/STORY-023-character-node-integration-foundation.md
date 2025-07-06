@@ -1,5 +1,12 @@
 # STORY-023: Character-Node Integration Foundation (Type Definitions Only)
 
+**Story ID**: STORY-023  
+**Epic**: EPIC-001-web-platform-foundation  
+**Type**: Frontend  
+**Points**: 1 (Small)  
+**Priority**: Low  
+**Status**: 🔲 Not Started
+
 ## Story
 As a developer, I need to create TypeScript type definitions and interfaces that will prepare for future Character Asset Nodes in the Production Canvas (PRD-002). This story only creates type scaffolding - actual node implementation will be done when the canvas is built.
 

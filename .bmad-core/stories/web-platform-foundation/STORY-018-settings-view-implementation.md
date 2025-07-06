@@ -1,5 +1,12 @@
 # STORY-018: Settings View Implementation
 
+**Story ID**: STORY-018  
+**Epic**: EPIC-001-web-platform-foundation  
+**Type**: Frontend  
+**Points**: 3 (Small)  
+**Priority**: Medium  
+**Status**: 🔲 Not Started
+
 ## Story
 As a user, I need a settings view in the main panel where I can configure project-level settings, workspace preferences, and view system information, providing a centralized location for all configuration options.
 

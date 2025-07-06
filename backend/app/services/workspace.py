@@ -411,22 +411,24 @@ class WorkspaceService:
                 manifest = self.get_project_manifest(item)
                 if manifest and manifest.id == project_id:
                     return item
-        
+
         # Try by directory name
         project_path = self.workspace_root / project_id
         if project_path.exists() and project_path.is_dir():
             return project_path
-            
+
         return None
 
 
 # Global workspace service instance - will be initialized in the endpoint
 workspace_service = None
 
+
 def get_workspace_service():
     """Get or create workspace service instance"""
     global workspace_service
     if workspace_service is None:
         from app.config import settings
+
         workspace_service = WorkspaceService(str(settings.workspace_root))
     return workspace_service

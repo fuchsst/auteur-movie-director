@@ -1,5 +1,12 @@
 # STORY-022: Character Asset Data Model (Foundation Only)
 
+**Story ID**: STORY-022  
+**Epic**: EPIC-001-web-platform-foundation  
+**Type**: Backend  
+**Points**: 2 (Small)  
+**Priority**: Medium  
+**Status**: 🔲 Not Started
+
 ## Story
 As a developer, I need to define the basic character asset data structure in project.json that will serve as a foundation for future character consistency features. This story only creates the minimal data model scaffolding - actual LoRA training, character generation, and management will be implemented in PRD-003 (Character Consistency Engine).
 

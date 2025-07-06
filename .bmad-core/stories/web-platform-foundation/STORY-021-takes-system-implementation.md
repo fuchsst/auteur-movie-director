@@ -223,6 +223,8 @@ async def generate_thumbnail(video_path: Path, output_path: Path):
 
 ## Priority: High
 
+## Status: 🔲 Not Started
+
 ## Related Stories
 - STORY-004: File Management API
 - STORY-013: Function Runner Foundation

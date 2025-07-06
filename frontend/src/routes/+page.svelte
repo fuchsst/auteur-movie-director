@@ -3,14 +3,21 @@
   import ThreePanelLayout from '$lib/components/layout/ThreePanelLayout.svelte';
   import ProjectBrowser from '$lib/components/project/ProjectBrowser.svelte';
   import AssetBrowser from '$lib/components/asset/AssetBrowser.svelte';
+  import PropertiesInspector from '$lib/components/properties/PropertiesInspector.svelte';
   import WebSocketStatus from '$lib/components/common/WebSocketStatus.svelte';
   import { initializeApp } from '$lib/stores';
+  import { selectionStore } from '$lib/stores/selection';
+  import type { SelectionContext } from '$lib/types/properties';
 
   let connected = false;
   let backendStatus = 'checking...';
+  let currentSelection: SelectionContext | null = null;
 
   // Use environment variables for API URL
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+  // Subscribe to selection changes
+  $: currentSelection = $selectionStore;
 
   onMount(async () => {
     // Initialize app
@@ -64,10 +71,7 @@
 
   <!-- Right Panel: Properties/Details -->
   <div slot="right" class="panel-section">
-    <h2>Properties</h2>
-    <div class="properties-content">
-      <p class="placeholder">Node properties and details will appear here</p>
-    </div>
+    <PropertiesInspector selection={currentSelection} />
   </div>
 </ThreePanelLayout>
 

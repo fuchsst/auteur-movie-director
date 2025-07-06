@@ -5,6 +5,7 @@
 **Type**: Infrastructure  
 **Points**: 5 (Medium)  
 **Priority**: High  
+**Status**: 🔲 Not Started  
 
 ## Story Description
 As a developer, I need to establish the Function Runner foundation that enables the Celery worker to act as an orchestrator for containerized AI model execution, implementing task dispatching with quality-based pipeline routing, WebSocket task execution protocol, and Redis pub/sub for real-time progress events, without implementing actual AI models.
