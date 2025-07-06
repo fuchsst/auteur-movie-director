@@ -20,10 +20,10 @@ RUN npm ci
 COPY . .
 
 # Expose Vite dev server port
-EXPOSE 5173
+EXPOSE 3000
 
 # Start development server with hot reloading
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
 
 # Builder stage for production
 FROM base AS builder

@@ -1,13 +1,24 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
+  import ThreePanelLayout from '$lib/components/layout/ThreePanelLayout.svelte';
+  import ProjectBrowser from '$lib/components/project/ProjectBrowser.svelte';
+  import AssetBrowser from '$lib/components/asset/AssetBrowser.svelte';
+  import WebSocketStatus from '$lib/components/common/WebSocketStatus.svelte';
+  import { initializeApp } from '$lib/stores';
 
   let connected = false;
   let backendStatus = 'checking...';
 
+  // Use environment variables for API URL
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
   onMount(async () => {
+    // Initialize app
+    initializeApp();
+
     // Check backend connection
     try {
-      const response = await fetch('http://localhost:8000/health');
+      const response = await fetch(`${apiUrl}/api/v1/health`);
       if (response.ok) {
         connected = true;
         backendStatus = 'Connected';
@@ -20,69 +31,60 @@
   });
 </script>
 
-<main>
-  <h1>Auteur Movie Director</h1>
-  <p>Welcome to the director-centric AI-powered film production platform</p>
-
-  <div class="status">
-    <h2>System Status</h2>
-    <p>Backend: <span class:connected>{backendStatus}</span></p>
+<ThreePanelLayout>
+  <!-- Left Panel: Project Browser -->
+  <div slot="left" class="panel-section">
+    <ProjectBrowser />
+    <div class="panel-divider"></div>
+    <AssetBrowser />
   </div>
 
-  <div class="getting-started">
-    <h2>Getting Started</h2>
-    <ol>
-      <li>Ensure the backend is running: <code>npm run dev:backend</code></li>
-      <li>Create a new project in the workspace</li>
-      <li>Start building your film!</li>
-    </ol>
+  <!-- Center Panel: Canvas -->
+  <div slot="center" class="panel-section canvas-panel">
+    <div class="canvas-header">
+      <h2>Production Canvas</h2>
+      <div class="canvas-controls">
+        <button class="btn btn-icon" title="Zoom In">+</button>
+        <button class="btn btn-icon" title="Zoom Out">-</button>
+        <button class="btn btn-icon" title="Fit to Screen">⊡</button>
+      </div>
+    </div>
+    <div class="canvas-container">
+      <p class="placeholder">Node-based canvas will be implemented in future stories</p>
+    </div>
+    <div class="status-bar">
+      <div class="status-left">
+        <span>Backend: <span class:connected>{backendStatus}</span></span>
+      </div>
+      <div class="status-right">
+        <WebSocketStatus />
+      </div>
+    </div>
   </div>
-</main>
+
+  <!-- Right Panel: Properties/Details -->
+  <div slot="right" class="panel-section">
+    <h2>Properties</h2>
+    <div class="properties-content">
+      <p class="placeholder">Node properties and details will appear here</p>
+    </div>
+  </div>
+</ThreePanelLayout>
 
 <style>
-  main {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
+  .panel-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 1.5rem 0;
   }
 
-  h1 {
-    color: #333;
-    margin-bottom: 1rem;
+  .status-left {
+    flex: 1;
   }
 
-  .status {
-    background: #f5f5f5;
-    padding: 1rem;
-    border-radius: 8px;
-    margin: 2rem 0;
-  }
-
-  .status span {
-    font-weight: bold;
-    color: #999;
-  }
-
-  .status span.connected {
-    color: #4caf50;
-  }
-
-  .getting-started {
-    margin-top: 2rem;
-  }
-
-  code {
-    background: #f0f0f0;
-    padding: 0.2rem 0.4rem;
-    border-radius: 3px;
-    font-family: 'Courier New', monospace;
-  }
-
-  ol {
-    line-height: 1.8;
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
 </style>

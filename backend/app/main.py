@@ -67,6 +67,18 @@ def create_app() -> FastAPI:
         task_dispatcher.register_handler("echo", EchoTaskHandler())
         logger.info("Task dispatcher initialized")
 
+        # Check Git LFS installation
+        from app.services.git import git_service
+
+        lfs_installed = await git_service.check_lfs_installed()
+        if lfs_installed:
+            logger.info("Git LFS is installed and available")
+        else:
+            logger.warning(
+                "Git LFS not found - large file tracking will be disabled. "
+                "Install Git LFS for optimal media file handling."
+            )
+
     # Shutdown event
     @app.on_event("shutdown")
     async def shutdown_event():

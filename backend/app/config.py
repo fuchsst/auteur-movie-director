@@ -6,7 +6,8 @@ Manages all environment variables and application settings.
 from pathlib import Path
 from typing import Dict, Optional
 
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -79,10 +80,16 @@ class Settings(BaseSettings):
     is_docker: bool = Field(default=False, env="DOCKER_ENV")
     container_name: str = "auteur-backend"
 
+    # Git configuration
+    git_author_name: Optional[str] = Field(default=None, env="GIT_AUTHOR_NAME")
+    git_author_email: Optional[str] = Field(default=None, env="GIT_AUTHOR_EMAIL")
+    git_lfs_threshold_mb: int = 50  # Files larger than this use LFS
+
     class Config:
         env_file = ".env"
         env_prefix = "BACKEND_"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields from environment
 
 
 # Global settings instance

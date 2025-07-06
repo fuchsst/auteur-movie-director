@@ -8,10 +8,27 @@ const config = {
   preprocess: vitePreprocess(),
 
   kit: {
-    // adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
-    // If your environment is not supported or you settled on a specific environment, switch out the adapter.
-    // See https://kit.svelte.dev/docs/adapters for more information about adapters.
-    adapter: adapter()
+    // Use Node adapter for Docker deployment
+    adapter: adapter({
+      // Build for production
+      out: 'build',
+      precompress: false,
+      envPrefix: ''
+    }),
+
+    // Configure for container environment
+    csrf: {
+      checkOrigin: false // Allow cross-origin in development
+    },
+
+    // Path aliases
+    alias: {
+      $components: './src/lib/components',
+      $stores: './src/lib/stores',
+      $types: './src/lib/types',
+      $utils: './src/lib/utils',
+      $api: './src/lib/api'
+    }
   }
 };
 

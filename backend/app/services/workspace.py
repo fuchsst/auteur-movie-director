@@ -94,44 +94,6 @@ class WorkspaceService:
         "06_Exports/",  # Large final exports
     ]
 
-    # Git LFS patterns for large files
-    GIT_LFS_PATTERNS = [
-        # Images
-        "*.png",
-        "*.jpg",
-        "*.jpeg",
-        "*.tiff",
-        "*.psd",
-        "*.exr",
-        # Video
-        "*.mp4",
-        "*.mov",
-        "*.avi",
-        "*.mkv",
-        "*.webm",
-        # Audio
-        "*.wav",
-        "*.mp3",
-        "*.aiff",
-        "*.flac",
-        # 3D
-        "*.blend",
-        "*.blend1",
-        "*.fbx",
-        "*.obj",
-        "*.abc",
-        # AI Models
-        "*.safetensors",
-        "*.ckpt",
-        "*.pt",
-        "*.pth",
-        "*.bin",
-        # Specific directories for all files
-        "04_Generated/**/*",
-        "03_Renders/**/*",
-        "01_Assets/Characters/*/lora/*",
-    ]
-
     # Narrative structure templates
     NARRATIVE_STRUCTURES = {
         NarrativeStructure.THREE_ACT: [
@@ -244,28 +206,23 @@ class WorkspaceService:
 
     def _initialize_git_with_lfs(self, project_path: Path) -> None:
         """Initialize Git repository with LFS configuration"""
-        # Initialize Git repository
-        repo = git.Repo.init(project_path)
+        # Use our async Git service synchronously for now
+        # TODO: Make workspace service async in the future
+        import asyncio
+        from app.services.git import git_service
 
-        # Install Git LFS
-        repo.git.lfs("install")
+        # Run async initialization
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            success = loop.run_until_complete(git_service.initialize_repository(project_path))
+            if not success:
+                raise RuntimeError("Failed to initialize Git repository")
+        finally:
+            loop.close()
 
-        # Create .gitattributes with LFS tracking rules
-        self._generate_gitattributes(project_path)
-
-        # Create .gitignore
+        # Create .gitignore (not handled by git service)
         self._generate_gitignore(project_path)
-
-    def _generate_gitattributes(self, project_path: Path) -> None:
-        """Generate .gitattributes with LFS tracking rules"""
-        gitattributes_path = project_path / ".gitattributes"
-
-        with open(gitattributes_path, "w") as f:
-            f.write("# Git LFS tracking rules for Auteur Movie Director\n")
-            f.write("# This file is auto-generated - DO NOT MODIFY\n\n")
-
-            for pattern in self.GIT_LFS_PATTERNS:
-                f.write(f"{pattern} filter=lfs diff=lfs merge=lfs -text\n")
 
     def _generate_gitignore(self, project_path: Path) -> None:
         """Generate .gitignore file"""
@@ -445,3 +402,31 @@ class WorkspaceService:
         except Exception as e:
             logger.error(f"Error loading project manifest: {e}")
             return None
+
+    def get_project_path(self, project_id: str) -> Optional[Path]:
+        """Get project path by ID or name"""
+        # First try to find by manifest ID
+        for item in self.workspace_root.iterdir():
+            if item.is_dir() and (item / "project.json").exists():
+                manifest = self.get_project_manifest(item)
+                if manifest and manifest.id == project_id:
+                    return item
+        
+        # Try by directory name
+        project_path = self.workspace_root / project_id
+        if project_path.exists() and project_path.is_dir():
+            return project_path
+            
+        return None
+
+
+# Global workspace service instance - will be initialized in the endpoint
+workspace_service = None
+
+def get_workspace_service():
+    """Get or create workspace service instance"""
+    global workspace_service
+    if workspace_service is None:
+        from app.config import settings
+        workspace_service = WorkspaceService(str(settings.workspace_root))
+    return workspace_service
