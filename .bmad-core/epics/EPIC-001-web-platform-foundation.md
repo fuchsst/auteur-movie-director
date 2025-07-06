@@ -9,7 +9,7 @@
 
 **Epic ID**: EPIC-001  
 **Status**: 🚧 In Progress  
-**Progress**: 10/21 Stories Completed (48%)  
+**Progress**: 13/23 Stories Defined (56% Complete)  
 **Last Updated**: 2025-07-06  
 
 ## Completed Stories
@@ -18,11 +18,36 @@
 - ✅ STORY-003: FastAPI Application Bootstrap
 - ✅ STORY-004: File Management API
 - ✅ STORY-005: WebSocket Service
-- ✅ STORY-006: Git Integration Service with LFS Support
-- ✅ STORY-007: SvelteKit Application Setup
-- ✅ STORY-008: Project Browser Component
+- ✅ STORY-006: Git Integration Service
+- ✅ STORY-007: SvelteKit Application Setup (includes Three-Panel Layout)
+- ✅ STORY-008: Project Browser Component (includes Asset Browser)
 - ✅ STORY-009: WebSocket Client
 - ✅ STORY-010: File Upload Component
+- ✅ STORY-011: API Client Setup
+- ✅ STORY-012: End-to-End Project Flow
+- ✅ STORY-013: Function Runner Foundation
+
+## Pending Stories
+- 🔲 STORY-014: Properties Inspector Implementation
+- 🔲 STORY-015: Progress Area Integration
+- 🔲 STORY-016: Main View Tab System
+- 🔲 STORY-017: Git LFS Integration
+- 🔲 STORY-018: Settings View Implementation
+- 🔲 STORY-019: Makefile Development Interface
+- 🔲 STORY-020: Docker Compose Orchestration
+- 🔲 STORY-021: Takes System Implementation
+- 🔲 STORY-022: Character Asset Data Model (Foundation Only)
+- 🔲 STORY-023: Character-Node Integration Foundation (Types Only)
+
+## Stories Moved to Other PRDs
+The following stories from the original epic were moved to their appropriate PRDs:
+- **Three-Panel Layout Implementation** → Already implemented in STORY-007
+- **Asset Browser Component** → Already implemented in STORY-008 
+- **Character Sheet UI Implementation** → Moved to PRD-004 (Asset Management)
+- **Asset Usage Tracking System** → Moved to PRD-004 (Asset Management)
+- **STORY-021** → Renumbered as STORY-017 (Git LFS)
+- **STORY-024** → Removed (belongs to PRD-004)
+- **STORY-026** → Removed (belongs to PRD-004)
 
 ## Epic Description
 Establish the foundational web-based platform architecture for the Auteur Movie Director, enabling the systematic translation of creative vision into AI-executable instructions. This epic focuses on building a simple, working local development system with SvelteKit frontend and FastAPI backend, implementing file-based project management that supports the hierarchical filmmaking structure (Project → Chapter → Scene → Shot → Take), and preparing the infrastructure for the Function Runner pattern that will execute the generative pipeline.
@@ -341,8 +366,10 @@ Establish the foundational web-based platform architecture for the Auteur Movie 
     - Enable cross-reference navigation
 
 ## Estimated Effort
-**Total Story Points**: 92 points (includes character system foundation)
-**Estimated Duration**: 4-5 sprints (8-10 weeks)
+**Total Story Points**: 73 points (reduced scope - character UI moved to PRD-004)
+**Completed Points**: 40 points (13 stories)
+**Remaining Points**: 33 points (10 stories)
+**Estimated Duration**: 3-4 sprints (6-8 weeks)
 **Team Size**: 2 developers (1 frontend, 1 backend)
 
 ## Success Metrics
