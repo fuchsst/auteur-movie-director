@@ -5,13 +5,11 @@ File upload endpoints with automatic organization and Git LFS tracking.
 import logging
 import os
 from pathlib import Path
-from typing import List
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.core.dispatcher import task_dispatcher
 from app.redis_client import redis_client
 from app.services.git import git_service
 from app.services.workspace import get_workspace_service
@@ -254,14 +252,14 @@ async def upload_file(
                 {"error": str(e), "message": "Upload failed"},
             )
 
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/{project_id}/batch/{category}")
 async def upload_files_batch(
     project_id: str,
     category: str,
-    files: List[UploadFile] = File(...),
+    files: list[UploadFile] = File(...),
     metadata: str = Form("{}"),
     auto_commit: bool = Form(True),
 ):
@@ -311,7 +309,7 @@ async def upload_files_batch(
 
     except Exception as e:
         logger.error(f"Batch upload error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/categories")

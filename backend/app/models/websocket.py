@@ -5,7 +5,7 @@ Defines structured messages for generation tasks and progress updates.
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -26,12 +26,12 @@ class StartGenerationMessage(WebSocketMessage):
 
     type: Literal["start_generation"] = "start_generation"
     task_type: str  # e.g., "text_to_image", "image_to_video"
-    params: Dict[str, Any]
+    params: dict[str, Any]
     quality: str = "standard"
     # Support for composite prompts
-    character_refs: Optional[List[str]] = None  # Character asset IDs
-    style_refs: Optional[List[str]] = None  # Style asset IDs
-    location_ref: Optional[str] = None  # Location asset ID
+    character_refs: list[str] | None = None  # Character asset IDs
+    style_refs: list[str] | None = None  # Style asset IDs
+    location_ref: str | None = None  # Location asset ID
 
 
 class ProgressMessage(WebSocketMessage):
@@ -40,8 +40,8 @@ class ProgressMessage(WebSocketMessage):
     type: Literal["progress"] = "progress"
     task_id: str
     progress: float  # 0.0 to 1.0
-    message: Optional[str] = None
-    preview_url: Optional[str] = None
+    message: str | None = None
+    preview_url: str | None = None
 
 
 class CompleteMessage(WebSocketMessage):
@@ -49,7 +49,7 @@ class CompleteMessage(WebSocketMessage):
 
     type: Literal["complete"] = "complete"
     task_id: str
-    result: Dict[str, Any]
+    result: dict[str, Any]
     duration: float  # seconds
 
 
@@ -57,10 +57,10 @@ class ErrorMessage(WebSocketMessage):
     """Error notification"""
 
     type: Literal["error"] = "error"
-    task_id: Optional[str] = None
+    task_id: str | None = None
     error_code: str
     message: str
-    details: Optional[Dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
 
 class TaskStartedMessage(WebSocketMessage):

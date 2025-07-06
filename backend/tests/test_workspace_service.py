@@ -5,7 +5,6 @@ Tests for workspace service - enforcing structure as API contract
 import json
 import shutil
 import tempfile
-from pathlib import Path
 
 import pytest
 

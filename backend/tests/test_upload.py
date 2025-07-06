@@ -156,7 +156,7 @@ def test_upload_file_with_duplicate_name(mock_exists, mock_workspace_service, mo
     # First call returns True (file exists), subsequent calls return False
     mock_exists.side_effect = [True, False]
 
-    with patch("builtins.open", new_callable=MagicMock) as mock_open:
+    with patch("builtins.open", new_callable=MagicMock):
         with patch("pathlib.Path.stat") as mock_stat:
             mock_stat.return_value = MagicMock(st_size=1024)
 

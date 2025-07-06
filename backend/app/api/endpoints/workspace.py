@@ -6,7 +6,6 @@ Enforces the Project-as-Repository model with strict structure validation.
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -29,8 +28,8 @@ class WorkspaceConfig(BaseModel):
     root_path: str
     projects_count: int
     available_space_gb: float
-    enforced_structure: List[str]
-    narrative_structures: List[str]
+    enforced_structure: list[str]
+    narrative_structures: list[str]
 
 
 class ProjectListItem(BaseModel):
@@ -111,7 +110,7 @@ async def validate_workspace():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/projects", response_model=List[ProjectListItem])
+@router.get("/projects", response_model=list[ProjectListItem])
 async def list_projects(
     quality: str = Query(None, description="Filter by quality level"),
     structure: str = Query(None, description="Filter by narrative structure"),

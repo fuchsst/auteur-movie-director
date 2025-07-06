@@ -7,9 +7,7 @@ import json
 import logging
 import os
 import shutil
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 from uuid import uuid4
 
 import git
@@ -22,7 +20,6 @@ from app.schemas.project import (
     ProjectCreate,
     ProjectManifest,
     ProjectStructureValidation,
-    QualityLevel,
 )
 
 logger = logging.getLogger(__name__)
@@ -143,7 +140,7 @@ class WorkspaceService:
         """Ensure workspace directory exists"""
         self.workspace_root.mkdir(parents=True, exist_ok=True)
 
-    def create_project(self, project_data: ProjectCreate) -> Tuple[Path, ProjectManifest]:
+    def create_project(self, project_data: ProjectCreate) -> tuple[Path, ProjectManifest]:
         """
         Create a new project with enforced structure.
         Returns tuple of (project_path, manifest).
@@ -209,6 +206,7 @@ class WorkspaceService:
         # Use our async Git service synchronously for now
         # TODO: Make workspace service async in the future
         import asyncio
+
         from app.services.git import git_service
 
         # Run async initialization
@@ -301,7 +299,7 @@ class WorkspaceService:
 
         # Check for Git repository
         try:
-            repo = git.Repo(project_path)
+            git.Repo(project_path)
             result.git_initialized = True
 
             # Check if Git LFS is enabled
@@ -367,7 +365,7 @@ class WorkspaceService:
 
         return char_path
 
-    def list_projects(self) -> List[Dict[str, any]]:
+    def list_projects(self) -> list[dict[str, any]]:
         """List all projects in workspace"""
         projects = []
 
@@ -388,7 +386,7 @@ class WorkspaceService:
 
         return projects
 
-    def get_project_manifest(self, project_path: Path) -> Optional[ProjectManifest]:
+    def get_project_manifest(self, project_path: Path) -> ProjectManifest | None:
         """Load project manifest from project.json"""
         manifest_path = project_path / "project.json"
 
@@ -403,7 +401,7 @@ class WorkspaceService:
             logger.error(f"Error loading project manifest: {e}")
             return None
 
-    def get_project_path(self, project_id: str) -> Optional[Path]:
+    def get_project_path(self, project_id: str) -> Path | None:
         """Get project path by ID or name"""
         # First try to find by manifest ID
         for item in self.workspace_root.iterdir():

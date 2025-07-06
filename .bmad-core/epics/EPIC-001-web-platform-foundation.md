@@ -9,7 +9,7 @@
 
 **Epic ID**: EPIC-001  
 **Status**: 🚧 In Progress  
-**Progress**: 15/23 Stories Completed (65% Complete)  
+**Progress**: 17/23 Stories Completed (74% Complete)  
 **Last Updated**: 2025-01-06  
 
 ## Completed Stories
@@ -26,14 +26,14 @@
 - ✅ STORY-011: API Client Setup
 - ✅ STORY-014: Properties Inspector Implementation
 - ✅ STORY-015: Progress Area Integration
+- ✅ STORY-016: Main View Tab System
+- ✅ STORY-017: Git LFS Integration
 - ✅ STORY-019: Makefile Development Interface
 - ✅ STORY-020: Docker Compose Orchestration
 
 ## Pending Stories
 - 🔲 STORY-012: End-to-End Project Flow
 - 🔲 STORY-013: Function Runner Foundation
-- 🔲 STORY-016: Main View Tab System
-- 🔲 STORY-017: Git LFS Integration
 - 🔲 STORY-018: Settings View Implementation
 - 🔲 STORY-021: Takes System Implementation
 - 🔲 STORY-022: Character Asset Data Model (Foundation Only)

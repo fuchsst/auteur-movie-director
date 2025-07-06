@@ -3,7 +3,7 @@ Custom exceptions for the application.
 Provides structured error handling with consistent format.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class AppException(Exception):
@@ -14,7 +14,7 @@ class AppException(Exception):
         message: str,
         code: str = "APP_ERROR",
         status_code: int = 500,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message)
         self.message = message
@@ -22,7 +22,7 @@ class AppException(Exception):
         self.status_code = status_code
         self.details = details or {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert exception to dictionary for API response"""
         return {"error": {"code": self.code, "message": self.message, "details": self.details}}
 
@@ -42,7 +42,7 @@ class ResourceNotFoundException(AppException):
 class ValidationException(AppException):
     """Raised when validation fails"""
 
-    def __init__(self, message: str, field: Optional[str] = None):
+    def __init__(self, message: str, field: str | None = None):
         details = {}
         if field:
             details["field"] = field
@@ -64,7 +64,7 @@ class TaskException(AppException):
 class WebSocketException(AppException):
     """Raised for WebSocket errors"""
 
-    def __init__(self, message: str, project_id: Optional[str] = None):
+    def __init__(self, message: str, project_id: str | None = None):
         details = {}
         if project_id:
             details["project_id"] = project_id

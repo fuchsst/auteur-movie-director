@@ -5,16 +5,14 @@ WebSocket endpoints for real-time communication.
 import asyncio
 import json
 import logging
-from typing import Dict
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.config import settings
 from app.core.dispatcher import task_dispatcher
 from app.models.websocket import (
     CompleteMessage,
     ErrorMessage,
-    PingMessage,
     PongMessage,
     ProgressMessage,
     StartGenerationMessage,
@@ -31,8 +29,8 @@ class ConnectionManager:
     """Manages WebSocket connections per project"""
 
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.subscriptions: Dict[str, asyncio.Task] = {}
+        self.active_connections: dict[str, WebSocket] = {}
+        self.subscriptions: dict[str, asyncio.Task] = {}
 
     async def connect(self, project_id: str, websocket: WebSocket):
         """Accept WebSocket connection"""
@@ -176,6 +174,6 @@ async def websocket_endpoint(websocket: WebSocket, project_id: str):
         )
         try:
             await manager.send_message(project_id, error_msg.dict())
-        except:
+        except Exception:
             pass
         manager.disconnect(project_id)

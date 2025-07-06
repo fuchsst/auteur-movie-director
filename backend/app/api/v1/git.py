@@ -3,13 +3,10 @@ Git API endpoints for repository management.
 """
 
 import logging
-from pathlib import Path
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.config import settings
 from app.services.git import git_service
 from app.services.workspace import get_workspace_service
 
@@ -23,22 +20,22 @@ class CommitRequest(BaseModel):
 
     project_id: str = Field(description="Project UUID")
     message: str = Field(description="Commit message")
-    prefix: Optional[str] = Field(None, description="Semantic prefix (feat, fix, etc.)")
-    files: Optional[List[str]] = Field(None, description="Specific files to commit")
+    prefix: str | None = Field(None, description="Semantic prefix (feat, fix, etc.)")
+    files: list[str] | None = Field(None, description="Specific files to commit")
 
 
 class GitStatus(BaseModel):
     """Git repository status"""
 
     initialized: bool
-    branch: Optional[str] = None
-    is_dirty: Optional[bool] = None
-    untracked_files: List[str] = []
-    modified_files: List[str] = []
-    staged_files: List[str] = []
-    lfs_files: Optional[List[str]] = None
-    lfs_patterns: Optional[List[str]] = None
-    error: Optional[str] = None
+    branch: str | None = None
+    is_dirty: bool | None = None
+    untracked_files: list[str] = []
+    modified_files: list[str] = []
+    staged_files: list[str] = []
+    lfs_files: list[str] | None = None
+    lfs_patterns: list[str] | None = None
+    error: str | None = None
 
 
 class CommitInfo(BaseModel):
@@ -56,8 +53,8 @@ class ValidationResult(BaseModel):
     """Repository validation results"""
 
     valid: bool
-    issues: List[str] = []
-    warnings: List[str] = []
+    issues: list[str] = []
+    warnings: list[str] = []
 
 
 @router.get("/{project_id}/status", response_model=GitStatus)
@@ -125,11 +122,11 @@ async def commit_changes(project_id: str, request: CommitRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{project_id}/history", response_model=List[CommitInfo])
+@router.get("/{project_id}/history", response_model=list[CommitInfo])
 async def get_commit_history(
     project_id: str,
     limit: int = Query(20, description="Maximum number of commits to return"),
-    file_path: Optional[str] = Query(None, description="Get history for specific file"),
+    file_path: str | None = Query(None, description="Get history for specific file"),
 ):
     """
     Get commit history for the project.

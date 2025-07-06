@@ -5,11 +5,9 @@ Manages version control for project repositories.
 
 import asyncio
 import logging
-import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
@@ -141,15 +139,9 @@ class GitService:
 
     async def check_lfs_installed(self) -> bool:
         """Check if Git LFS is installed and available."""
-        try:
-            result = await asyncio.create_subprocess_exec(
-                "git", "lfs", "version", stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = await result.communicate()
-            return result.returncode == 0
-        except Exception as e:
-            logger.error(f"Git LFS not found: {e}")
-            return False
+        from app.services.git_lfs import git_lfs_service
+
+        return git_lfs_service.check_lfs_installed()
 
     async def initialize_repository(self, project_path: Path) -> bool:
         """
@@ -171,19 +163,14 @@ class GitService:
                 config.set_value("user", "email", self.author_email)
 
             # Initialize LFS
-            if await self.check_lfs_installed():
-                await self._run_git_command(project_path, ["lfs", "install", "--local"])
+            from app.services.git_lfs import git_lfs_service
 
-                # Create .gitattributes with LFS tracking
-                gitattributes_path = project_path / ".gitattributes"
-                gitattributes_content = self._generate_gitattributes()
-                gitattributes_path.write_text(gitattributes_content)
-
-                # Track .gitattributes
-                repo.index.add([".gitattributes"])
-                repo.index.commit("chore: Initialize repository with Git LFS")
-
-                logger.info(f"Initialized Git repository with LFS at {project_path}")
+            if git_lfs_service.lfs_available:
+                try:
+                    git_lfs_service.initialize_lfs(project_path)
+                    logger.info(f"Initialized Git repository with LFS at {project_path}")
+                except Exception as e:
+                    logger.warning(f"Git LFS initialization failed: {e}")
             else:
                 logger.warning("Git LFS not available, initialized without LFS support")
 
@@ -222,7 +209,7 @@ class GitService:
 
         return "\n".join(lines)
 
-    async def _run_git_command(self, cwd: Path, args: List[str]) -> Tuple[str, str]:
+    async def _run_git_command(self, cwd: Path, args: list[str]) -> tuple[str, str]:
         """Run a git command asynchronously."""
         cmd = ["git"] + args
         process = await asyncio.create_subprocess_exec(
@@ -235,7 +222,7 @@ class GitService:
 
         return stdout.decode(), stderr.decode()
 
-    async def get_status(self, project_path: Path) -> Dict[str, any]:
+    async def get_status(self, project_path: Path) -> dict[str, any]:
         """
         Get Git repository status including LFS tracking.
 
@@ -281,8 +268,8 @@ class GitService:
         self,
         project_path: Path,
         message: str,
-        prefix: Optional[str] = None,
-        files: Optional[List[str]] = None,
+        prefix: str | None = None,
+        files: list[str] | None = None,
     ) -> bool:
         """
         Commit changes to the repository.
@@ -328,8 +315,8 @@ class GitService:
             return False
 
     async def get_history(
-        self, project_path: Path, limit: int = 20, file_path: Optional[str] = None
-    ) -> List[Dict[str, any]]:
+        self, project_path: Path, limit: int = 20, file_path: str | None = None
+    ) -> list[dict[str, any]]:
         """
         Get commit history for the repository or a specific file.
 
@@ -407,7 +394,7 @@ class GitService:
             logger.error(f"Failed to track file with LFS: {e}")
             return False
 
-    async def validate_repository(self, project_path: Path) -> Dict[str, any]:
+    async def validate_repository(self, project_path: Path) -> dict[str, any]:
         """
         Validate repository health and configuration.
 

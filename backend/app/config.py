@@ -4,10 +4,9 @@ Manages all environment variables and application settings.
 """
 
 from pathlib import Path
-from typing import Dict, Optional
 
-from pydantic_settings import BaseSettings
 from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -39,7 +38,7 @@ class Settings(BaseSettings):
     ws_message_queue_size: int = 100
 
     # Quality Settings (aligned with generative pipeline)
-    quality_presets: Dict[str, Dict] = {
+    quality_presets: dict[str, dict] = {
         "low": {
             "pipeline_id": "auteur-flux:1.0-draft",
             "target_vram": 12,
@@ -70,7 +69,7 @@ class Settings(BaseSettings):
 
     # Future: Multi-agent settings
     enable_crew_ai: bool = False
-    crew_orchestrator_url: Optional[str] = None
+    crew_orchestrator_url: str | None = None
 
     # Logging
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
@@ -81,8 +80,8 @@ class Settings(BaseSettings):
     container_name: str = "auteur-backend"
 
     # Git configuration
-    git_author_name: Optional[str] = Field(default=None, env="GIT_AUTHOR_NAME")
-    git_author_email: Optional[str] = Field(default=None, env="GIT_AUTHOR_EMAIL")
+    git_author_name: str | None = Field(default=None, env="GIT_AUTHOR_NAME")
+    git_author_email: str | None = Field(default=None, env="GIT_AUTHOR_EMAIL")
     git_lfs_threshold_mb: int = 50  # Files larger than this use LFS
 
     class Config:

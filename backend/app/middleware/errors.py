@@ -4,7 +4,6 @@ Error handling middleware.
 
 import logging
 from datetime import datetime
-from typing import Union
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError

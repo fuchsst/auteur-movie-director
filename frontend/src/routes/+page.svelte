@@ -5,9 +5,13 @@
   import AssetBrowser from '$lib/components/asset/AssetBrowser.svelte';
   import PropertiesInspector from '$lib/components/properties/PropertiesInspector.svelte';
   import ProgressArea from '$lib/components/progress/ProgressArea.svelte';
+  import MainViewContainer from '$lib/components/layout/MainViewContainer.svelte';
   import WebSocketStatus from '$lib/components/common/WebSocketStatus.svelte';
+  import LFSSetup from '$lib/components/help/LFSSetup.svelte';
   import { initializeApp } from '$lib/stores';
+  import { currentProject } from '$lib/stores';
   import { selectionStore } from '$lib/stores/selection';
+  import { lfsStore } from '$lib/stores/lfs';
   import type { SelectionContext } from '$lib/types/properties';
 
   let connected = false;
@@ -30,6 +34,9 @@
       if (response.ok) {
         connected = true;
         backendStatus = 'Connected';
+
+        // Check Git LFS after backend is connected
+        await lfsStore.checkLFS();
       } else {
         backendStatus = 'Backend not responding';
       }
@@ -47,19 +54,16 @@
     <AssetBrowser />
   </div>
 
-  <!-- Center Panel: Canvas -->
+  <!-- Center Panel: Main View with Tabs -->
   <div slot="center" class="panel-section canvas-panel">
-    <div class="canvas-header">
-      <h2>Production Canvas</h2>
-      <div class="canvas-controls">
-        <button class="btn btn-icon" title="Zoom In">+</button>
-        <button class="btn btn-icon" title="Zoom Out">-</button>
-        <button class="btn btn-icon" title="Fit to Screen">⊡</button>
+    {#if $currentProject}
+      <MainViewContainer projectId={$currentProject.id} />
+    {:else}
+      <div class="no-project">
+        <h2>No Project Selected</h2>
+        <p>Create or select a project to get started</p>
       </div>
-    </div>
-    <div class="canvas-container">
-      <p class="placeholder">Node-based canvas will be implemented in future stories</p>
-    </div>
+    {/if}
     <div class="status-bar">
       <div class="status-left">
         <span>Backend: <span class:connected>{backendStatus}</span></span>
@@ -77,11 +81,43 @@
   </div>
 </ThreePanelLayout>
 
+<!-- Git LFS Setup Dialog -->
+{#if $lfsStore.showSetupDialog}
+  <div class="modal-backdrop">
+    <div class="modal-content">
+      <LFSSetup onClose={() => lfsStore.hideSetupDialog()} />
+    </div>
+  </div>
+{/if}
+
 <style>
   .panel-divider {
     height: 1px;
     background: var(--border-color);
     margin: 1.5rem 0;
+  }
+
+  .canvas-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .canvas-panel :global(.main-view-container) {
+    flex: 1;
+  }
+
+  .no-project {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+
+  .no-project h2 {
+    margin: 0 0 8px 0;
   }
 
   .right-panel {
@@ -98,6 +134,15 @@
     flex-shrink: 0;
   }
 
+  .status-bar {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    font-size: 12px;
+  }
+
   .status-left {
     flex: 1;
   }
@@ -106,5 +151,47 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+  }
+
+  .connected {
+    color: var(--success-color);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s;
+  }
+
+  .modal-content {
+    animation: slideIn 0.3s;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>

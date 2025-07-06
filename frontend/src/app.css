@@ -30,6 +30,12 @@
   --color-primary-hover: #2563eb;
   --color-error: #ef4444;
   --color-error-hover: #dc2626;
+
+  /* Main View */
+  --bg-primary: #ffffff;
+  --bg-canvas: #f5f5f5;
+  --grid-color: #e0e0e0;
+  --bg-active: #e3f2fd;
 }
 
 /* Dark theme */
@@ -63,6 +69,12 @@
   --color-primary-hover: #5eaaff;
   --color-error: #f87171;
   --color-error-hover: #ef4444;
+
+  /* Main View - Dark */
+  --bg-primary: #1a1a1a;
+  --bg-canvas: #0f0f0f;
+  --grid-color: #333333;
+  --bg-active: #2c5aa0;
 }
 
 * {

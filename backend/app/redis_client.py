@@ -5,7 +5,7 @@ Handles project state management and progress updates.
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import redis.asyncio as redis
 
@@ -18,8 +18,8 @@ class RedisClient:
     """Async Redis client for pub/sub and state management"""
 
     def __init__(self):
-        self.redis: Optional[redis.Redis] = None
-        self.pubsub: Optional[redis.client.PubSub] = None
+        self.redis: redis.Redis | None = None
+        self.pubsub: redis.client.PubSub | None = None
 
     async def connect(self):
         """Initialize Redis connection"""
@@ -44,19 +44,19 @@ class RedisClient:
             await self.redis.close()
         logger.info("Redis client disconnected")
 
-    async def publish_progress(self, project_id: str, task_id: str, progress: Dict[str, Any]):
+    async def publish_progress(self, project_id: str, task_id: str, progress: dict[str, Any]):
         """Publish progress update to Redis channel"""
         message = {"project_id": project_id, "task_id": task_id, "type": "progress", **progress}
         await self.redis.publish(settings.redis_progress_channel, json.dumps(message))
         logger.debug(f"Published progress for task {task_id}: {progress.get('progress', 0)}%")
 
-    async def get_project_state(self, project_id: str) -> Optional[Dict]:
+    async def get_project_state(self, project_id: str) -> dict | None:
         """Get project state from Redis"""
         key = f"{settings.redis_state_prefix}{project_id}"
         data = await self.redis.get(key)
         return json.loads(data) if data else None
 
-    async def set_project_state(self, project_id: str, state: Dict):
+    async def set_project_state(self, project_id: str, state: dict):
         """Store project state in Redis"""
         key = f"{settings.redis_state_prefix}{project_id}"
         await self.redis.set(

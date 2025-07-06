@@ -6,7 +6,7 @@ Foundation for Function Runner integration.
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from app.config import settings
 from app.redis_client import redis_client
@@ -23,7 +23,7 @@ class TaskHandler(ABC):
         pass
 
     @abstractmethod
-    async def process(self, task_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, task_id: str, params: dict[str, Any]) -> dict[str, Any]:
         """Process the task and return result"""
         pass
 
@@ -32,8 +32,8 @@ class TaskDispatcher:
     """Routes tasks to appropriate handlers with quality-based configuration"""
 
     def __init__(self):
-        self.handlers: Dict[str, TaskHandler] = {}
-        self.active_tasks: Dict[str, asyncio.Task] = {}
+        self.handlers: dict[str, TaskHandler] = {}
+        self.active_tasks: dict[str, asyncio.Task] = {}
 
     def register_handler(self, name: str, handler: TaskHandler):
         """Register a task handler"""
@@ -41,7 +41,7 @@ class TaskDispatcher:
         logger.info(f"Registered handler: {name}")
 
     async def dispatch(
-        self, project_id: str, task_type: str, params: Dict[str, Any], quality: str = "standard"
+        self, project_id: str, task_type: str, params: dict[str, Any], quality: str = "standard"
     ) -> str:
         """Dispatch task to appropriate handler"""
         # Generate task ID
@@ -78,7 +78,7 @@ class TaskDispatcher:
         return task_id
 
     async def _run_task(
-        self, task_id: str, project_id: str, handler: TaskHandler, params: Dict[str, Any]
+        self, task_id: str, project_id: str, handler: TaskHandler, params: dict[str, Any]
     ):
         """Run task with progress tracking"""
         try:
@@ -121,14 +121,14 @@ class TaskDispatcher:
             return True
         return False
 
-    def get_active_tasks(self) -> List[str]:
+    def get_active_tasks(self) -> list[str]:
         """Get list of active task IDs"""
         return list(self.active_tasks.keys())
 
     async def shutdown(self):
         """Cancel all active tasks for graceful shutdown"""
         logger.info(f"Cancelling {len(self.active_tasks)} active tasks")
-        for task_id, task in self.active_tasks.items():
+        for _, task in self.active_tasks.items():
             if not task.done():
                 task.cancel()
 
@@ -148,7 +148,7 @@ class EchoTaskHandler(TaskHandler):
     async def can_handle(self, task_type: str) -> bool:
         return task_type == "echo"
 
-    async def process(self, task_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, task_id: str, params: dict[str, Any]) -> dict[str, Any]:
         # Simulate some work
         await asyncio.sleep(2)
         return {"echo": params.get("message", "Hello World"), "task_id": task_id}
