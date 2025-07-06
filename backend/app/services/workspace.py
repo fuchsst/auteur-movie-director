@@ -14,6 +14,7 @@ import git
 from pydantic import ValidationError
 
 from app.schemas.project import (
+    CharacterAsset,
     ChapterInfo,
     NarrativeConfig,
     NarrativeStructure,
@@ -416,6 +417,74 @@ class WorkspaceService:
             return project_path
 
         return None
+
+    def update_project_manifest(self, project_path: Path, manifest: ProjectManifest) -> bool:
+        """Update the project manifest in project.json"""
+        try:
+            self._save_project_manifest(project_path, manifest)
+            return True
+        except Exception as e:
+            logger.error(f"Error updating project manifest: {e}")
+            return False
+
+    def add_character_to_project(
+        self, project_path: Path, character_name: str, description: str = ""
+    ) -> CharacterAsset | None:
+        """Add a character to the project manifest with basic structure"""
+        try:
+            # Load current manifest
+            manifest = self.get_project_manifest(project_path)
+            if not manifest:
+                logger.error("Project manifest not found")
+                return None
+
+            # Create character structure
+            self.create_character_structure(project_path, character_name)
+
+            # Create character asset
+            character_id = str(uuid4())
+            character = CharacterAsset(
+                # AssetReference fields
+                id=character_id,
+                name=character_name,
+                type="Character",
+                path=f"01_Assets/Characters/{self._sanitize_project_name(character_name)}",
+                # CharacterAsset specific fields
+                assetId=character_id,
+                assetType="Character",
+                description=description,
+                triggerWord=None,  # Placeholder for future LoRA
+                baseFaceImagePath=None,  # Placeholder
+                loraModelPath=None,  # Placeholder for future
+                loraTrainingStatus="untrained",
+                variations={},  # Empty, will be populated later
+                usage=[],  # Will track shot IDs in future
+            )
+
+            # Add to manifest
+            if "characters" not in manifest.assets:
+                manifest.assets["characters"] = []
+
+            # Check if character already exists
+            for existing in manifest.assets["characters"]:
+                # Handle both dict and object forms
+                existing_name = existing.name if hasattr(existing, "name") else existing.get("name")
+                if existing_name == character_name:
+                    logger.warning(f"Character '{character_name}' already exists")
+                    return None
+
+            manifest.assets["characters"].append(character)
+
+            # Save updated manifest
+            if self.update_project_manifest(project_path, manifest):
+                logger.info(f"Added character '{character_name}' to project")
+                return character
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error adding character to project: {e}")
+            return None
 
 
 # Global workspace service instance - will be initialized in the endpoint

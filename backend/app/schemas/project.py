@@ -183,7 +183,7 @@ class ProjectManifest(BaseModel):
 
     narrative: NarrativeConfig
 
-    assets: dict[str, list[AssetReference]] = Field(
+    assets: dict[str, list[Any]] = Field(
         default_factory=lambda: {"characters": [], "styles": [], "locations": [], "music": []}
     )
 

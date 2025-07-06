@@ -22,6 +22,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
 
+class CharacterCreateRequest(BaseModel):
+    """Request to add a character to project"""
+
+    name: str
+    description: str = ""
+
+
 class WorkspaceConfig(BaseModel):
     """Workspace configuration response"""
 
@@ -205,33 +212,57 @@ async def validate_project_structure(project_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/projects/{project_id}/characters/{character_name}")
-async def create_character_structure(project_id: str, character_name: str):
-    """Create character directory structure"""
+@router.post("/projects/{project_id}/characters")
+async def add_character(project_id: str, character_data: CharacterCreateRequest):
+    """Add character to project manifest - data only, no processing"""
     try:
         # Find project by ID
-        projects = workspace_service.list_projects()
-        project = None
-
-        for p in projects:
-            if p["manifest"]["id"] == project_id:
-                project = p
-                break
-
-        if not project:
+        project_path = workspace_service.get_project_path(project_id)
+        if not project_path:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        # Create character structure
-        project_path = Path(project["path"])
-        char_path = workspace_service.create_character_structure(project_path, character_name)
+        # Add character to project
+        character = workspace_service.add_character_to_project(
+            project_path, character_data.name, character_data.description
+        )
+
+        if not character:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to add character. Character '{character_data.name}' may already exist.",
+            )
 
         return {
-            "character_name": character_name,
-            "path": str(char_path),
-            "subdirectories": ["lora", "variations"],
+            "success": True,
+            "character": character.dict(),
+            "message": f"Character '{character_data.name}' added to project",
         }
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating character structure: {e}")
+        logger.error(f"Error adding character: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/projects/{project_id}/characters")
+async def list_characters(project_id: str):
+    """List all characters in a project"""
+    try:
+        # Get project manifest
+        project_path = workspace_service.get_project_path(project_id)
+        if not project_path:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        manifest = workspace_service.get_project_manifest(project_path)
+        if not manifest:
+            raise HTTPException(status_code=404, detail="Project manifest not found")
+
+        # Get characters from manifest
+        characters = manifest.assets.get("characters", [])
+
+        return {"characters": [char.dict() for char in characters], "total": len(characters)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing characters: {e}")
         raise HTTPException(status_code=500, detail=str(e))
