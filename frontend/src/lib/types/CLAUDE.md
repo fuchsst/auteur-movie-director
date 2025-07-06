@@ -116,6 +116,7 @@ Character node type definitions have been created in preparation for the Product
 ### Future Data Flow
 
 When implemented, character nodes will enable:
+
 - Character selection from project assets
 - LoRA path provision to image generation
 - Trigger word supply for prompt building

@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: auteur_test_runner
+    volumes:
+      - ./tests:/app/tests
+      - ./workspace:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TEST_MODE=e2e
+      - BACKEND_URL=http://backend:8000
+      - FRONTEND_URL=http://frontend:3000
+      - WORKSPACE_ROOT=/workspace
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run test:e2e
+    networks:
+      - auteur_network
+
+  frontend:
+    extends:
+      file: docker-compose.yml
+      service: frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    extends:
+      file: docker-compose.yml
+      service: backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  worker:
+    extends:
+      file: docker-compose.yml
+      service: worker
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis; r=redis.Redis('redis'); r.ping()"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+networks:
+  auteur_network:
+    driver: bridge
+
+volumes:
+  workspace_test:
+    driver: local

@@ -1,0 +1,37 @@
+FROM node:20-alpine
+
+# Install dependencies for Playwright
+RUN apk add --no-cache \
+    chromium \
+    firefox-esr \
+    harfbuzz \
+    ttf-freefont \
+    font-noto-emoji
+
+# Install Docker CLI for container interaction
+RUN apk add --no-cache docker-cli
+
+# Set Playwright environment variables
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+COPY frontend/package.json ./frontend/
+COPY backend/requirements.txt ./backend/
+
+# Install dependencies
+RUN npm ci
+RUN cd frontend && npm ci
+RUN pip install pytest pytest-asyncio httpx aiofiles
+
+# Copy test files
+COPY tests ./tests
+COPY playwright.config.ts ./
+
+# Create test report directory
+RUN mkdir -p test-results
+
+CMD ["npm", "run", "test:e2e"]

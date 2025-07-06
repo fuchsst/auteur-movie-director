@@ -14,8 +14,8 @@ import git
 from pydantic import ValidationError
 
 from app.schemas.project import (
-    CharacterAsset,
     ChapterInfo,
+    CharacterAsset,
     NarrativeConfig,
     NarrativeStructure,
     ProjectCreate,

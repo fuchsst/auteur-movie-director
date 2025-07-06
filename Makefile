@@ -23,6 +23,8 @@ help:
 	@echo "  make test        - Run all tests"
 	@echo "  make test-quick  - Run quick tests (no integration)"
 	@echo "  make test-coverage - Generate coverage report"
+	@echo "  make test-integration - Run integration tests"
+	@echo "  make test-e2e    - Run end-to-end tests with Docker"
 	@echo "  make lint        - Run code quality checks"
 	@echo "  make format      - Format code automatically"
 	@echo ""
@@ -87,6 +89,12 @@ test-quick:
 
 test-coverage:
 	@npm run test:backend -- --cov && npm run test:frontend -- --coverage
+
+test-integration: ## Run integration tests
+	@npm run test:integration
+
+test-e2e: ## Run end-to-end tests with Docker
+	@npm run test:e2e
 
 lint:
 	@npm run lint

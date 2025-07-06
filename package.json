@@ -30,7 +30,10 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && pytest",
     "test:frontend": "cd frontend && npm test",
-    "test:integration": "npm run test:backend -- tests/integration && npm run test:frontend -- --integration",
+    "test:integration": "./scripts/test-integration.sh all",
+    "test:integration:backend": "./scripts/test-integration.sh backend",
+    "test:integration:frontend": "./scripts/test-integration.sh frontend",
+    "test:e2e": "./scripts/test-integration.sh e2e",
     
     "lint": "npm run lint:backend && npm run lint:frontend",
     "lint:backend": "cd backend && ruff check .",
@@ -56,6 +59,7 @@
     "docs:build": "cd docs && npm run build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.1",
     "concurrently": "^8.2.2"
   },
   "engines": {

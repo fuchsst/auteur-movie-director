@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type {
-  CharacterReference,
-  CharacterNodeData,
-  AuteurNodeData,
-  DataType
-} from './nodes';
+import type { CharacterReference, CharacterNodeData, AuteurNodeData, DataType } from './nodes';
 import { CHARACTER_NODE_DEFINITION, CHARACTER_SOCKET_COLOR, NodeStatus } from './nodes';
 
 describe('Character Node Type Definitions', () => {

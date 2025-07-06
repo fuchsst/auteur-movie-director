@@ -3,7 +3,6 @@ Tests for character asset data model functionality.
 """
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -20,7 +19,7 @@ def workspace_service(tmp_path):
 @pytest.fixture
 def test_project(workspace_service):
     """Create a test project"""
-    from app.schemas.project import ProjectCreate, QualityLevel, NarrativeStructure
+    from app.schemas.project import NarrativeStructure, ProjectCreate, QualityLevel
 
     project_data = ProjectCreate(
         name="Test Movie",

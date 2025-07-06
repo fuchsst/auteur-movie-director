@@ -1,0 +1,64 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create test fixtures
+      run: |
+        mkdir -p tests/fixtures
+        # Create minimal test files
+        echo "test" > tests/fixtures/test-image.png
+        echo "test" > tests/fixtures/character.png
+        echo "test" > tests/fixtures/john-base-face.png
+        echo "test" > tests/fixtures/sarah_base_face.png
+        echo "test" > tests/fixtures/style.safetensors
+        echo "test" > tests/fixtures/test-video.mp4
+        # Create large file for LFS test
+        dd if=/dev/zero of=tests/fixtures/large-video.mp4 bs=1M count=60
+
+    - name: Build test containers
+      run: docker-compose -f docker-compose.test.yml build
+
+    - name: Run integration tests
+      run: docker-compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-runner
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          test-results/
+          playwright-report/
+        retention-days: 30
+
+    - name: Upload container logs
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: container-logs
+        path: |
+          *.log
+        retention-days: 7
+
+    - name: Clean up
+      if: always()
+      run: docker-compose -f docker-compose.test.yml down -v

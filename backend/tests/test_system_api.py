@@ -5,7 +5,6 @@ Tests for system information API endpoints.
 import platform
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app

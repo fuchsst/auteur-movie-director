@@ -133,7 +133,7 @@ export const CHARACTER_NODE_DEFINITION = {
   category: 'assets',
   label: 'Character',
   description: 'Reference a character asset (Future)',
-  inputs: [],  // No inputs - selection via properties
+  inputs: [], // No inputs - selection via properties
   outputs: [
     {
       id: 'character',
@@ -156,21 +156,21 @@ export const CHARACTER_NODE_DEFINITION = {
 };
 
 // Add to socket type registry (for future use)
-export const CHARACTER_SOCKET_COLOR = '#fbbf24';  // Amber
+export const CHARACTER_SOCKET_COLOR = '#fbbf24'; // Amber
 
 /**
  * Character Node Data Flow (Future Implementation)
- * 
+ *
  * When PRD-002 is implemented, Character nodes will:
  * 1. Allow selection of character from project assets
  * 2. Output character reference for other nodes
  * 3. Provide LoRA path for image generation nodes
  * 4. Supply trigger words for prompt construction
- * 
+ *
  * Example future usage:
  * - Character Node -> Prompt Builder Node -> Image Generation Node
  * - Character Node -> Style Mixer Node -> Video Generation Node
- * 
+ *
  * This is currently just type definitions - no implementation.
  */
 

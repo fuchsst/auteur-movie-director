@@ -4,7 +4,6 @@ System information endpoints.
 
 import platform
 import subprocess
-from pathlib import Path
 
 from fastapi import APIRouter
 
@@ -55,7 +54,7 @@ async def get_system_info():
         )
         if nvidia_smi:
             gpu_support = True
-    except:
+    except Exception:
         pass
 
     return {
