@@ -70,6 +70,11 @@ class RedisClient:
         key = f"{settings.redis_state_prefix}{project_id}"
         await self.redis.delete(key)
 
+    async def flushdb(self):
+        """Flush all keys from current database (for testing)"""
+        if self.redis:
+            await self.redis.flushdb()
+
     async def health_check(self) -> bool:
         """Check Redis connection health"""
         try:

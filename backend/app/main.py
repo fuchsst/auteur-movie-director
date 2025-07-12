@@ -64,8 +64,10 @@ def create_app() -> FastAPI:
             # Continue without Redis for development
 
         # Register task handlers
+        from app.core.dispatcher import EchoTaskHandler, GenerationTaskHandler
         task_dispatcher.register_handler("echo", EchoTaskHandler())
-        logger.info("Task dispatcher initialized")
+        task_dispatcher.register_handler("generation", GenerationTaskHandler())
+        logger.info("Task dispatcher initialized with echo and generation handlers")
 
         # Check Git LFS installation
         from app.services.git_lfs import git_lfs_service

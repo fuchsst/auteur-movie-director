@@ -27,7 +27,7 @@ async def test_complete_project_flow(async_client: AsyncClient, tmp_workspace: P
         "narrative_structure": "three-act",
     }
 
-    response = await async_client.post("/api/v1/projects", json=project_data)
+    response = await async_client.post("/api/v1/workspace/projects", json=project_data)
     assert response.status_code == 201
     project = response.json()
     assert project["name"] == project_data["name"]
