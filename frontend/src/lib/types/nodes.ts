@@ -36,6 +36,11 @@ export enum NodeType {
   CONTROL_MAP = 'control_map',
   STYLE_TRANSFER = 'style_transfer',
 
+  // Advanced nodes (Sprint 6)
+  AUDIO = 'audio',
+  EFFECT = 'effect',
+  COMPOSITE = 'composite',
+
   // Output nodes
   RENDER = 'render',
   EXPORT = 'export'
@@ -173,6 +178,77 @@ export const CHARACTER_SOCKET_COLOR = '#fbbf24'; // Amber
  *
  * This is currently just type definitions - no implementation.
  */
+
+// Advanced node interfaces (Sprint 6)
+export interface AudioNodeProps extends NodeProps {
+  data: AudioNodeData;
+}
+
+export interface AudioNodeData extends AuteurNodeData {
+  audioSource?: 'file' | 'generate' | 'record';
+  audioFile?: string;
+  duration?: number;
+  voiceId?: string;
+  text?: string;
+  waveform?: Float32Array;
+  volume?: number;
+  startTime?: number;
+}
+
+export interface EffectNodeProps extends NodeProps {
+  data: EffectNodeData;
+}
+
+export interface EffectNodeData extends AuteurNodeData {
+  effectType: 'blur' | 'color' | 'filter' | 'sharpen' | 'denoise' | 'custom';
+  intensity?: number;
+  parameters: Record<string, any>;
+  preview?: string;
+}
+
+export interface CompositeNodeProps extends NodeProps {
+  data: CompositeNodeData;
+}
+
+export interface CompositeNodeData extends AuteurNodeData {
+  layers: CompositeLayer[];
+  blendMode: BlendMode;
+  outputFormat: 'image' | 'video';
+  preview?: string;
+  canvasWidth?: number;
+  canvasHeight?: number;
+}
+
+export interface CompositeLayer {
+  id: string;
+  name: string;
+  source?: string;
+  visible: boolean;
+  opacity: number;
+  blendMode: BlendMode;
+  transform: {
+    x: number;
+    y: number;
+    scale: number;
+    rotation: number;
+  };
+  mask?: string;
+}
+
+export enum BlendMode {
+  NORMAL = 'normal',
+  MULTIPLY = 'multiply',
+  SCREEN = 'screen',
+  OVERLAY = 'overlay',
+  SOFT_LIGHT = 'soft-light',
+  HARD_LIGHT = 'hard-light',
+  COLOR_DODGE = 'color-dodge',
+  COLOR_BURN = 'color-burn',
+  DARKEN = 'darken',
+  LIGHTEN = 'lighten',
+  DIFFERENCE = 'difference',
+  EXCLUSION = 'exclusion'
+}
 
 // Canvas state
 export interface CanvasState {

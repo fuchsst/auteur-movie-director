@@ -16,18 +16,25 @@ Main type definitions and re-exports.
 
 ### `nodes.ts`
 
-Node-based canvas type definitions (for future implementation).
+Node-based canvas type definitions for the Production Canvas.
 
 - `AuteurNode` - Custom node type extending base Node
 - `AuteurEdge` - Custom edge type
-- `NodeType` - Enumeration of node types
-- `AuteurNodeData` - Node data structure
-- `NodeStatus` - Node execution states
+- `NodeType` - Enumeration of node types (including AUDIO, EFFECT, COMPOSITE)
+- `AuteurNodeData` - Base node data structure
+- `NodeStatus` - Node execution states (IDLE, READY, EXECUTING, COMPLETE, ERROR)
 - `DataType` - Connection data types
 - `CharacterReference` - Character data flow interface
 - `CharacterNodeData` - Character-specific node data
 - `CHARACTER_NODE_DEFINITION` - Character node registry definition
 - `CHARACTER_SOCKET_COLOR` - Character connection color constant
+
+#### Advanced Node Types (Sprint 6)
+- `AudioNodeData` - Audio node specific data (source, volume, waveform, etc.)
+- `EffectNodeData` - Effect node specific data (effect type, intensity, parameters)
+- `CompositeNodeData` - Composite node specific data (layers, blend modes)
+- `CompositeLayer` - Layer structure for composite nodes
+- `BlendMode` - Enumeration of blend modes
 
 ### `project.ts`
 
