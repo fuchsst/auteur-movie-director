@@ -15,7 +15,7 @@ from app.schemas.project import (
     ProjectManifest,
     ProjectStructureValidation,
 )
-from app.services.workspace import WorkspaceService
+from app.services.workspace import get_workspace_service
 
 logger = logging.getLogger(__name__)
 
@@ -62,17 +62,16 @@ class ProjectResponse(BaseModel):
     manifest: ProjectManifest
 
 
-# Initialize workspace service
-workspace_root = os.environ.get("WORKSPACE_ROOT", "./workspace")
-workspace_service = WorkspaceService(workspace_root)
+# Note: workspace_service is retrieved via get_workspace_service() in each endpoint
 
 
 @router.get("/config", response_model=WorkspaceConfig)
 async def get_workspace_config():
     """Get workspace configuration with enforced structure"""
     try:
+        workspace_service = get_workspace_service()
         # Calculate available space
-        stat = os.statvfs(workspace_root)
+        stat = os.statvfs(workspace_service.workspace_root)
         available_gb = (stat.f_frsize * stat.f_bavail) / (1024**3)
 
         # Count projects
@@ -94,6 +93,7 @@ async def get_workspace_config():
 async def validate_workspace():
     """Validate workspace structure integrity"""
     try:
+        workspace_service = get_workspace_service()
         # Check workspace exists
         if not workspace_service.workspace_root.exists():
             return {
@@ -124,6 +124,7 @@ async def list_projects(
 ):
     """List all projects with Git status and validation"""
     try:
+        workspace_service = get_workspace_service()
         projects = workspace_service.list_projects()
 
         # Convert to response format
@@ -169,6 +170,7 @@ async def list_projects(
 async def create_project(project_data: ProjectCreate):
     """Create new project with enforced structure"""
     try:
+        workspace_service = get_workspace_service()
         project_path, manifest = workspace_service.create_project(project_data)
 
         return ProjectResponse(
@@ -188,6 +190,7 @@ async def create_project(project_data: ProjectCreate):
 async def validate_project_structure(project_id: str):
     """Validate project directory structure"""
     try:
+        workspace_service = get_workspace_service()
         # Find project by ID
         projects = workspace_service.list_projects()
         project = None
@@ -216,6 +219,7 @@ async def validate_project_structure(project_id: str):
 async def add_character(project_id: str, character_data: CharacterCreateRequest):
     """Add character to project manifest - data only, no processing"""
     try:
+        workspace_service = get_workspace_service()
         # Find project by ID
         project_path = workspace_service.get_project_path(project_id)
         if not project_path:
@@ -248,6 +252,7 @@ async def add_character(project_id: str, character_data: CharacterCreateRequest)
 async def list_characters(project_id: str):
     """List all characters in a project"""
     try:
+        workspace_service = get_workspace_service()
         # Get project manifest
         project_path = workspace_service.get_project_path(project_id)
         if not project_path:
