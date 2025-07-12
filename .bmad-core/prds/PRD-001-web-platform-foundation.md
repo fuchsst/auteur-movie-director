@@ -170,10 +170,31 @@ PUBLIC_WS_URL=ws://localhost:8000/ws
 ### User Interface Architecture
 - **Three-Panel Layout**: Professional creative software paradigm
   - **Left Panel**: Project Browser (hierarchical tree view) and Asset Browser (categorized assets)
+    - **Enhanced Story Navigation**: Visual indicators for narrative structure
+      - 🎭 Acts with percentage indicators (Act I: 25%, Act II: 50%, Act III: 25%)
+      - 🎯 Plot points from Seven-Point Structure (Hook, Plot Point 1, Pinch Points, etc.)
+      - 🎬 Scenes with Blake Snyder beat labels (Opening Image, Theme Stated, etc.)
+      - Color coding: Setup (blue), Confrontation (orange), Resolution (green)
+      - Progress bars showing completion status per narrative element
+    - **Story Structure Templates**: Pre-built narrative frameworks
+      - Classic Three-Act, Five-Act Drama, Hero's Journey, Save the Cat
+      - Visual story arc preview when hovering templates
   - **Center Panel**: Main View with context-dependent tabs (Scene View for node canvas, Asset View for asset details)
+    - **Writers' Room Tab**: Chat-based story development interface
+    - **Story Arc Visualization**: Interactive emotional and tension curves
+    - **Structure Validation View**: Missing beats and pacing issues highlighted
   - **Right Panel**: Properties Inspector (context-sensitive controls) and Progress/Notification Area
+    - **Story Context Display**: Shows current position in narrative structure
+      - Act, Chapter, Scene, and Beat information
+      - Narrative function and purpose
+      - Suggested duration/pacing for current element
+      - Common patterns and examples from successful films
 - **Panel Behavior**: Collapsible sections, resizable boundaries, persistent layout preferences
 - **Visual Hierarchy**: Clear distinction between navigation, workspace, and properties
+- **Story-Aware UI Elements**: 
+  - Breadcrumb navigation showing narrative path (Act I > Chapter 2 > Scene 3)
+  - Timeline view with act divisions and plot point markers
+  - Emotional intensity meter for current selection
 
 ### Backend Architecture
 - **API Layer**: FastAPI with async support

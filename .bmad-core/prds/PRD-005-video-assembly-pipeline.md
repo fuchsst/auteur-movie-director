@@ -288,11 +288,23 @@ class EDLCompiler:
             event.comments.append(f"* GENERATOR: Generative Media Studio")
             event.comments.append(f"* TAKE: {shot.active_take_id}")
             
-            # Add story context if available
+            # Add comprehensive story context
             if shot.story_context:
-                event.comments.append(f"* SCENE: {shot.story_context['scene_title']}")
+                event.comments.append(f"* ACT: {shot.story_context['act_name']} ({shot.story_context['act_type']})")
                 event.comments.append(f"* CHAPTER: {shot.story_context['chapter_title']}")
+                event.comments.append(f"* PLOT POINT: {shot.story_context['plot_point']}")
+                event.comments.append(f"* SCENE: {shot.story_context['scene_title']}")
                 event.comments.append(f"* BEAT: {shot.story_context['emotional_beat']}")
+                event.comments.append(f"* MOOD: {shot.story_context['mood']}")
+                event.comments.append(f"* TENSION: {shot.story_context['tension_level']}/10")
+                
+            # Add structural markers
+            if shot.marks_chapter_start:
+                event.comments.append(f"* CHAPTER START: {shot.story_context['chapter_title']}")
+            if shot.marks_act_transition:
+                event.comments.append(f"* ACT TRANSITION: Act {shot.story_context['act_number']}")
+            if shot.is_plot_point:
+                event.comments.append(f"* SEVEN-POINT: {shot.story_context['seven_point_function']}")
             
             edl.add_event(event)
             record_tc = event.record_out
@@ -497,22 +509,49 @@ The VSEAssemblerNode provides detailed feedback in the right panel's Progress Ar
 
 When assembling videos from story-driven projects:
 
-1. **Narrative Ordering**: Assembly automatically follows story structure
-   - Shots ordered by chapter → scene → shot number
-   - Maintains dramatic progression from script
+1. **Hierarchical Narrative Ordering**: Assembly follows complete story structure
+   - Act → Chapter → Scene → Shot ordering
+   - Maintains Three-Act structure with proper proportions
+   - Respects Seven-Point plot progression
+   - Preserves emotional beat sequence from Blake Snyder
 
-2. **Timing Preservation**: Script annotations inform assembly
-   - Scene durations guide pacing
-   - Emotional beats preserved in timing
-   - Chapter markers automatically inserted
+2. **Structural Markers in Timeline**:
+   - **Act Transitions**: Visual markers at 25% and 75% points
+   - **Chapter Breaks**: Automatic insertion of chapter markers
+   - **Plot Points**: Special markers for seven key moments
+   - **Beat Indicators**: Emotional intensity overlay on timeline
 
-3. **Metadata Export**: EDL includes story context
-   - Scene names as comments
-   - Chapter boundaries marked
-   - Emotional arc annotations
-   - Character presence notes
+3. **Smart Pacing from Story Metadata**:
+   - Scene durations derived from beat sheets
+   - Tension curves guide editing rhythm
+   - Emotional arc informs transition timing
+   - Automatic slow-down for key dramatic moments
 
-This ensures the final assembly maintains the narrative intent from the original story breakdown.
+4. **Enhanced EDL Metadata**:
+   ```
+   * ACT: Act II (confrontation)
+   * CHAPTER: Chapter 5 - The Midpoint
+   * PLOT POINT: Midpoint Reversal
+   * SCENE: Confrontation at the Bridge
+   * BEAT: Fun and Games
+   * MOOD: Tense
+   * TENSION: 8/10
+   * SEVEN-POINT: midpoint
+   ```
+
+5. **Visual Assembly Interface**:
+   - Timeline shows act divisions with color coding
+   - Plot point markers visible on assembly timeline
+   - Emotional intensity graph below timeline
+   - Chapter navigation in assembly preview
+
+6. **Export Options for Story Structure**:
+   - Include chapter markers in video file
+   - Export story outline as subtitle track
+   - Generate scene index for DVD/Blu-ray
+   - Create story-aware proxy edits
+
+This deep integration ensures that the narrative structure defined during story breakdown is preserved and enhanced throughout the assembly process, making it easier for editors to maintain dramatic pacing and emotional flow.
 
 ## Future Vision
 

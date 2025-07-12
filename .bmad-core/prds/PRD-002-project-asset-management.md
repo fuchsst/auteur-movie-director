@@ -165,17 +165,42 @@ SHOT-010_v01_take04.mp4  ← Choose the best
 │       │   └── Video/
 │       ├── 02_Source_Creative/  # Canvas saves & scripts
 │       │   ├── canvas_graphs/
-│       │   ├── scripts/        # Story breakdown artifacts
-│       │   │   ├── concept.md  # Initial story concept
-│       │   │   ├── outline.md  # Three-act structure
-│       │   │   ├── scenes/     # Scene breakdowns
-│       │   │   └── shots/      # Shot lists
+│       │   ├── story/          # Hierarchical story structure
+│       │   │   ├── project_meta.json  # Story framework metadata
+│       │   │   ├── concept.md         # Initial concept & logline
+│       │   │   ├── outline.md         # Full narrative structure
+│       │   │   ├── act_1_setup/       # Act I (25% of story)
+│       │   │   │   ├── act_meta.json  # Act purpose & plot points
+│       │   │   │   ├── chapter_01_hook/
+│       │   │   │   │   ├── chapter_meta.json  # Seven-point mapping
+│       │   │   │   │   ├── scene_01_opening_image/
+│       │   │   │   │   │   ├── scene_meta.json  # Beat & emotion
+│       │   │   │   │   │   ├── beat_sheet.md    # Scene details
+│       │   │   │   │   │   ├── shot_001/
+│       │   │   │   │   │   │   ├── prompt.json  # Shot parameters
+│       │   │   │   │   │   │   └── metadata.json # Camera specs
+│       │   │   │   │   │   └── shot_002/
+│       │   │   │   │   └── scene_02_setup/
+│       │   │   │   └── chapter_02_catalyst/
+│       │   │   │       └── scene_03_theme_stated/
+│       │   │   ├── act_2_confrontation/  # Act II (50% of story)
+│       │   │   │   ├── chapter_03_plot_point_1/
+│       │   │   │   ├── chapter_04_pinch_point_1/
+│       │   │   │   ├── chapter_05_midpoint/
+│       │   │   │   ├── chapter_06_pinch_point_2/
+│       │   │   │   └── chapter_07_plot_point_2/
+│       │   │   └── act_3_resolution/     # Act III (25% of story)
+│       │   │       └── chapter_08_climax/
 │       │   └── notes/
-│       ├── 03_Renders/          # All generated content
-│       │   ├── images/
-│       │   │   └── SHOT-001_v01_take01.png
-│       │   ├── videos/
-│       │   └── audio/
+│       ├── 03_Renders/          # Generated content mirrors story hierarchy
+│       │   ├── act_1_setup/
+│       │   │   └── chapter_01_hook/
+│       │   │       └── scene_01_opening_image/
+│       │   │           └── shot_001/
+│       │   │               ├── take_001.mp4
+│       │   │               ├── take_002.mp4
+│       │   │               └── take_003.mp4
+│       │   └── ...
 │       ├── 04_Project_Files/    # External app files
 │       ├── 05_Cache/            # Temporary (git-ignored)
 │       └── 06_Exports/          # Final deliverables
@@ -251,8 +276,45 @@ Each asset in the browser represents a collection of related files:
     },
     "story": {
         "hasBreakdown": true,
-        "conceptFile": "02_Source_Creative/scripts/concept.md",
-        "outlineFile": "02_Source_Creative/scripts/outline.md"
+        "structure": {
+            "type": "three_act",
+            "framework": "seven_point",
+            "beat_system": "blake_snyder"
+        },
+        "conceptFile": "02_Source_Creative/story/concept.md",
+        "outlineFile": "02_Source_Creative/story/outline.md",
+        "metadataFile": "02_Source_Creative/story/project_meta.json",
+        "acts": [
+            {
+                "id": "act_1",
+                "name": "Setup",
+                "type": "setup",
+                "target_percentage": 25,
+                "plot_points": ["hook", "plot_point_1"],
+                "path": "02_Source_Creative/story/act_1_setup/"
+            },
+            {
+                "id": "act_2",
+                "name": "Confrontation",
+                "type": "confrontation",
+                "target_percentage": 50,
+                "plot_points": ["pinch_point_1", "midpoint", "pinch_point_2", "plot_point_2"],
+                "path": "02_Source_Creative/story/act_2_confrontation/"
+            },
+            {
+                "id": "act_3",
+                "name": "Resolution",
+                "type": "resolution",
+                "target_percentage": 25,
+                "plot_points": ["climax", "resolution"],
+                "path": "02_Source_Creative/story/act_3_resolution/"
+            }
+        ],
+        "narrative_arc": {
+            "emotional_curve": [],
+            "tension_points": [],
+            "pacing_rhythm": []
+        }
     },
     "settings": {
         "frameRate": 24,
@@ -260,6 +322,62 @@ Each asset in the browser represents a collection of related files:
         "colorSpace": "sRGB",
         "audioSampleRate": 48000
     }
+}
+```
+
+### Story Metadata Specification
+
+Each level of the story hierarchy includes metadata files that capture narrative structure:
+
+#### project_meta.json (Story Root)
+```json
+{
+    "structure": "three_act",
+    "genre": "thriller",
+    "framework": "seven_point",
+    "beat_sheet": "blake_snyder",
+    "created": "2025-01-02T10:00:00Z",
+    "theme": "Power corrupts absolutely",
+    "logline": "A detective must confront their own dark past..."
+}
+```
+
+#### act_meta.json (Act Level)
+```json
+{
+    "act_number": 1,
+    "act_type": "setup",
+    "purpose": "Establish world, introduce protagonist, present inciting incident",
+    "plot_points": ["hook", "inciting_incident", "plot_point_1"],
+    "target_duration": 25,
+    "emotional_arc": "comfort_to_disruption"
+}
+```
+
+#### chapter_meta.json (Chapter Level)
+```json
+{
+    "chapter_number": 1,
+    "plot_point": "hook",
+    "seven_point_function": "starting_point",
+    "purpose": "Grab audience attention and establish status quo",
+    "scenes_count": 3,
+    "beats": ["opening_image", "setup", "theme_stated"]
+}
+```
+
+#### scene_meta.json (Scene Level)
+```json
+{
+    "scene_number": 1,
+    "beat": "opening_image",
+    "emotional_state": "ordinary_world",
+    "conflict_level": 0,
+    "location": "loc-001",
+    "characters": ["char-001", "char-002"],
+    "duration_estimate": "2:30",
+    "mood": "mysterious",
+    "tension": 3
 }
 ```
 

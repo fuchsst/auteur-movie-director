@@ -65,15 +65,41 @@ Implement Svelte Flow-based node editor with custom nodes designed specifically 
 - **AssetNode**: Reusable elements (Characters, Styles, Locations) with previews
 - **SceneGroupNode**: Hierarchical container for organizing narrative structure (auto-created from story chapters)
 - **PipelineNode**: Abstracted AI capabilities with quality selection
+- **ActGroupNode**: Top-level container representing narrative acts (Act I, II, III)
+- **PlotPointNode**: Special marker nodes for Seven-Point Structure elements
+- **BeatNode**: Emotional beat indicators showing Blake Snyder beats
+
+**Story-Aware Node Hierarchy**
+```
+ActGroupNode (Act I: Setup - 25%)
+├── PlotPointNode (Hook)
+│   └── SceneGroupNode (Chapter 1)
+│       ├── BeatNode (Opening Image)
+│       │   └── ShotNode (SHOT-001)
+│       └── BeatNode (Theme Stated)
+│           └── ShotNode (SHOT-002)
+└── PlotPointNode (Plot Point 1)
+    └── SceneGroupNode (Chapter 2)
+```
 
 **Story-Driven Node Creation**
 When a project has a story breakdown:
+- **Acts** → ActGroupNodes with color coding (Setup: blue, Confrontation: orange, Resolution: green)
+- **Plot Points** → PlotPointNodes positioned at narrative turning points
 - **Chapters** → SceneGroupNodes (one per dramatic chapter)
+- **Beats** → BeatNodes showing emotional purpose
 - **Scenes** → Sub-groups within chapter nodes
 - **Shots** → ShotNodes pre-populated with prompts from shot lists
 - **Assets** → Auto-connected based on script references
 
+**Visual Story Indicators**
+- **Progress Bars**: Show completion percentage for each act/chapter
+- **Color Coding**: Visual distinction between setup/confrontation/resolution
+- **Beat Labels**: Display emotional function (e.g., "All is Lost", "Dark Night")
+- **Timing Indicators**: Show target duration based on story structure
+
 **Functional Categories**
+- **Narrative**: Structure and story flow nodes
 - **Generation**: Create new content from text/image inputs
 - **Transformation**: Modify existing content (style, motion, effects)
 - **Assembly**: Combine elements into sequences
@@ -312,18 +338,25 @@ test-performance:   # Run performance benchmarks
 ┌─────────────────────────────────────────────────────┐
 │ Header Toolbar                                      │
 │ [New] [Save] [Undo] [Redo] [├─┤] [Zoom] [Share]   │
+│ Story: [Act I ▼] > [Chapter 2 ▼] > [Scene 3]      │
 ├──────────┬────────────────────────────┬────────────┤
 │          │                            │            │
 │  Node    │     Production Canvas      │ Inspector  │
 │ Library  │                            │   Panel    │
-│          │  ┌─────┐    ┌─────┐       │            │
-│ ▼ Create │  │Shot │───▶│Shot │       │ Node Props │
-│   Image  │  └─────┘    └─────┘       │            │
-│   Video  │      │                     │ Takes      │
-│   Audio  │      ▼                     │ Gallery    │
-│          │  ┌─────┐                   │            │
-│ ▼ Assets │  │ VSE │                   │ [===] 60%  │
-│          │  └─────┘                   │            │
+│          │ ┌─────────────────────┐   │            │
+│ ▼ Story  │ │ Act I: Setup (25%) │   │ Story      │
+│   Act    │ │ ┌─────┐  ┌─────┐  │   │ Context    │
+│   Plot   │ │ │Hook │  │PP1  │  │   │            │
+│   Beat   │ │ └─────┘  └─────┘  │   │ • Act I    │
+│          │ └─────────────────────┘   │ • Hook     │
+│ ▼ Create │  ┌─────┐    ┌─────┐       │ • Opening  │
+│   Image  │  │Shot │───▶│Shot │       │            │
+│   Video  │  └─────┘    └─────┘       │ Node Props │
+│   Audio  │      │                     │            │
+│          │      ▼                     │ Takes      │
+│ ▼ Assets │  ┌─────┐                   │ Gallery    │
+│          │  │ VSE │                   │            │
+│          │  └─────┘                   │ [===] 60%  │
 └──────────┴────────────────────────────┴────────────┘
 ```
 
@@ -363,6 +396,26 @@ Connections enforce type safety at the UI level:
 | **EDL** | Edit Decision List | string (CMX3600) | Final assembly data |
 
 ### Core Node Interfaces
+
+#### Story Structure Nodes
+- **ActGroupNode**
+  - **Description**: Container representing one of three acts in narrative structure
+  - **Visual**: Large bordered container with act name and percentage
+  - **Color Coding**: Setup (blue), Confrontation (orange), Resolution (green)
+  - **Properties Panel**: Act summary, target duration, emotional arc visualization
+  - **Auto-Layout**: Arranges child nodes in narrative sequence
+
+- **PlotPointNode**
+  - **Description**: Marker for Seven-Point Story Structure elements
+  - **Visual**: Diamond shape with plot point label (Hook, Pinch Point 1, Midpoint, etc.)
+  - **Connection**: Links to SceneGroupNodes that fulfill this narrative function
+  - **Properties Panel**: Plot point purpose, examples from famous films, pacing guidance
+
+- **BeatNode**
+  - **Description**: Represents emotional beats from Blake Snyder Beat Sheet
+  - **Visual**: Rounded rectangle with beat name (Opening Image, Theme Stated, etc.)
+  - **Color**: Gradient showing emotional intensity
+  - **Properties Panel**: Beat description, mood/tone settings, timing suggestions
 
 #### Fixed Canvas Nodes
 - **Input Node**
@@ -465,14 +518,40 @@ Located at bottom of Scene View, provides CLI for power users:
 #### Automatic Canvas Population
 When importing a story breakdown:
 1. **Structure Creation**: Canvas generates hierarchical node structure matching narrative
+   - ActGroupNodes for three-act structure with proper sizing (25%-50%-25%)
+   - PlotPointNodes positioned at narrative turning points
+   - SceneGroupNodes for each chapter with beat indicators
+   - ShotNodes pre-created for each shot in the breakdown
 2. **Parameter Pre-filling**: Shot prompts populated from shot lists
+   - Character descriptions from story assets
+   - Camera and lighting specs from cinematographer agent
+   - Mood and tone from beat metadata
 3. **Asset Connections**: Characters/Locations auto-connected based on scene requirements
 4. **Timing Metadata**: Shot duration estimates from script annotations
 
+#### Story-Aware Layout
+- **Auto-Arrangement**: Nodes automatically position based on story structure
+  - Left-to-right flow following narrative progression
+  - Vertical grouping by act and chapter
+  - Visual spacing reflects story pacing
+- **Structure Constraints**: Enforce narrative logic
+  - Cannot connect shots across non-adjacent scenes
+  - Plot points must contain appropriate scenes
+  - Acts maintain target percentage ratios
+
 #### Navigation Enhancements
+- **Story Breadcrumbs**: Header shows current location (Act I > Chapter 2 > Scene 3)
 - **Story Navigator**: Jump to any chapter/scene/shot from dropdown
+- **Mini-Map**: Shows entire story structure with current viewport highlighted
 - **Script Preview**: Hover over nodes to see corresponding script excerpt
 - **Progress Tracking**: Visual indicators show which story beats are complete
+- **Beat Timeline**: Bottom timeline shows emotional arc with current position
+
+#### Smart Validation
+- **Missing Elements**: Red indicators for incomplete plot points
+- **Pacing Warnings**: Alerts when acts deviate from target percentages
+- **Continuity Checks**: Warnings for asset inconsistencies between scenes
+- **Structure Suggestions**: AI-powered recommendations for missing beats
 
 ## Success Metrics
 

@@ -48,25 +48,54 @@ By integrating proven storytelling frameworks (Three-Act Structure, Seven-Point 
 
 ### Hierarchical Story Breakdown System
 
-The solution implements a multi-tiered narrative framework that progressively refines creative concepts through specialized AI agent crews:
+The solution implements a multi-tiered narrative framework that progressively refines creative concepts through specialized AI agent crews, with explicit integration of proven storytelling structures:
 
 1. **Concept Development** (Writers' Room)
    - Interactive chat interface for initial brainstorming
    - AI-assisted logline generation and world-building
+   - Story structure template selection (Three-Act, Five-Act, Hero's Journey, Save the Cat)
    - Human-in-the-loop approval at each stage
 
 2. **Structural Mapping** (Three-Act Framework)
-   - Automatic plot structure generation
+   - Automatic plot structure generation with act percentages:
+     - Act I (Setup): 25% of story
+     - Act II (Confrontation): 50% of story
+     - Act III (Resolution): 25% of story
    - Chapter-based organization aligned with dramatic acts
-   - Visual representation in Production Canvas
+   - Visual representation in Production Canvas with color coding
+   - Act metadata files capturing purpose and emotional arc
 
 3. **Scene Definition** (Seven-Point Structure)
-   - Plot-driven scene breakdown
+   - Plot-driven scene breakdown mapped to seven key points:
+     - Hook (starting point)
+     - Plot Point 1 (call to adventure)
+     - Pinch Point 1 (first pressure)
+     - Midpoint (protagonist becomes proactive)
+     - Pinch Point 2 (second pressure)
+     - Plot Point 2 (final piece needed)
+     - Resolution (climax and denouement)
    - Functional purpose for every narrative beat
    - Integration with asset management system
+   - Chapter metadata tracking plot point functions
 
-4. **Shot Generation** (Cinematic Prompting)
-   - Detailed shot lists with camera and lighting specs
+4. **Shot Generation** (Blake Snyder Beat Sheet Integration)
+   - Detailed shot lists with emotional beats:
+     - Opening Image
+     - Theme Stated
+     - Setup
+     - Catalyst
+     - Debate
+     - Break into Two
+     - B Story
+     - Fun and Games
+     - Midpoint
+     - Bad Guys Close In
+     - All Is Lost
+     - Dark Night of the Soul
+     - Break into Three
+     - Finale
+     - Final Image
+   - Camera and lighting specs informed by emotional intensity
    - Character and location consistency through asset references
    - Direct integration with generative nodes
 
@@ -147,18 +176,49 @@ Each crew operates within the CrewAI framework, ensuring structured collaboratio
    - File upload support (.txt, .md, .pdf)
    - Real-time streaming of agent responses
    - Markdown rendering for structured outputs
+   - Story structure template gallery with visual previews
+   - Interactive story arc visualization during development
 
-2. **Hierarchical Navigation**:
-   - Enhanced Project Browser with story hierarchy
-   - Chapter → Scene → Shot navigation
-   - Visual indicators for completion status
-   - Context-sensitive action buttons
+2. **Enhanced Story Navigation**:
+   - **Project Browser** with narrative structure:
+     - 🎭 Act indicators with percentages (Act I: 25%, Act II: 50%, Act III: 25%)
+     - 🎯 Plot point markers (Hook, PP1, Pinch 1, Midpoint, Pinch 2, PP2, Resolution)
+     - 🎬 Scene nodes with Blake Snyder beat labels
+     - Color coding: Setup (blue), Confrontation (orange), Resolution (green)
+     - Progress bars per narrative element
+   - **Breadcrumb Navigation**: Act I > Chapter 2 > Scene 3
+   - **Story Timeline**: Bottom panel showing emotional arc
+   - **Structure Validation**: Red indicators for missing elements
 
 3. **Canvas Integration**:
-   - SceneGroupNodes auto-generated from chapters
-   - ShotNodes populated from shot lists
-   - Narrative flow visualization
-   - Drag-and-drop reordering maintains references
+   - **Story-Aware Node Types**:
+     - ActGroupNodes with percentage sizing
+     - PlotPointNodes as narrative markers
+     - BeatNodes showing emotional function
+     - SceneGroupNodes auto-generated from chapters
+   - **Automatic Layout**:
+     - Left-to-right narrative flow
+     - Vertical grouping by dramatic function
+     - Visual spacing reflects story pacing
+   - **Smart Constraints**:
+     - Enforce narrative sequence rules
+     - Prevent invalid connections across acts
+     - Maintain structural integrity
+
+4. **Properties Inspector Enhancements**:
+   - **Story Context Display**:
+     - Current position in narrative structure
+     - Act/Chapter/Scene/Beat information
+     - Narrative function explanation
+     - Suggested pacing and duration
+   - **Structure Examples**:
+     - Famous film examples for current beat
+     - Common patterns for plot points
+     - Genre-specific variations
+   - **Validation Warnings**:
+     - Pacing deviations from target
+     - Missing structural elements
+     - Continuity issues
 
 ### Backend Requirements
 
@@ -170,7 +230,25 @@ Each crew operates within the CrewAI framework, ensuring structured collaboratio
 
 2. **Data Management**:
    - Dual artifact system (Markdown + JSON)
-   - Structured storage in `02_Source_Creative/`
+   - Hierarchical storage in `02_Source_Creative/story/`:
+     ```
+     story/
+     ├── project_meta.json         # Story framework selection
+     ├── concept.md               # Logline and theme
+     ├── outline.md               # Full narrative structure
+     ├── act_1_setup/
+     │   ├── act_meta.json       # Act purpose, plot points
+     │   ├── chapter_01_hook/
+     │   │   ├── chapter_meta.json   # Seven-point mapping
+     │   │   └── scene_01_opening_image/
+     │   │       ├── scene_meta.json  # Beat information
+     │   │       ├── beat_sheet.md
+     │   │       └── shot_001/
+     │   │           └── prompt.json
+     ├── act_2_confrontation/
+     └── act_3_resolution/
+     ```
+   - Metadata files at each level tracking narrative structure
    - Project.json schema extensions for story data
    - Git commit hooks for change tracking
 
@@ -309,9 +387,15 @@ Each crew operates within the CrewAI framework, ensuring structured collaboratio
 ```json
 {
   "story": {
+    "structure": {
+      "type": "three_act",
+      "framework": "seven_point",
+      "beat_system": "blake_snyder"
+    },
     "concept": {
       "logline": "string",
       "dramatic_question": "string",
+      "theme": "string",
       "protagonist": {
         "want": "string",
         "need": "string"
@@ -322,45 +406,172 @@ Each crew operates within the CrewAI framework, ensuring structured collaboratio
         "genre": "string"
       }
     },
-    "chapters": [
+    "acts": [
       {
-        "id": "uuid",
-        "title": "string",
-        "act": "1|2|3",
-        "summary": "string",
-        "scenes": [
+        "id": "act_1",
+        "name": "Setup",
+        "type": "setup",
+        "target_percentage": 25,
+        "plot_points": ["hook", "plot_point_1"],
+        "emotional_arc": "comfort_to_disruption",
+        "chapters": [
           {
             "id": "uuid",
             "title": "string",
-            "plot_point": "string",
-            "beat_sheet": {
-              "location": "string",
-              "characters": ["uuid"],
-              "actions": ["string"],
-              "emotional_shift": "string"
-            },
-            "shots": [
+            "number": 1,
+            "plot_point": "hook",
+            "seven_point_function": "starting_point",
+            "beats": ["opening_image", "theme_stated", "setup"],
+            "scenes": [
               {
-                "shot_number": "integer",
-                "character_prompt": "string",
-                "character_asset_ref": "uuid",
-                "action_description": "string",
-                "shot_type": "string",
-                "camera_angle": "string",
-                "movement": "string",
-                "lens": "string",
-                "lighting": "string",
-                "mood": "string",
-                "environment_prompt": "string",
-                "style_asset_ref": "uuid"
+                "id": "uuid",
+                "title": "string",
+                "number": 1,
+                "beat": "opening_image",
+                "emotional_state": "ordinary_world",
+                "conflict_level": 0,
+                "tension": 3,
+                "mood": "mysterious",
+                "duration_estimate": "2:30",
+                "beat_sheet": {
+                  "location": "string",
+                  "characters": ["uuid"],
+                  "actions": ["string"],
+                  "emotional_shift": "string"
+                },
+                "shots": [
+                  {
+                    "shot_number": "integer",
+                    "marks_chapter_start": "boolean",
+                    "marks_act_transition": "boolean",
+                    "is_plot_point": "boolean",
+                    "story_context": {
+                      "act_name": "string",
+                      "act_type": "string",
+                      "act_number": "integer",
+                      "chapter_title": "string",
+                      "plot_point": "string",
+                      "scene_title": "string",
+                      "emotional_beat": "string",
+                      "seven_point_function": "string",
+                      "mood": "string",
+                      "tension_level": "integer"
+                    },
+                    "character_prompt": "string",
+                    "character_asset_ref": "uuid",
+                    "action_description": "string",
+                    "shot_type": "string",
+                    "camera_angle": "string",
+                    "movement": "string",
+                    "lens": "string",
+                    "lighting": "string",
+                    "environment_prompt": "string",
+                    "style_asset_ref": "uuid"
+                  }
+                ]
               }
             ]
           }
         ]
       }
-    ]
+    ],
+    "narrative_arc": {
+      "emotional_curve": ["comfort", "disruption", "struggle", "revelation", "resolution"],
+      "tension_points": [0, 3, 5, 8, 10, 7, 9, 5, 2],
+      "pacing_rhythm": ["slow", "medium", "fast", "intense", "reflective", "climactic", "peaceful"]
+    }
   }
 }
+```
+
+### Story Structure Templates
+
+Pre-configured templates for common narrative frameworks:
+
+```yaml
+three_act_standard:
+  name: "Classic Three-Act Structure"
+  acts:
+    - name: "Setup"
+      percentage: 25
+      chapters: 2
+      plot_points: ["hook", "inciting_incident", "plot_point_1"]
+    - name: "Confrontation"
+      percentage: 50
+      chapters: 4
+      plot_points: ["pinch_point_1", "midpoint", "pinch_point_2", "plot_point_2"]
+    - name: "Resolution"
+      percentage: 25
+      chapters: 2
+      plot_points: ["climax", "resolution"]
+
+save_the_cat:
+  name: "Blake Snyder's Save the Cat"
+  beats:
+    - {beat: "opening_image", position: 0, duration: 1}
+    - {beat: "theme_stated", position: 5, duration: 1}
+    - {beat: "setup", position: 1, duration: 9}
+    - {beat: "catalyst", position: 10, duration: 2}
+    - {beat: "debate", position: 12, duration: 13}
+    - {beat: "break_into_two", position: 25, duration: 1}
+    - {beat: "b_story", position: 30, duration: 5}
+    - {beat: "fun_and_games", position: 30, duration: 20}
+    - {beat: "midpoint", position: 50, duration: 1}
+    - {beat: "bad_guys_close_in", position: 55, duration: 20}
+    - {beat: "all_is_lost", position: 75, duration: 1}
+    - {beat: "dark_night_of_soul", position: 75, duration: 10}
+    - {beat: "break_into_three", position: 85, duration: 1}
+    - {beat: "finale", position: 85, duration: 20}
+    - {beat: "final_image", position: 99, duration: 1}
+```
+
+### Story Validation Rules
+
+Automated validation ensures narrative coherence:
+
+```javascript
+const storyValidationRules = {
+  structure: {
+    acts: {
+      required: true,
+      minCount: 3,
+      percentageSum: 100,
+      proportions: {
+        setup: { min: 20, max: 30 },
+        confrontation: { min: 40, max: 60 },
+        resolution: { min: 15, max: 30 }
+      }
+    },
+    plotPoints: {
+      required: ["hook", "plot_point_1", "midpoint", "plot_point_2", "climax"],
+      sequence: ["hook", "plot_point_1", "pinch_point_1", "midpoint", "pinch_point_2", "plot_point_2", "climax"]
+    },
+    beats: {
+      opening: ["opening_image", "theme_stated"],
+      closing: ["finale", "final_image"],
+      emotional: {
+        "all_is_lost": { tensionMin: 8 },
+        "dark_night": { moodRequired: ["despair", "hopeless", "lost"] }
+      }
+    }
+  },
+  pacing: {
+    sceneDuration: { min: "0:30", max: "5:00", average: "2:30" },
+    chapterBalance: { maxDeviation: 20 }, // percentage
+    tensionCurve: {
+      startPoint: { max: 3 },
+      midpoint: { min: 5, max: 8 },
+      climax: { min: 9 },
+      resolution: { max: 5 }
+    }
+  },
+  continuity: {
+    characterPresence: "consistent_across_scenes",
+    locationTransitions: "logical_geography",
+    timeProgression: "forward_or_explained",
+    assetUsage: "defined_before_use"
+  }
+};
 ```
 
 ### Agent Configuration Samples
@@ -371,13 +582,19 @@ story_analyst:
   role: "Literary and Narrative Analyst"
   goal: "Extract core narrative components from user input"
   backstory: "PhD in Comparative Literature with expertise in narrative structure"
-  tools: ["text_analysis", "theme_extraction"]
+  tools: ["text_analysis", "theme_extraction", "structure_validation"]
   
+plot_architect:
+  role: "Master Screenwriter & Structuralist"
+  goal: "Map story concepts onto proven dramatic structures"
+  backstory: "Expert in Three-Act, Seven-Point, and Blake Snyder methodologies"
+  tools: ["structure_mapping", "pacing_analysis", "plot_validation"]
+
 shot_designer:
   role: "Veteran Director of Photography"
   goal: "Translate narrative beats into cinematic shots"
   backstory: "30 years of cinematography experience across all genres"
-  tools: ["shot_composition", "lighting_design", "camera_movement"]
+  tools: ["shot_composition", "lighting_design", "camera_movement", "emotional_mapping"]
 ```
 
-This PRD establishes Story Breakdown and Development as a cornerstone feature that transforms the platform from a technical tool into a complete creative companion for AI-assisted filmmaking.
+This PRD establishes Story Breakdown and Development as a cornerstone feature that transforms the platform from a technical tool into a complete creative companion for AI-assisted filmmaking, with explicit narrative frameworks visible and actionable throughout the entire creative process.
