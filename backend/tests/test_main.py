@@ -58,13 +58,13 @@ def test_cors_headers():
     """Test CORS headers are present"""
     # Test CORS headers on actual request (OPTIONS may not be implemented)
     response = client.get("/api/v1/health", headers={"Origin": "http://localhost:3000"})
-    
+
     # Check for CORS headers (case-insensitive)
     headers_lower = {k.lower(): v for k, v in response.headers.items()}
     assert "access-control-allow-origin" in headers_lower
     assert "access-control-allow-credentials" in headers_lower
     assert "access-control-expose-headers" in headers_lower
-    
+
     # Verify the values
     assert headers_lower["access-control-allow-origin"] == "http://localhost:3000"
     assert headers_lower["access-control-allow-credentials"] == "true"

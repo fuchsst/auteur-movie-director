@@ -1,330 +1,206 @@
-Above all: YOU ARE A PROFESSIONAL SENIOR SOFTWARE DEVELOPER!!! this means you do not just duplicate code or just generate the first code that comes to your mind. You think, you leverage exisitng strucutres, you consult the documentation, you reflect if this is the best solution before writing any code. Be the best in your class! You are pragmatic, do not overengineer (e.g. too many perfomance optimisations). Choose one appraoch, avoid too many fallbacks (fail early!)
+# Auteur Movie Director - Development Guide
 
-## CRITICAL: Code Quality Workflow
-
-**ALWAYS** follow this workflow when writing code:
-1. After creating/modifying files: `make format` or `npm run format`
-2. Before considering task complete: `make lint` or `npm run lint`
-3. Before any git operation: `make test` or `npm run test`
-4. If hooks block you: Read the error and run the suggested command
-
-use `npm run` commands as the primary way to run project tasks
-
-Follow the BMAD method as defined in `.bmad-core/tasks/`
-
-# Auteur Movie Director - Project Guide
-
-## Project Overview
-
-A web-based platform that empowers directors to transform their creative visions into cinematic sequences using AI agents and distributed generative engines. Built on the BMAD (Breakthrough Method of Agile AI-Driven Development) framework for modern web development, with a focus on director-centric workflows and artistic control.
-
-### Core Architecture
-
-**Three-tier system:**
-1. **Frontend Layer**: SvelteKit web application with node-based canvas
-2. **Backend Layer**: FastAPI service with WebSocket support
-3. **Processing Layer**: Containerized AI models via Function Runner pattern
-
-**AI Agent Crew:**
-- **Producer**: Master orchestrator, resource manager (VRAM budgeting)
-- **Screenwriter**: Script development via LLM
-- **Casting Director**: Character asset management (LoRAs, voice models)
-- **Art Director**: Visual style consistency
-- **Cinematographer**: Video generation and camera control
-- **Sound Designer**: Audio generation (dialogue, effects)
-- **Editor**: Final assembly with EDL export
-
-### Key Technical Features
-
-**Regenerative Content Model:**
-- Creative definitions stored in project.json
-- Generated content as recreatable file references
-- Version control friendly with Git integration
-
-**Asset Management:**
-- File-based project structure
-- Takes system for non-destructive versioning
-- Relational data model for Characters, Styles, Locations, Scenes, Shots
-
-**VRAM Budgeting System:**
-- Dynamic memory profiling
-- Sequential execution for limited hardware
-- Model swapping to prevent OOM errors
-
-## Development Setup
-
-### Quick Start
+## 🚀 Quick Start
 
 ```bash
-# Clone and setup
-git clone https://github.com/yourusername/auteur-movie-director.git
-cd auteur-movie-director
+# Start with Docker (recommended)
+./start.sh              # Frontend: http://localhost:3000
+                       # Backend: http://localhost:8000/api/docs
 
-# Install npm dependencies (includes concurrently)
-npm install
-
-# Run automated setup (checks prerequisites, installs all dependencies)
-npm run setup
-
-# Start development servers (frontend + backend)
-npm run dev
-
-# Alternative: Use traditional Makefile
-make help  # View all available commands
-make dev   # Start development servers
+# Or start manually
+npm install            # Install dependencies
+npm run dev           # Start development servers
 ```
 
-### About Dependencies
+## 📋 Critical Commands (Run These Often!)
 
-This project uses modern dependency management:
-- **npm/pnpm** for JavaScript dependencies (frontend)
-- **pip/poetry** for Python dependencies (backend)
-- **Docker** for containerized AI models
-- Lock files ensure reproducible builds
+```bash
+# BEFORE committing or when code is complete:
+npm run format        # Auto-format code
+npm run lint         # Check code quality  
+npm run test         # Run all tests
 
-### Project Structure
+# During development:
+npm run test:backend  # Test Python code
+npm run test:frontend # Test JavaScript code
+```
+
+## 🏗️ Architecture Overview
+
+**Auteur Movie Director** - AI-powered filmmaking platform for directors to create cinematic sequences.
+
+### Three-Layer Architecture:
+- **Frontend**: SvelteKit app with node-based Production Canvas
+- **Backend**: FastAPI with WebSocket support, Takes system, Git LFS
+- **AI Layer**: Function Runner pattern for ComfyUI, LLMs, audio models
+
+### Core Concepts:
+- **Projects**: File-based structure with Git version control
+- **Takes System**: Non-destructive versioning (like film production)
+- **Story Integration**: Three-Act, Seven-Point, Blake Snyder structures
+- **Characters**: Asset management with LoRAs and voice models
+
+## 📁 Project Structure
 
 ```
 auteur-movie-director/
-├── backend/                 # FastAPI application
-│   ├── app/                # Application code
-│   ├── services/           # Business logic
-│   └── requirements.txt    # Python dependencies
-├── frontend/               # SvelteKit application
-│   ├── src/               # Source code
-│   └── package.json       # Node dependencies
-├── tests/                  # Test suite
-├── scripts/                # Dev automation
-├── package.json           # Root npm scripts
-└── docker-compose.yml     # Service orchestration
+├── backend/              # FastAPI application
+│   ├── app/
+│   │   ├── api/         # API endpoints
+│   │   │   ├── endpoints/    # REST endpoints (health, system, upload, workspace)
+│   │   │   ├── v1/          # Versioned APIs (git, git_lfs, takes)
+│   │   │   └── websocket.py # WebSocket endpoint
+│   │   ├── core/        # Core functionality (dispatcher, exceptions)
+│   │   ├── middleware/  # CORS, error handling, logging
+│   │   ├── schemas/     # Pydantic models (project, takes, git)
+│   │   └── services/    # Business logic
+│   │       ├── workspace.py  # Project management
+│   │       ├── takes.py      # Version management
+│   │       ├── git.py        # Repository operations
+│   │       └── git_lfs.py    # Large file storage
+│   └── tests/           # Test suite
+├── frontend/            # SvelteKit application  
+│   └── src/
+│       ├── lib/
+│       │   ├── api/     # API clients (workspace, takes, git)
+│       │   ├── components/   # UI components
+│       │   │   ├── asset/    # Asset browser, filters
+│       │   │   ├── project/  # Project browser, tree
+│       │   │   ├── takes/    # Takes gallery, dialogs
+│       │   │   └── views/    # Main view components
+│       │   ├── stores/  # State management (app, assets, websocket)
+│       │   └── services/# WebSocket client
+│       └── routes/      # App pages
+├── .bmad-core/          # BMAD framework
+│   ├── prds/           # Product requirements
+│   ├── stories/        # User stories
+│   └── validation/     # Test reports
+├── scripts/            # Automation scripts
+├── tests/              # E2E tests
+└── workspace/          # File storage (gitignored)
+
 ```
 
-### Development Commands
+## 🔧 Key Services
 
-The project uses npm scripts as the primary task runner, with Makefile as an alternative:
+### Backend Services:
+- **WorkspaceService**: Project creation, structure validation, character management
+- **TakesService**: Version management for shots, thumbnail generation
+- **GitService**: Repository init, commits, status tracking
+- **GitLFSService**: Large file tracking (.mp4, .png, renders)
+- **WebSocketManager**: Real-time communication, task updates
 
-#### NPM Scripts (Recommended)
+### Frontend Components:
+- **ProjectBrowser**: Project selection and creation
+- **TakesGallery**: Visual take browser with thumbnails
+- **CharacterUploadDialog**: LoRA and asset upload
+- **PropertiesInspector**: Context-aware property editing
+- **ProgressArea**: Real-time task monitoring
+
+### Core Stores:
+- **websocket**: Server connection, message handling
+- **assets**: Character/style/location management
+- **notifications**: Task progress, errors, updates
+- **selection**: Active project/shot/take tracking
+
+## 📝 Project File Structure
+
+### Workspace Organization:
+```
+workspace/
+├── My_Project/
+│   ├── .git/            # Git repository with LFS
+│   ├── project.json     # Project manifest & metadata
+│   ├── 01_Assets/       # Project assets
+│   │   ├── Characters/  # Character LoRAs
+│   │   ├── Styles/      # Visual styles
+│   │   └── Locations/   # Environment assets
+│   ├── 02_Story/        # Narrative structure
+│   │   └── {act}/{chapter}/{scene}/
+│   ├── 03_Renders/      # Generated content
+│   │   └── {chapter}/{scene}/{shot}/
+│   │       └── {take_id}/
+│   │           ├── metadata.json
+│   │           ├── thumbnail.png
+│   │           └── output.mp4
+│   ├── 04_Compositions/ # Canvas saves
+│   ├── 05_Audio/        # Generated audio
+│   └── 06_Exports/      # Final exports
+└── Library/             # Shared assets
+    ├── Characters/
+    ├── Styles/
+    └── Templates/
+```
+
+### Story Hierarchy:
+```
+Project → Act → Chapter → Scene → Shot → Take
+         (3-Act)  (Narrative)  (Location)  (Camera)  (Version)
+```
+
+## 🛠️ Common Tasks
 
 ```bash
-# Setup & Installation
-npm run setup              # Complete setup with prerequisite checks
-npm run setup:check        # Check prerequisites only
-npm run setup:env          # Create environment files
+# Project Management
+npm run project:create                    # Create new project
+npm run workspace:init                    # Initialize workspace
 
 # Development
-npm run dev                # Start frontend + backend concurrently
-npm run dev:backend        # Backend server only
-npm run dev:frontend       # Frontend server only
+npm run dev                              # Start both servers
+npm run dev:backend                      # Backend only
+npm run dev:frontend                     # Frontend only
 
-# Testing
-npm run test               # Run all tests
-npm run test:backend       # Python tests
-npm run test:frontend      # JavaScript tests
-npm run test:integration   # Integration tests only
+# Testing Specific Files
+pytest tests/test_takes_service.py::test_cleanup_old_takes -v
+npm test src/lib/services/websocket.test.ts
 
-# Code Quality
-npm run lint               # Lint all code
-npm run format             # Auto-format code
-
-# Utilities
-npm run clean              # Clean build artifacts
-npm run workspace:init     # Initialize workspace
-npm run project:create     # Create new project
+# Docker Operations
+./start.sh && ./logs.sh                 # Start and watch logs
+docker-compose -f docker-compose.dev.yml ps  # Check status
 ```
 
-#### Makefile (Alternative)
+## ⚙️ Configuration
 
-```bash
-# Quick access to npm scripts
-make dev            # Same as npm run dev
-make test           # Same as npm run test
-make lint           # Same as npm run lint
-
-# Docker commands
-make docker-up      # Start with docker-compose
-make docker-down    # Stop containers
-make docker-logs    # View container logs
+### Environment Variables (.env):
 ```
-
-All commands handle dependency management automatically - no manual virtual environment activation needed!
-
-### Testing Workflow
-
-```bash
-# Run all tests
-npm run test
-
-# Run backend tests only
-npm run test:backend
-
-# Run frontend tests only
-npm run test:frontend
-
-# Run integration tests
-npm run test:integration
-
-# Generate coverage report
-npm run test:backend -- --cov
-```
-
-## Implementation Roadmap
-
-**Current Sprint Focus:**
-1. Web platform foundation (SvelteKit + FastAPI)
-2. File-based project management system
-3. WebSocket real-time communication
-
-**Next Steps:**
-- Implement Production Canvas with Svelte Flow
-- Create Function Runner architecture
-- Build quality management system
-
-## Critical Constraints
-
-**Hardware Requirements:**
-- Minimum: RTX 4080 (16GB VRAM)
-- Recommended: RTX 4090 (24GB VRAM)
-- LLM serving requires additional VRAM
-
-**Backend Services Required:**
-- ComfyUI (port 8188)
-- Wan2GP (port 7860)
-- RVC (port 7865)
-- AudioLDM (port 7863)
-- LiteLLM (local inference)
-
-## Development Guidelines
-
-1. **Code Organization:**
-   - Follow web development best practices
-   - Use TypeScript for frontend type safety
-   - Implement proper error handling
-
-2. **Testing:**
-   - Unit tests for all services
-   - Integration tests for API endpoints
-   - E2E tests for critical user flows
-
-3. **Performance:**
-   - Optimize WebSocket message handling
-   - Implement proper caching strategies
-   - Monitor API response times
-
-4. **UI Design:**
-   - Use responsive design principles
-   - Keep the node canvas performant
-   - Provide clear feedback for async operations
-
-## Environment Variables
-
-Key settings in `.env`:
-```
+# Server Configuration
 BACKEND_HOST=0.0.0.0
 BACKEND_PORT=8000
 FRONTEND_PORT=3000
+
+# Workspace & Storage
 WORKSPACE_ROOT=./workspace
+UPLOAD_MAX_SIZE=104857600  # 100MB
 DEFAULT_QUALITY=standard
+
+# Development
 DEBUG=true
 LOG_LEVEL=INFO
+REDIS_URL=redis://localhost:6379
 ```
 
-## Common Issues
+### Key APIs:
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/v1/workspace/projects` | List all projects |
+| `POST /api/v1/workspace/projects` | Create new project |
+| `GET /api/v1/takes/{project}/{shot}` | List takes for shot |
+| `POST /api/v1/takes/{project}/{shot}` | Create new take |
+| `GET /api/v1/git/{project}/status` | Git repository status |
+| `WS /api/ws/{client_id}` | WebSocket connection |
 
-**CORS errors:** Check that frontend and backend URLs are correctly configured
-**WebSocket disconnects:** Ensure stable network connection and check heartbeat settings
-**File permission errors:** Verify workspace directory has proper write permissions
+### Docker Services:
+- **backend**: FastAPI on port 8000
+- **frontend**: SvelteKit on port 3000  
+- **redis**: Cache and pubsub (optional)
+
+## 📚 Documentation
+
+- **API Docs**: http://localhost:8000/docs (interactive)
+- **PRDs**: `.bmad-core/prds/` - Product requirements
+- **Stories**: `.bmad-core/stories/` - Implementation stories
+- **Validation**: `.bmad-core/validation/` - Test reports
 
 ---
 
-For detailed implementation specifics, refer to PRDs in `.bmad-core/prds/` directory.
-
-## Development Workflow - Code Quality Commands
-
-### IMPORTANT: When to Run Quality Checks
-
-When developing features, ALWAYS run these commands at the appropriate times:
-
-#### Before Writing Code
-```bash
-# Ensure clean working directory
-make clean
-npm run setup:env
-```
-
-#### While Writing Code
-```bash
-# Format code after making changes
-make format
-# Or
-npm run format
-
-# Check linting frequently
-make lint
-# Or  
-npm run lint
-```
-
-#### After Writing Code (Before Committing)
-```bash
-# ALWAYS run this sequence:
-make format    # Auto-format code
-make lint      # Check code quality
-make test      # Run all tests
-
-# Or using npm:
-npm run format
-npm run lint  
-npm run test
-```
-
-#### When Tests Fail
-```bash
-# Run specific test suites
-npm run test:backend    # Backend only
-npm run test:frontend   # Frontend only
-npm run test:quick      # Fast tests only
-
-# Debug specific test
-cd backend && pytest tests/test_api.py -v -s
-```
-
-### Hook Integration
-
-If hooks are configured (see https://docs.anthropic.com/en/docs/claude-code/hooks), these commands may trigger automatically. If a hook blocks an action:
-
-1. Check the hook output for specific issues
-2. Run `make format` to fix formatting issues
-3. Run `make lint` to identify code quality issues
-4. Run `make test` to ensure tests pass
-5. If still blocked, ask the user to check their hooks configuration
-
-### Command Reference by Task
-
-#### When creating new files:
-1. Create the file
-2. Run `make format` immediately
-3. Run `make lint` to check for issues
-
-#### When modifying existing files:
-1. Make changes
-2. Run `make format` on the file
-3. Run `make lint` on the file
-4. Run relevant tests
-
-#### Before any git operation:
-1. `make format` - Format all code
-2. `make lint` - Check all code quality
-3. `make test` - Run full test suite
-
-#### When blocked by hooks:
-1. Read the hook error message
-2. Run the suggested make command
-3. Fix any remaining issues manually
-4. Try the action again
-
-### Important Notes
-
-- **ALWAYS** run `make lint` after writing code to ensure it meets quality standards
-- **ALWAYS** run `make test` before considering a task complete
-- If the user asks you to commit, run the full quality check sequence first
-- If hooks are blocking, determine which check failed and run the appropriate command
+**Remember**: Think before coding. Use existing structures. Run quality checks.

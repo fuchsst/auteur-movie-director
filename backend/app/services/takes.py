@@ -388,7 +388,7 @@ class TakesService:
     async def cleanup_old_takes(
         self, project_path: Path, shot_id: str, keep_count: int = 10
     ) -> int:
-        """Clean up old takes, keeping the most recent ones"""
+        """Clean up old takes, keeping the most recent ones and the active take"""
         takes = await self.list_takes(project_path, shot_id)
         if len(takes) <= keep_count:
             return 0
@@ -399,11 +399,33 @@ class TakesService:
         # Get active take
         active_take = await self.get_active_take(project_path, shot_id)
 
-        # Determine takes to delete
+        # Separate active take from others
+        active_take_data = None
+        other_takes = []
+        for take in takes:
+            if take.get("id") == active_take:
+                active_take_data = take
+            else:
+                other_takes.append(take)
+
+        # Build list of takes to keep
+        takes_to_keep = []
+        if active_take_data:
+            takes_to_keep.append(active_take_data)
+            # Keep the most recent (keep_count - 1) other takes
+            takes_to_keep.extend(other_takes[: keep_count - 1])
+        else:
+            # No active take, just keep the most recent keep_count
+            takes_to_keep = takes[:keep_count]
+
+        # Get IDs of takes to keep
+        keep_ids = {take.get("id") for take in takes_to_keep if take.get("id")}
+
+        # Delete takes not in keep list
         deleted_count = 0
-        for take in takes[keep_count:]:
+        for take in takes:
             take_id = take.get("id")
-            if take_id and take_id != active_take:
+            if take_id and take_id not in keep_ids:
                 if await self.delete_take(project_path, shot_id, take_id):
                     deleted_count += 1
 

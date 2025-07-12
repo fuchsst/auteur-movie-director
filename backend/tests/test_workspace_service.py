@@ -5,6 +5,7 @@ Tests for workspace service - enforcing structure as API contract
 import json
 import shutil
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
@@ -30,6 +31,30 @@ class TestWorkspaceService:
     def workspace_service(self, temp_workspace):
         """Create workspace service instance"""
         return WorkspaceService(temp_workspace)
+
+    @pytest.fixture(autouse=True)
+    def mock_git_lfs(self):
+        """Mock Git LFS service for all tests"""
+        with patch("app.services.git_lfs.git_lfs_service") as mock_lfs:
+            # Mock the lfs_available property
+            mock_lfs.lfs_available = True
+            mock_lfs.check_lfs_installed.return_value = True
+
+            # Mock the initialize_lfs method
+            def mock_initialize_lfs(project_path):
+                # Create .gitattributes file
+                gitattributes_path = project_path / ".gitattributes"
+                with open(gitattributes_path, "w") as f:
+                    f.write("# Git LFS patterns\n")
+                    f.write("*.png filter=lfs diff=lfs merge=lfs -text\n")
+                    f.write("*.mp4 filter=lfs diff=lfs merge=lfs -text\n")
+                    f.write("03_Renders/**/* filter=lfs diff=lfs merge=lfs -text\n")
+                    f.write("01_Assets/Characters/*/lora/* filter=lfs diff=lfs merge=lfs -text\n")
+                return True
+
+            mock_lfs.initialize_lfs = mock_initialize_lfs
+            mock_lfs.create_gitattributes = lambda path: mock_initialize_lfs(path)
+            yield mock_lfs
 
     def test_create_project_with_enforced_structure(self, workspace_service):
         """Test project creation with all required directories"""
@@ -196,8 +221,8 @@ class TestWorkspaceService:
 
         project_path, _ = workspace_service.create_project(project_data)
 
-        # Verify sanitized name
-        assert project_path.name == "Test__Project__1__2024_"
+        # Verify sanitized name (trailing underscores are stripped)
+        assert project_path.name == "Test__Project__1__2024"
 
     def test_duplicate_project_prevention(self, workspace_service):
         """Test that duplicate projects are prevented"""

@@ -283,7 +283,10 @@ class WorkspaceService:
         Validate project structure integrity.
         Any deviation is considered a breaking change.
         """
-        result = ProjectStructureValidation(valid=True)
+        # Initialize with all required fields
+        result = ProjectStructureValidation(
+            valid=True, git_initialized=False, git_lfs_enabled=False, project_json_valid=False
+        )
 
         # Check if project path exists
         if not project_path.exists():
