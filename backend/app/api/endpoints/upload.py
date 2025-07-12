@@ -69,51 +69,52 @@ async def upload_file(
     - Tracks large files with Git LFS
     - Optionally commits the file to Git
     """
+    # Validate category
+    if category not in FILE_CATEGORIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid category. Must be one of: {list(FILE_CATEGORIES.keys())}",
+        )
+
+    # Get project path
+    workspace_service = get_workspace_service()
+    project_path = workspace_service.get_project_path(project_id)
+    if not project_path:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Validate file extension
+    file_ext = Path(file.filename).suffix.lower()
+    allowed_exts = FILE_CATEGORIES[category]["extensions"]
+
+    if file_ext not in allowed_exts:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type {file_ext} not allowed for category {category}. "
+            f"Allowed types: {', '.join(allowed_exts)}",
+        )
+
+    # Parse metadata
+    import json
+
     try:
-        # Validate category
-        if category not in FILE_CATEGORIES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid category. Must be one of: {list(FILE_CATEGORIES.keys())}",
-            )
+        file_metadata = json.loads(metadata)
+    except json.JSONDecodeError:
+        file_metadata = {}
 
-        # Get project path
-        workspace_service = get_workspace_service()
-        project_path = workspace_service.get_project_path(project_id)
-        if not project_path:
-            raise HTTPException(status_code=404, detail="Project not found")
+    # Validate required metadata
+    required_fields = FILE_CATEGORIES[category]["metadata_required"]
+    missing_fields = [f for f in required_fields if f not in file_metadata]
 
-        # Validate file extension
-        file_ext = Path(file.filename).suffix.lower()
-        allowed_exts = FILE_CATEGORIES[category]["extensions"]
+    if missing_fields:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required metadata fields: {', '.join(missing_fields)}",
+        )
 
-        if file_ext not in allowed_exts:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File type {file_ext} not allowed for category {category}. "
-                f"Allowed types: {', '.join(allowed_exts)}",
-            )
-
-        # Parse metadata
-        import json
-
-        try:
-            file_metadata = json.loads(metadata)
-        except json.JSONDecodeError:
-            file_metadata = {}
-
-        # Validate required metadata
-        required_fields = FILE_CATEGORIES[category]["metadata_required"]
-        missing_fields = [f for f in required_fields if f not in file_metadata]
-
-        if missing_fields:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing required metadata fields: {', '.join(missing_fields)}",
-            )
-
+    # Process upload
+    try:
         # Create task ID for progress tracking
-        task_id = f"{project_id}:upload:{file.filename}:{int(os.urandom(4).hex(), 16)}"
+        task_id = f"{project_id}:upload:{file.filename}:{os.urandom(4).hex()}"
 
         # Start progress
         await redis_client.publish_progress(
@@ -252,7 +253,7 @@ async def upload_file(
                 {"error": str(e), "message": "Upload failed"},
             )
 
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="Internal server error during upload") from e
 
 
 @router.post("/{project_id}/batch/{category}")

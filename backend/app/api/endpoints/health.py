@@ -2,7 +2,7 @@
 Health check endpoints for container orchestration.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 
@@ -17,7 +17,7 @@ async def health_check():
     """Health check for container orchestration"""
     health_status = {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "service": settings.app_name,
         "version": settings.version,
         "checks": {"api": "ok", "redis": "unknown", "workspace": "unknown"},

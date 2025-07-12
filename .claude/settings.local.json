@@ -15,7 +15,8 @@
       "Bash(ruff check:*)",
       "Bash(curl:*)",
       "Bash(python -m pytest:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(npm run test:*)"
     ],
     "deny": []
   }

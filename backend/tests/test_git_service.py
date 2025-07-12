@@ -5,7 +5,7 @@ Tests for Git integration service.
 import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -30,19 +30,15 @@ def temp_project_dir():
 @pytest.mark.asyncio
 async def test_check_lfs_installed(git_service):
     """Test Git LFS detection"""
-    # Mock subprocess execution
-    with patch("asyncio.create_subprocess_exec") as mock_exec:
+    # Mock git_lfs_service at import location
+    with patch("app.services.git_lfs.git_lfs_service") as mock_lfs_service:
         # Simulate successful Git LFS check
-        mock_process = AsyncMock()
-        mock_process.communicate = AsyncMock(return_value=(b"git-lfs/3.0.0", b""))
-        mock_process.returncode = 0
-        mock_exec.return_value = mock_process
-
+        mock_lfs_service.check_lfs_installed.return_value = True
         result = await git_service.check_lfs_installed()
         assert result is True
 
         # Simulate missing Git LFS
-        mock_process.returncode = 1
+        mock_lfs_service.check_lfs_installed.return_value = False
         result = await git_service.check_lfs_installed()
         assert result is False
 
@@ -50,36 +46,30 @@ async def test_check_lfs_installed(git_service):
 @pytest.mark.asyncio
 async def test_initialize_repository(git_service, temp_project_dir):
     """Test repository initialization"""
-    with patch.object(git_service, "check_lfs_installed", return_value=True):
-        with patch.object(git_service, "_run_git_command", return_value=("", "")):
-            with patch("git.Repo.init") as mock_init:
-                mock_repo = MagicMock()
-                mock_config_writer = MagicMock()
-                mock_repo.config_writer.return_value.__enter__.return_value = mock_config_writer
-                mock_repo.index = MagicMock()
-                mock_init.return_value = mock_repo
+    with patch("git.Repo.init") as mock_init:
+        mock_repo = MagicMock()
+        mock_config_writer = MagicMock()
+        mock_repo.config_writer.return_value.__enter__.return_value = mock_config_writer
+        mock_repo.index = MagicMock()
+        mock_init.return_value = mock_repo
 
-                result = await git_service.initialize_repository(temp_project_dir)
-                assert result is True
+        # Mock git_lfs_service
+        with patch("app.services.git_lfs.git_lfs_service") as mock_lfs_service:
+            mock_lfs_service.lfs_available = True
+            mock_lfs_service.initialize_lfs.return_value = True
 
-                # Verify Git was initialized
-                mock_init.assert_called_once_with(temp_project_dir)
+            result = await git_service.initialize_repository(temp_project_dir)
+            assert result is True
 
-                # Verify author configuration
-                mock_config_writer.set_value.assert_any_call(
-                    "user", "name", "Auteur Movie Director"
-                )
-                mock_config_writer.set_value.assert_any_call("user", "email", "auteur@localhost")
+            # Verify Git was initialized
+            mock_init.assert_called_once_with(temp_project_dir)
 
-                # Verify .gitattributes was created
-                gitattributes_path = temp_project_dir / ".gitattributes"
-                assert gitattributes_path.exists()
+            # Verify author configuration
+            mock_config_writer.set_value.assert_any_call("user", "name", "Auteur Movie Director")
+            mock_config_writer.set_value.assert_any_call("user", "email", "auteur@localhost")
 
-                # Verify LFS patterns are included
-                content = gitattributes_path.read_text()
-                assert "*.mp4 filter=lfs" in content
-                assert "*.blend filter=lfs" in content
-                assert "*.safetensors filter=lfs" in content
+            # Verify LFS was initialized
+            mock_lfs_service.initialize_lfs.assert_called_once_with(temp_project_dir)
 
 
 @pytest.mark.asyncio

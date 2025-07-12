@@ -165,7 +165,11 @@ SHOT-010_v01_take04.mp4  ← Choose the best
 │       │   └── Video/
 │       ├── 02_Source_Creative/  # Canvas saves & scripts
 │       │   ├── canvas_graphs/
-│       │   ├── scripts/
+│       │   ├── scripts/        # Story breakdown artifacts
+│       │   │   ├── concept.md  # Initial story concept
+│       │   │   ├── outline.md  # Three-act structure
+│       │   │   ├── scenes/     # Scene breakdowns
+│       │   │   └── shots/      # Shot lists
 │       │   └── notes/
 │       ├── 03_Renders/          # All generated content
 │       │   ├── images/
@@ -224,9 +228,31 @@ Each asset in the browser represents a collection of related files:
             {
                 "id": "char-001",
                 "name": "Hero Character",
-                "source": "Library/Characters/hero.json"
+                "source": "Library/Characters/hero.json",
+                "extractedFrom": "story"  # Auto-created from script
+            }
+        ],
+        "locations": [
+            {
+                "id": "loc-001",
+                "name": "Dark Forest",
+                "source": "Library/Locations/dark_forest.json",
+                "extractedFrom": "story"
+            }
+        ],
+        "styles": [
+            {
+                "id": "style-001",
+                "name": "Film Noir",
+                "source": "Library/Styles/noir.json",
+                "inferredFrom": "genre"  # From story metadata
             }
         ]
+    },
+    "story": {
+        "hasBreakdown": true,
+        "conceptFile": "02_Source_Creative/scripts/concept.md",
+        "outlineFile": "02_Source_Creative/scripts/outline.md"
     },
     "settings": {
         "frameRate": 24,
@@ -418,6 +444,17 @@ class ProjectManager {
 - Conflict resolution UI
 - Team activity feed
 - Permission management
+
+### Story-Driven Asset Creation
+
+When the Story Breakdown System (PRD-007) analyzes scripts, it automatically:
+
+1. **Character Extraction**: Creates Character assets from named entities
+2. **Location Discovery**: Identifies and creates Location assets from scene headings
+3. **Style Inference**: Suggests visual Style assets based on genre and tone
+4. **Asset Linking**: Bidirectional references between story elements and assets
+
+This integration ensures that creative vision flows seamlessly from narrative to visual production, with all necessary assets automatically prepared for the Production Canvas.
 
 ## Future Vision
 

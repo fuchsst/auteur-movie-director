@@ -288,6 +288,12 @@ class EDLCompiler:
             event.comments.append(f"* GENERATOR: Generative Media Studio")
             event.comments.append(f"* TAKE: {shot.active_take_id}")
             
+            # Add story context if available
+            if shot.story_context:
+                event.comments.append(f"* SCENE: {shot.story_context['scene_title']}")
+                event.comments.append(f"* CHAPTER: {shot.story_context['chapter_title']}")
+                event.comments.append(f"* BEAT: {shot.story_context['emotional_beat']}")
+            
             edl.add_event(event)
             record_tc = event.record_out
             
@@ -486,6 +492,27 @@ The VSEAssemblerNode provides detailed feedback in the right panel's Progress Ar
 - GPU acceleration
 - Caching system
 - Error recovery
+
+### Story-Aware Assembly
+
+When assembling videos from story-driven projects:
+
+1. **Narrative Ordering**: Assembly automatically follows story structure
+   - Shots ordered by chapter → scene → shot number
+   - Maintains dramatic progression from script
+
+2. **Timing Preservation**: Script annotations inform assembly
+   - Scene durations guide pacing
+   - Emotional beats preserved in timing
+   - Chapter markers automatically inserted
+
+3. **Metadata Export**: EDL includes story context
+   - Scene names as comments
+   - Chapter boundaries marked
+   - Emotional arc annotations
+   - Character presence notes
+
+This ensures the final assembly maintains the narrative intent from the original story breakdown.
 
 ## Future Vision
 

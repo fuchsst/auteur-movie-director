@@ -8,6 +8,11 @@ import { wsState } from '$lib/stores';
 import { get } from 'svelte/store';
 import { MessageType } from '$lib/types/websocket';
 
+// Mock SvelteKit's browser check
+vi.mock('$app/environment', () => ({
+  browser: true
+}));
+
 // Mock WebSocket
 class MockWebSocket {
   url: string;
@@ -62,9 +67,21 @@ class MockWebSocket {
 
 describe('WebSocketService', () => {
   let service: WebSocketService;
-  let mockWebSocket: MockWebSocket;
+  let mockWebSocket: MockWebSocket | null = null;
+  let originalWebSocket: typeof WebSocket;
 
   beforeEach(() => {
+    // Save original WebSocket
+    originalWebSocket = global.WebSocket;
+
+    // Replace WebSocket with our mock that captures instances
+    (global as any).WebSocket = class extends MockWebSocket {
+      constructor(url: string) {
+        super(url);
+        mockWebSocket = this;
+      }
+    };
+
     service = new WebSocketService('ws://localhost:8000/ws');
     vi.clearAllMocks();
 
@@ -81,6 +98,9 @@ describe('WebSocketService', () => {
   afterEach(() => {
     service.disconnect();
     vi.clearAllTimers();
+    mockWebSocket = null;
+    // Restore original WebSocket
+    global.WebSocket = originalWebSocket;
   });
 
   it('should connect to WebSocket', async () => {
@@ -107,8 +127,7 @@ describe('WebSocketService', () => {
     service.connect('test-project-id');
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    // Get mock WebSocket instance
-    mockWebSocket = (service as any).ws;
+    // Mock WebSocket is already captured
 
     // Simulate incoming message
     const payload = {
@@ -117,7 +136,7 @@ describe('WebSocketService', () => {
       message: 'Processing...'
     };
 
-    mockWebSocket.simulateMessage({
+    mockWebSocket?.simulateMessage({
       type: MessageType.TASK_PROGRESS,
       payload,
       timestamp: new Date().toISOString()
@@ -126,7 +145,7 @@ describe('WebSocketService', () => {
     expect(handler).toHaveBeenCalledWith(payload);
   });
 
-  it('should queue messages when disconnected', () => {
+  it('should queue messages when disconnected', async () => {
     const sendSpy = vi.spyOn(MockWebSocket.prototype, 'send');
 
     // Send message before connecting
@@ -139,17 +158,16 @@ describe('WebSocketService', () => {
     service.connect('test-project-id');
 
     // Wait for connection and queue processing
-    setTimeout(() => {
-      expect(sendSpy).toHaveBeenCalled();
-    }, 10);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(sendSpy).toHaveBeenCalled();
   });
 
   it('should handle connection errors', async () => {
     service.connect('test-project-id');
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    mockWebSocket = (service as any).ws;
-    mockWebSocket.simulateError();
+    mockWebSocket?.simulateError();
 
     const state = get(wsState);
     expect(state.error).toBe('Connection error');
@@ -162,12 +180,12 @@ describe('WebSocketService', () => {
     service.connect('test-project-id');
     await vi.advanceTimersByTimeAsync(10);
 
-    mockWebSocket = (service as any).ws;
-
     // Simulate abnormal close
-    mockWebSocket.readyState = WebSocket.CLOSED;
-    if (mockWebSocket.onclose) {
-      mockWebSocket.onclose(new CloseEvent('close', { code: 1006 }));
+    if (mockWebSocket) {
+      mockWebSocket.readyState = WebSocket.CLOSED;
+      if (mockWebSocket.onclose) {
+        mockWebSocket.onclose(new CloseEvent('close', { code: 1006 }));
+      }
     }
 
     // Should schedule reconnect
@@ -185,10 +203,8 @@ describe('WebSocketService', () => {
     service.connect('test-project-id');
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    mockWebSocket = (service as any).ws;
-
     // Simulate heartbeat message
-    mockWebSocket.simulateMessage({
+    mockWebSocket?.simulateMessage({
       type: MessageType.HEARTBEAT,
       payload: {},
       timestamp: new Date().toISOString()
@@ -205,13 +221,11 @@ describe('WebSocketService', () => {
     service.connect('test-project-id');
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    mockWebSocket = (service as any).ws;
-
     // Unsubscribe
     unsubscribe();
 
     // Send message
-    mockWebSocket.simulateMessage({
+    mockWebSocket?.simulateMessage({
       type: MessageType.TASK_PROGRESS,
       payload: {},
       timestamp: new Date().toISOString()

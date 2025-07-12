@@ -3,7 +3,7 @@ Error handling middleware.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -33,7 +33,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         content={
             **exc.to_dict(),
             "request_id": request_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     )
 
@@ -61,7 +61,7 @@ async def validation_exception_handler(
                 "details": {"errors": exc.errors()},
             },
             "request_id": request_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     )
 
@@ -83,7 +83,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
         content={
             "error": {"code": f"HTTP_{exc.status_code}", "message": exc.detail, "details": {}},
             "request_id": request_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     )
 
@@ -109,7 +109,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
                 "details": {},
             },
             "request_id": request_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     )
 

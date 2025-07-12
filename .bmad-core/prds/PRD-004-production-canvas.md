@@ -63,8 +63,15 @@ Implement Svelte Flow-based node editor with custom nodes designed specifically 
 **Primary Node Types**
 - **ShotNode**: Central execution unit with prompt, generate button, progress, takes gallery
 - **AssetNode**: Reusable elements (Characters, Styles, Locations) with previews
-- **SceneGroupNode**: Hierarchical container for organizing narrative structure
+- **SceneGroupNode**: Hierarchical container for organizing narrative structure (auto-created from story chapters)
 - **PipelineNode**: Abstracted AI capabilities with quality selection
+
+**Story-Driven Node Creation**
+When a project has a story breakdown:
+- **Chapters** → SceneGroupNodes (one per dramatic chapter)
+- **Scenes** → Sub-groups within chapter nodes
+- **Shots** → ShotNodes pre-populated with prompts from shot lists
+- **Assets** → Auto-connected based on script references
 
 **Functional Categories**
 - **Generation**: Create new content from text/image inputs
@@ -452,6 +459,20 @@ Located at bottom of Scene View, provides CLI for power users:
 - Batch operations (create multiple nodes, bulk parameter changes)
 - Rapid workflow construction via commands
 - Combines visual intuitiveness with text-based speed
+
+### Story Integration Features
+
+#### Automatic Canvas Population
+When importing a story breakdown:
+1. **Structure Creation**: Canvas generates hierarchical node structure matching narrative
+2. **Parameter Pre-filling**: Shot prompts populated from shot lists
+3. **Asset Connections**: Characters/Locations auto-connected based on scene requirements
+4. **Timing Metadata**: Shot duration estimates from script annotations
+
+#### Navigation Enhancements
+- **Story Navigator**: Jump to any chapter/scene/shot from dropdown
+- **Script Preview**: Hover over nodes to see corresponding script excerpt
+- **Progress Tracking**: Visual indicators show which story beats are complete
 
 ## Success Metrics
 

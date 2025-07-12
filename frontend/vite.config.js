@@ -18,5 +18,11 @@ export default defineConfig({
     exclude: ['@sveltejs/kit', 'svelte']
   },
   // Environment variable prefix
-  envPrefix: ['VITE_', 'PUBLIC_']
+  envPrefix: ['VITE_', 'PUBLIC_'],
+  // Test configuration
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts']
+  }
 });

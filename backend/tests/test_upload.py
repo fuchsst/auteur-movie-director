@@ -18,9 +18,14 @@ client = TestClient(app)
 @pytest.fixture
 def mock_workspace_service():
     """Mock workspace service"""
-    with patch("app.api.endpoints.upload.workspace_service") as mock:
-        mock.get_project_path.return_value = Path("/workspace/test-project")
-        yield mock
+    with patch("app.api.endpoints.upload.get_workspace_service") as mock_factory:
+        mock_service = MagicMock()
+        mock_service.get_project_path.return_value = Path("/workspace/test-project")
+        mock_service.create_character_structure.return_value = Path(
+            "/workspace/test-project/01_Assets/Characters/TestChar"
+        )
+        mock_factory.return_value = mock_service
+        yield mock_service
 
 
 @pytest.fixture
@@ -69,7 +74,9 @@ def test_upload_file_invalid_category(mock_workspace_service, mock_redis_client)
     )
 
     assert response.status_code == 400
-    assert "Invalid category" in response.json()["detail"]
+    data = response.json()
+    assert "error" in data
+    assert "Invalid category" in data["error"]["message"]
 
 
 def test_upload_file_invalid_extension(mock_workspace_service, mock_redis_client):
@@ -83,7 +90,9 @@ def test_upload_file_invalid_extension(mock_workspace_service, mock_redis_client
     )
 
     assert response.status_code == 400
-    assert "not allowed for category" in response.json()["detail"]
+    data = response.json()
+    assert "error" in data
+    assert "not allowed for category" in data["error"]["message"]
 
 
 def test_upload_file_missing_metadata(mock_workspace_service, mock_redis_client):
@@ -99,7 +108,9 @@ def test_upload_file_missing_metadata(mock_workspace_service, mock_redis_client)
     )
 
     assert response.status_code == 400
-    assert "Missing required metadata" in response.json()["detail"]
+    data = response.json()
+    assert "error" in data
+    assert "Missing required metadata" in data["error"]["message"]
 
 
 @patch("builtins.open", new_callable=MagicMock)

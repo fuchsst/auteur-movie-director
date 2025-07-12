@@ -7,7 +7,7 @@ import json
 import logging
 import platform
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -88,7 +88,7 @@ class TakesService:
         metadata = {
             "id": take_id,
             "shotId": shot_id,
-            "created": datetime.utcnow().isoformat(),
+            "created": datetime.now(UTC).isoformat(),
             "generationParams": generation_params,
             "resources": {
                 "quality": quality,
@@ -236,7 +236,7 @@ class TakesService:
         data = {
             "shotId": shot_id,
             "activeTakeId": take_id,
-            "updated": datetime.utcnow().isoformat(),
+            "updated": datetime.now(UTC).isoformat(),
         }
 
         async with aiofiles.open(active_file, "w") as f:
@@ -333,7 +333,7 @@ class TakesService:
                     active_file.unlink()
 
         # Rename directory to mark as deleted
-        deleted_dir = takes_dir / f".deleted_{take_id}_{int(datetime.utcnow().timestamp())}"
+        deleted_dir = takes_dir / f".deleted_{take_id}_{int(datetime.now(UTC).timestamp())}"
         take_dir.rename(deleted_dir)
 
         logger.info(f"Soft deleted take: {take_id}")

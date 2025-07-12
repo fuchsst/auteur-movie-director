@@ -1,15 +1,15 @@
 """Pytest configuration for integration tests"""
 
-import pytest
 import asyncio
 import tempfile
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import AsyncGenerator
-import os
 
+import pytest
 from httpx import AsyncClient
-from app.main import app
+
 from app.config import settings
+from app.main import app
 from app.redis_client import redis_client
 
 
@@ -34,10 +34,10 @@ async def tmp_workspace(monkeypatch) -> Path:
     with tempfile.TemporaryDirectory() as tmpdir:
         workspace_path = Path(tmpdir) / "test_workspace"
         workspace_path.mkdir(exist_ok=True)
-        
+
         # Patch the workspace root setting
         monkeypatch.setattr(settings, "workspace_root", str(workspace_path))
-        
+
         yield workspace_path
 
 
@@ -52,15 +52,18 @@ async def clear_redis():
 @pytest.fixture
 def mock_git_lfs(monkeypatch):
     """Mock Git LFS commands for testing."""
+
     def mock_run(*args, **kwargs):
         # Mock successful Git LFS operations
         class MockResult:
             returncode = 0
             stdout = "Git LFS initialized"
             stderr = ""
+
         return MockResult()
-    
+
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", mock_run)
 
 
@@ -68,23 +71,21 @@ def mock_git_lfs(monkeypatch):
 async def create_test_project(async_client, tmp_workspace):
     """Factory fixture to create test projects."""
     created_projects = []
-    
+
     async def _create_project(name: str = "test-project", quality: str = "standard"):
         response = await async_client.post(
-            "/api/v1/projects",
-            json={"name": name, "quality": quality}
+            "/api/v1/projects", json={"name": name, "quality": quality}
         )
         assert response.status_code == 201
         project = response.json()
         created_projects.append(project["id"])
         return project
-    
+
     yield _create_project
-    
+
     # Cleanup
     for project_id in created_projects:
         await async_client.delete(f"/api/v1/projects/{project_id}")
 
 
-# Configure pytest-asyncio
-pytest_plugins = ('pytest_asyncio',)
+# pytest_plugins is now defined in root conftest.py
