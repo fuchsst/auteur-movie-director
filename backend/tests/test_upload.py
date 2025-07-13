@@ -163,7 +163,9 @@ def test_upload_file_success(
 
 @patch("pathlib.Path.mkdir")
 @patch("pathlib.Path.exists")
-def test_upload_file_with_duplicate_name(mock_exists, mock_mkdir, mock_workspace_service, mock_redis_client):
+def test_upload_file_with_duplicate_name(
+    mock_exists, mock_mkdir, mock_workspace_service, mock_redis_client
+):
     """Test uploading file when filename already exists"""
     # First call returns True (file exists), subsequent calls return False
     # Note: May need more False values if other paths are checked

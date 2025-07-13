@@ -16,7 +16,8 @@
       "Bash(curl:*)",
       "Bash(python -m pytest:*)",
       "Bash(true)",
-      "Bash(npm run test:*)"
+      "Bash(npm run test:*)",
+      "Bash(uv run:*)"
     ],
     "deny": []
   }

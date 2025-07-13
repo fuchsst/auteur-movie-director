@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
 
         # Register task handlers
         from app.core.dispatcher import EchoTaskHandler, GenerationTaskHandler
+
         task_dispatcher.register_handler("echo", EchoTaskHandler())
         task_dispatcher.register_handler("generation", GenerationTaskHandler())
         logger.info("Task dispatcher initialized with echo and generation handlers")

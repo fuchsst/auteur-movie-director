@@ -43,7 +43,7 @@ class WorkspaceService:
         "03_Renders",
         "04_Compositions",
         "05_Audio",
-        "06_Exports"
+        "06_Exports",
     ]
 
     # Files/directories to ignore in Git by default
@@ -81,7 +81,7 @@ class WorkspaceService:
         "# Temporary files",
         "*.tmp",
         "*.bak",
-        "*.cache"
+        "*.cache",
     ]
 
     # Narrative structure templates
@@ -140,8 +140,9 @@ class WorkspaceService:
         """
         # Performance timer
         import time
+
         start_time = time.time()
-        
+
         # Sanitize project name for directory
         safe_name = self._sanitize_project_name(project_data.name)
         project_path = self.workspace_root / safe_name
@@ -173,13 +174,15 @@ class WorkspaceService:
             validation = self.validate_project_structure(project_path)
             if not validation.valid:
                 raise RuntimeError(f"Project creation validation failed: {validation.errors}")
-            
+
             elapsed_time = time.time() - start_time
-            logger.info(f"Project '{project_data.name}' created at {project_path} in {elapsed_time:.2f}s")
-            
+            logger.info(
+                f"Project '{project_data.name}' created at {project_path} in {elapsed_time:.2f}s"
+            )
+
             # Send WebSocket notification
             self._send_project_created_notification(manifest.id, str(project_path))
-            
+
             return project_path, manifest
 
         except Exception as e:
@@ -239,22 +242,22 @@ class WorkspaceService:
 
             for pattern in self.GIT_IGNORE_PATTERNS:
                 f.write(f"{pattern}\n")
-                
+
     def _generate_gitattributes(self, project_path: Path) -> None:
         """Generate .gitattributes file with LFS patterns"""
         gitattributes_path = project_path / ".gitattributes"
-        
+
         # Import LFS patterns from git service
         from app.services.git import GitService
-        
+
         with open(gitattributes_path, "w") as f:
             f.write("# Auto-generated .gitattributes for Auteur Movie Director\n")
             f.write("# Configure Git LFS for media files\n\n")
-            
+
             # Add all LFS patterns
             for pattern in sorted(GitService.LFS_EXTENSIONS):
                 f.write(f"{pattern} filter=lfs diff=lfs merge=lfs -text\n")
-            
+
             f.write("\n# Additional patterns\n")
             f.write("# Ensure consistent line endings\n")
             f.write("*.py text eol=lf\n")
@@ -267,7 +270,7 @@ class WorkspaceService:
     ) -> ProjectManifest:
         """Create project manifest according to STORY-025 specification"""
         from datetime import datetime, timezone
-        
+
         # Create the manifest according to the exact specification
         manifest_data = {
             "id": str(uuid4()),
@@ -276,14 +279,10 @@ class WorkspaceService:
             "structure_version": "1.0",
             "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "created_by": project_data.director or os.environ.get("USER", "unknown"),
-            "metadata": {
-                "description": project_data.description or "",
-                "tags": [],
-                "settings": {}
-            },
-            "canvas_state": None
+            "metadata": {"description": project_data.description or "", "tags": [], "settings": {}},
+            "canvas_state": None,
         }
-        
+
         # Convert to ProjectManifest for compatibility
         # Generate narrative chapters based on structure
         chapters = []
@@ -304,12 +303,9 @@ class WorkspaceService:
             narrative=narrative,
             metadata=ProjectMetadata(
                 director=manifest_data["created_by"],
-                description=manifest_data["metadata"]["description"]
+                description=manifest_data["metadata"]["description"],
             ),
-            git=GitConfig(
-                initialized=True,
-                lfs_enabled=True
-            )
+            git=GitConfig(initialized=True, lfs_enabled=True),
         )
 
         return manifest
@@ -317,10 +313,15 @@ class WorkspaceService:
     def _save_project_manifest(self, project_path: Path, manifest: ProjectManifest) -> None:
         """Save project manifest to project.json"""
         manifest_path = project_path / "project.json"
-        
+
         # Save the full manifest for compatibility with validation
         with open(manifest_path, "w") as f:
-            json.dump(manifest.model_dump() if hasattr(manifest, 'model_dump') else manifest.dict(), f, indent=2, default=str)
+            json.dump(
+                manifest.model_dump() if hasattr(manifest, "model_dump") else manifest.dict(),
+                f,
+                indent=2,
+                default=str,
+            )
 
     def _create_initial_commit(self, project_path: Path) -> None:
         """Create initial Git commit"""
@@ -538,7 +539,7 @@ class WorkspaceService:
         except Exception as e:
             logger.error(f"Error adding character to project: {e}")
             return None
-    
+
     def _send_project_created_notification(self, project_id: str, project_path: str) -> None:
         """Send WebSocket notification that project was created"""
         try:
@@ -546,15 +547,15 @@ class WorkspaceService:
             import asyncio
             from datetime import datetime, timezone
             from app.api.websocket import manager
-            
+
             # Create notification message
             message = {
                 "type": "project_created",
                 "project_id": project_id,
                 "project_path": project_path,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-            
+
             # Run async broadcast synchronously
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)

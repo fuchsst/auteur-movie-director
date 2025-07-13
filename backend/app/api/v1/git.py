@@ -57,6 +57,17 @@ class ValidationResult(BaseModel):
     warnings: list[str] = []
 
 
+class GitConfig(BaseModel):
+    """Git configuration information"""
+
+    user_name: str | None = None
+    user_email: str | None = None
+    lfs_enabled: bool = False
+    lfs_version: str | None = None
+    git_version: str | None = None
+    tracked_patterns: list[str] = []
+
+
 @router.get("/{project_id}/status", response_model=GitStatus)
 async def get_repository_status(project_id: str):
     """
@@ -209,6 +220,33 @@ async def validate_repository(project_id: str):
 
     except Exception as e:
         logger.error(f"Error validating repository: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{project_id}/config", response_model=GitConfig)
+async def get_repository_config(project_id: str):
+    """
+    Get Git configuration for a project.
+
+    Returns:
+    - User name and email
+    - LFS status and version
+    - Git version
+    - Tracked LFS patterns
+    """
+    try:
+        # Get project path
+        workspace_service = get_workspace_service()
+        project_path = workspace_service.get_project_path(project_id)
+        if not project_path:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Get config
+        config = await git_service.get_config(project_path)
+        return GitConfig(**config)
+
+    except Exception as e:
+        logger.error(f"Error getting repository config: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

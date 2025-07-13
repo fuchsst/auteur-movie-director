@@ -110,6 +110,7 @@ class GitService:
         "*.tflite",
         "*.mlmodel",
         "*.caffemodel",
+        "*.bin",
         # Archive formats
         "*.zip",
         "*.rar",
@@ -178,6 +179,18 @@ class GitService:
                     logger.warning(f"Git LFS initialization failed: {e}")
             else:
                 logger.warning("Git LFS not available, initialized without LFS support")
+
+            # Create initial commit
+            try:
+                # Stage all files in the project
+                repo.git.add(A=True)
+
+                # Create initial commit
+                repo.index.commit("Initial project setup")
+                logger.info("Created initial commit")
+            except Exception as e:
+                logger.warning(f"Failed to create initial commit: {e}")
+                # Don't fail initialization if commit fails
 
             return True
 
@@ -398,6 +411,83 @@ class GitService:
         except Exception as e:
             logger.error(f"Failed to track file with LFS: {e}")
             return False
+
+    async def get_config(self, project_path: Path) -> dict[str, any]:
+        """
+        Get Git configuration for a repository.
+
+        Returns:
+            Dictionary with configuration details
+        """
+        try:
+            config = {
+                "user_name": None,
+                "user_email": None,
+                "lfs_enabled": False,
+                "lfs_version": None,
+                "git_version": None,
+                "tracked_patterns": [],
+            }
+
+            # Check if repository exists
+            if not (project_path / ".git").exists():
+                return config
+
+            repo = git.Repo(project_path)
+
+            # Get user config
+            with repo.config_reader() as git_config:
+                if git_config.has_option("user", "name"):
+                    config["user_name"] = git_config.get_value("user", "name")
+                if git_config.has_option("user", "email"):
+                    config["user_email"] = git_config.get_value("user", "email")
+
+            # Get Git version
+            try:
+                result = subprocess.run(
+                    ["git", "--version"], capture_output=True, text=True, check=True
+                )
+                config["git_version"] = result.stdout.strip()
+            except Exception:
+                pass
+
+            # Get LFS status
+            from app.services.git_lfs import git_lfs_service
+
+            if git_lfs_service.lfs_available:
+                config["lfs_enabled"] = True
+                try:
+                    result = subprocess.run(
+                        ["git", "lfs", "version"], capture_output=True, text=True, check=True
+                    )
+                    config["lfs_version"] = result.stdout.strip()
+                except Exception:
+                    pass
+
+                # Get tracked patterns from .gitattributes
+                gitattributes = project_path / ".gitattributes"
+                if gitattributes.exists():
+                    patterns = []
+                    with open(gitattributes) as f:
+                        for line in f:
+                            if "filter=lfs" in line and not line.strip().startswith("#"):
+                                pattern = line.split()[0]
+                                patterns.append(pattern)
+                    config["tracked_patterns"] = patterns
+
+            return config
+
+        except Exception as e:
+            logger.error(f"Failed to get repository config: {e}")
+            return {
+                "user_name": None,
+                "user_email": None,
+                "lfs_enabled": False,
+                "lfs_version": None,
+                "git_version": None,
+                "tracked_patterns": [],
+                "error": str(e),
+            }
 
     async def validate_repository(self, project_path: Path) -> dict[str, any]:
         """
