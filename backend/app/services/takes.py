@@ -482,6 +482,121 @@ class TakesService:
         logger.info(f"Exported take {take_id} to {export_path}")
         return export_path
 
+    async def create_and_save_take(
+        self,
+        project_path: Path,
+        shot_id: str,
+        file_content: bytes,
+        file_extension: str = "mp4",
+        generation_params: dict[str, Any] = None,
+        quality: str = "standard",
+    ) -> dict[str, Any]:
+        """
+        Create and save a complete take with file content.
+        This is a simplified interface for creating takes.
+        """
+        if generation_params is None:
+            generation_params = {
+                "model": "default",
+                "seed": 42,
+                "prompt": "Generated content",
+                "steps": 20,
+                "cfg": 7.5,
+            }
+
+        # Get next take number
+        take_number = await self.get_next_take_number(project_path, shot_id)
+        take_id = f"take_{str(take_number).zfill(3)}"
+
+        # Create take directory
+        take_dir = await self.create_take_directory(project_path, shot_id, take_number)
+
+        # Save main file
+        filename = self.generate_take_name(shot_id, take_number, file_extension)
+        file_path = take_dir / filename
+
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(file_content)
+
+        # Save metadata
+        metadata_path = await self.save_take_metadata(
+            take_dir=take_dir,
+            take_id=take_id,
+            shot_id=shot_id,
+            generation_params=generation_params,
+            quality=quality,
+        )
+
+        # Update metadata with file info
+        updates = {
+            "status": "complete",
+            "filePath": str(file_path.relative_to(project_path)),
+            "fileSize": len(file_content),
+        }
+        await self.update_take_metadata(metadata_path, updates)
+
+        # Generate thumbnail if it's a video/image
+        if file_extension.lower() in ["mp4", "mov", "avi"]:
+            thumbnail_name = f"{filename.rsplit('.', 1)[0]}{self.thumbnail_suffix}"
+            thumbnail_path = take_dir / thumbnail_name
+            await self.generate_thumbnail(file_path, thumbnail_path)
+
+        # Check if this should be the active take (if no active take exists)
+        active_take = await self.get_active_take(project_path, shot_id)
+        if active_take is None:
+            await self.set_active_take(project_path, shot_id, take_id)
+
+        # Update project metadata
+        await self._update_project_metadata(project_path, shot_id, take_id)
+
+        logger.info(f"Created and saved take {take_id} for shot {shot_id}")
+
+        # Return take metadata
+        takes = await self.list_takes(project_path, shot_id)
+        return next((t for t in takes if t.get("id") == take_id), {})
+
+    async def _update_project_metadata(self, project_path: Path, shot_id: str, take_id: str):
+        """Update project.json with take information"""
+        try:
+            project_file = project_path / "project.json"
+            if not project_file.exists():
+                return
+
+            async with aiofiles.open(project_file, "r") as f:
+                content = await f.read()
+                project_data = json.loads(content)
+
+            # Initialize takes structure if not exists
+            if "takes" not in project_data:
+                project_data["takes"] = {}
+
+            if shot_id not in project_data["takes"]:
+                project_data["takes"][shot_id] = {
+                    "total_takes": 0,
+                    "active_take": None,
+                    "last_generated": None,
+                }
+
+            # Update take info
+            project_data["takes"][shot_id]["total_takes"] += 1
+            project_data["takes"][shot_id]["last_generated"] = datetime.now(UTC).isoformat()
+
+            # Update active take if this is the first one
+            if project_data["takes"][shot_id]["active_take"] is None:
+                project_data["takes"][shot_id]["active_take"] = take_id
+
+            # Update project modified time
+            project_data["updated_at"] = datetime.now(UTC).isoformat()
+
+            # Save updated project data
+            async with aiofiles.open(project_file, "w") as f:
+                await f.write(json.dumps(project_data, indent=2))
+
+            logger.debug(f"Updated project metadata for take {take_id}")
+
+        except Exception as e:
+            logger.warning(f"Failed to update project metadata: {e}")
+
 
 # Global instance
 takes_service = TakesService()

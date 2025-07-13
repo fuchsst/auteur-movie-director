@@ -27,6 +27,44 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/takes", tags=["takes"])
 
 
+@router.post("/projects/{project_id}/shots/{shot_id}/takes/simple")
+async def create_simple_take(
+    project_id: str,
+    shot_id: str,
+    file_content: bytes,
+    file_extension: str = "mp4",
+):
+    """
+    Create a simple take with file content.
+    For testing and simple use cases.
+    """
+    try:
+        # Get project path
+        workspace_service = get_workspace_service()
+        project_path = workspace_service.get_project_path(project_id)
+        if not project_path:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Create and save take
+        take_data = await takes_service.create_and_save_take(
+            project_path=project_path,
+            shot_id=shot_id,
+            file_content=file_content,
+            file_extension=file_extension,
+        )
+
+        return {
+            "success": True,
+            "take_id": take_data.get("id"),
+            "message": f"Created take {take_data.get('id')} for shot {shot_id}",
+            "take_data": take_data,
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating simple take: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 @router.post("/projects/{project_id}/shots/{shot_id}/takes", response_model=CreateTakeResponse)
 async def create_take(project_id: str, shot_id: str, request: CreateTakeRequest):
     """
