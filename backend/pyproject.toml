@@ -71,3 +71,6 @@ minversion = "7.0"
 addopts = ["-ra", "--strict-markers"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "performance: marks tests as performance tests",
+]

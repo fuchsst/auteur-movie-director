@@ -10,13 +10,13 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from app.schemas.git import GitStatus
 from app.services.git_performance import GitPerformanceManager
-from app.services.workspace import WorkspaceService
+from app.services.workspace import get_workspace_service
 
 router = APIRouter(prefix="/git/performance", tags=["git-performance"])
 
 # Initialize services
 git_perf = GitPerformanceManager()
-workspace_service = WorkspaceService()
+workspace_service = get_workspace_service()
 
 
 @router.get("/metrics")
