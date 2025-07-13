@@ -1,14 +1,17 @@
 <script lang="ts">
   import { gitApi } from '$lib/api/git';
+  import { gitPerformanceApi } from '$lib/api/gitPerformance';
   import { gitStore } from '$lib/stores/git';
   import { notificationStore } from '$lib/stores/notifications';
   import GitTimeline from '../git/GitTimeline.svelte';
-  import { History, GitBranch, RefreshCw } from 'lucide-svelte';
+  import GitPerformanceMonitor from '../git/GitPerformanceMonitor.svelte';
+  import { History, GitBranch, RefreshCw, Gauge } from 'lucide-svelte';
   
   export let projectId: string;
   
   let gitStatus: any = null;
   let loading = true;
+  let showPerformance = false;
   
   async function loadGitStatus() {
     try {
@@ -134,14 +137,30 @@
           </span>
         {/if}
       </div>
+      
+      <button
+        class="performance-toggle"
+        on:click={() => showPerformance = !showPerformance}
+        title="Toggle performance monitor"
+      >
+        <Gauge size={16} />
+      </button>
     </div>
     
-    <div class="timeline-container">
-      <GitTimeline
-        {projectId}
-        on:rollback={handleRollback}
-        on:tag={handleCreateTag}
-      />
+    <div class="content-container">
+      <div class="timeline-container" class:with-performance={showPerformance}>
+        <GitTimeline
+          {projectId}
+          on:rollback={handleRollback}
+          on:tag={handleCreateTag}
+        />
+      </div>
+      
+      {#if showPerformance}
+        <div class="performance-panel">
+          <GitPerformanceMonitor />
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -275,9 +294,48 @@
     color: var(--text-secondary);
   }
   
+  .performance-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+  }
+  
+  .performance-toggle:hover {
+    background: var(--surface-hover);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+  }
+  
+  .content-container {
+    flex: 1;
+    display: flex;
+    gap: 1rem;
+    overflow: hidden;
+    padding: 0 1rem 1rem;
+  }
+  
   .timeline-container {
     flex: 1;
     overflow: hidden;
+  }
+  
+  .timeline-container.with-performance {
+    flex: 2;
+  }
+  
+  .performance-panel {
+    flex: 1;
+    min-width: 320px;
+    max-width: 400px;
+    overflow-y: auto;
   }
   
   @media (max-width: 768px) {

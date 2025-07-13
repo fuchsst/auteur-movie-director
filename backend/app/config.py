@@ -30,6 +30,9 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    redis_host: str = Field(default="localhost", env="REDIS_HOST")
+    redis_port: int = Field(default=6379, env="REDIS_PORT")
+    redis_db: int = Field(default=0, env="REDIS_DB")
     redis_progress_channel: str = "auteur:progress"
     redis_state_prefix: str = "auteur:project:"
 

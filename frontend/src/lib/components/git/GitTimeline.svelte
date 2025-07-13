@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { gitApi } from '$lib/api/git';
+  import { gitPerformanceApi } from '$lib/api/gitPerformance';
+  import { gitStore } from '$lib/stores/git';
   import type { EnhancedGitCommit } from '$lib/api/git';
   import CommitNode from './CommitNode.svelte';
   import CommitDetails from './CommitDetails.svelte';
@@ -20,6 +22,9 @@
   let selectedFileType: string | null = null;
   let timelineContainer: HTMLElement;
   let refreshInterval: number;
+  let currentPage = 1;
+  let totalPages = 1;
+  let usePerformanceApi = true; // Use performance-optimized API
   
   interface TimeGroup {
     label: string;
@@ -27,19 +32,51 @@
     commits: EnhancedGitCommit[];
   }
   
-  // Load commits
-  async function loadCommits(limit = 100) {
+  // Load commits with performance optimization
+  async function loadCommits(page = 1, limit = 50) {
     loading = true;
     error = null;
     
     try {
-      commits = await gitApi.getEnhancedHistory(projectId, limit);
+      if (usePerformanceApi) {
+        // Use performance-optimized API with pagination
+        const result = await gitPerformanceApi.getCachedHistory(projectId, page, limit);
+        commits = result.commits;
+        currentPage = result.pagination.page;
+        totalPages = result.pagination.pages;
+        
+        // Update store
+        gitStore.setHistory(projectId, commits);
+        gitStore.setPagination(projectId, result.pagination);
+      } else {
+        // Fallback to standard API
+        commits = await gitApi.getEnhancedHistory(projectId, limit);
+      }
+      
       filterCommits();
+      
+      // Load performance metrics
+      const metrics = await gitPerformanceApi.getMetrics();
+      gitStore.setPerformance(metrics);
     } catch (err) {
+      // If performance API fails, fallback to standard API
+      if (usePerformanceApi) {
+        console.warn('Performance API failed, falling back to standard API:', err);
+        usePerformanceApi = false;
+        return loadCommits(page, limit);
+      }
+      
       error = err.message || 'Failed to load commit history';
       console.error('Error loading commits:', err);
     } finally {
       loading = false;
+    }
+  }
+  
+  // Load more commits (pagination)
+  async function loadMore() {
+    if (currentPage < totalPages && !loading) {
+      await loadCommits(currentPage + 1);
     }
   }
   
@@ -248,14 +285,22 @@
           </div>
         {/each}
         
-        {#if commits.length >= 100}
-          <button 
-            class="load-more" 
-            on:click={() => loadCommits(commits.length + 100)}
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : 'Load More'}
-          </button>
+        {#if currentPage < totalPages}
+          <div class="load-more-container">
+            <button 
+              class="load-more" 
+              on:click={loadMore}
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : `Load More (Page ${currentPage + 1} of ${totalPages})`}
+            </button>
+          </div>
+        {/if}
+        
+        {#if loading && commits.length > 0}
+          <div class="loading-indicator">
+            <div class="small-spinner" />
+          </div>
         {/if}
       </div>
     {/if}
@@ -369,11 +414,13 @@
     background: var(--primary-hover);
   }
   
+  .load-more-container {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+  }
+  
   .load-more {
-    display: block;
-    width: 100%;
-    max-width: 200px;
-    margin: 2rem auto;
     padding: 0.75rem 1.5rem;
     background: var(--surface-primary);
     color: var(--text-primary);
@@ -381,6 +428,7 @@
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
+    font-size: 0.875rem;
   }
   
   .load-more:hover:not(:disabled) {
@@ -391,6 +439,21 @@
   .load-more:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+  
+  .loading-indicator {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+  }
+  
+  .small-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
   
   .details-panel {

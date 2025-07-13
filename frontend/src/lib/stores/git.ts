@@ -2,11 +2,13 @@
  * Git Store
  * 
  * Manages Git-related state including commit history,
- * repository status, and ongoing operations
+ * repository status, and ongoing operations.
+ * Integrates with Git Performance API for optimized operations.
  */
 
 import { writable, derived, get } from 'svelte/store';
 import type { EnhancedGitCommit, GitStatus } from '$lib/api/git';
+import type { GitPerformanceMetrics } from '$lib/api/gitPerformance';
 
 interface GitState {
   // Commit history cache by project ID
@@ -15,11 +17,23 @@ interface GitState {
   // Repository status by project ID
   status: Map<string, GitStatus>;
   
+  // Pagination state for history
+  pagination: Map<string, {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  }>;
+  
+  // Performance metrics
+  performance: GitPerformanceMetrics | null;
+  
   // Ongoing operations
   operations: {
     rollback: boolean;
     commit: boolean;
     tag: boolean;
+    optimize: boolean;
   };
   
   // Error states
@@ -30,10 +44,13 @@ function createGitStore() {
   const { subscribe, update, set } = writable<GitState>({
     history: new Map(),
     status: new Map(),
+    pagination: new Map(),
+    performance: null,
     operations: {
       rollback: false,
       commit: false,
-      tag: false
+      tag: false,
+      optimize: false
     },
     errors: new Map()
   });
@@ -99,15 +116,34 @@ function createGitStore() {
       });
     },
 
+    // Set pagination info for a project
+    setPagination(projectId: string, pagination: GitState['pagination'] extends Map<any, infer V> ? V : never) {
+      update(state => {
+        state.pagination.set(projectId, pagination);
+        return state;
+      });
+    },
+
+    // Set performance metrics
+    setPerformance(metrics: GitPerformanceMetrics) {
+      update(state => {
+        state.performance = metrics;
+        return state;
+      });
+    },
+
     // Clear all cached data
     clearAll() {
       set({
         history: new Map(),
         status: new Map(),
+        pagination: new Map(),
+        performance: null,
         operations: {
           rollback: false,
           commit: false,
-          tag: false
+          tag: false,
+          optimize: false
         },
         errors: new Map()
       });
