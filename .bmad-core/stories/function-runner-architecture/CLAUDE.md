@@ -5,7 +5,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 ## Story Overview
 
 ### Worker Infrastructure Stories (20 points)
-- **[STORY-041: Worker Pool Management](./STORY-041-worker-pool-management.md)** (8 points)
+- **[STORY-041: Worker Pool Management](./STORY-041-worker-pool-management.md)** (8 points) ✅
   - Dynamic worker scaling, lifecycle management, graceful shutdown
 
 - **[STORY-042: Task Queue Configuration](./STORY-042-task-queue-configuration.md)** (7 points)
@@ -35,8 +35,8 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
   - Robust error handling, retry logic, fallback mechanisms
 
 ### Quality Abstraction Stories (18 points)
-- **[STORY-013: Function Runner Foundation](./STORY-013-function-runner-foundation.md)** (12 points) ✅
-  - Task dispatcher, quality mapping, WebSocket protocol (Completed)
+- **[STORY-013: Function Runner Foundation](../web-platform-foundation/STORY-013-function-runner-foundation.md)** (12 points) ⚠️
+  - Task dispatcher, quality mapping, WebSocket protocol (Partially Completed - 60%)
 
 - **[STORY-050: Quality Preset System](./STORY-050-quality-preset-system.md)** (6 points)
   - User-friendly quality levels, preset management, configuration UI
@@ -48,7 +48,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-052: Performance Testing Suite](./STORY-052-performance-testing-suite.md)** (4 points)
   - Load testing, performance validation, benchmarking
 
-## Total Story Points: 82 (12 Completed, 70 Remaining)
+## Total Story Points: 82 (20 Completed, 62 Remaining)
 
 ## Story Dependencies
 

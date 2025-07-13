@@ -70,6 +70,16 @@ def create_app() -> FastAPI:
         task_dispatcher.register_handler("generation", GenerationTaskHandler())
         logger.info("Task dispatcher initialized with echo and generation handlers")
 
+        # Initialize worker pool manager
+        from app.worker.pool_manager import worker_pool_manager
+        
+        try:
+            await worker_pool_manager.start()
+            logger.info("Worker pool manager started successfully")
+        except Exception as e:
+            logger.error(f"Failed to start worker pool manager: {e}")
+            # Continue without worker pool for development
+
         # Check Git LFS installation
         from app.services.git_lfs import git_lfs_service
 
@@ -91,6 +101,14 @@ def create_app() -> FastAPI:
 
         # Cancel active tasks
         await task_dispatcher.shutdown()
+
+        # Stop worker pool manager
+        from app.worker.pool_manager import worker_pool_manager
+        try:
+            await worker_pool_manager.stop()
+            logger.info("Worker pool manager stopped")
+        except Exception as e:
+            logger.error(f"Error stopping worker pool manager: {e}")
 
         # Disconnect from Redis
         await redis_client.disconnect()

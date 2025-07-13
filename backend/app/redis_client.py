@@ -85,6 +85,28 @@ class RedisClient:
             pass
         return False
 
+    async def set_with_expiry(self, key: str, value: Any, expiry_seconds: int = 300):
+        """Set a key with expiry"""
+        if self.redis:
+            await self.redis.set(key, json.dumps(value), ex=expiry_seconds)
+
+    async def get(self, key: str) -> Any:
+        """Get a value by key"""
+        if self.redis:
+            data = await self.redis.get(key)
+            return json.loads(data) if data else None
+        return None
+
+    async def delete(self, key: str):
+        """Delete a key"""
+        if self.redis:
+            await self.redis.delete(key)
+
+    async def publish(self, channel: str, message: str):
+        """Publish message to channel"""
+        if self.redis:
+            await self.redis.publish(channel, message)
+
 
 # Global instance
 redis_client = RedisClient()
