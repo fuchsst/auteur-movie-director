@@ -8,14 +8,14 @@ import logging
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from fastapi import UploadFile
 from PIL import Image
 from pydantic import ValidationError
 
-from app.schemas.project import AssetReference, AssetType, CharacterAsset
+from app.schemas.project import AssetReference, AssetType
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ class AssetService:
         file_ext = Path(filename).suffix.lower()
         return file_ext in supported_types[file_type]
 
-    async def _generate_preview(self, asset_path: Path, source_file: Path) -> Optional[Path]:
+    async def _generate_preview(self, asset_path: Path, source_file: Path) -> Path | None:
         """Generate preview image for an asset"""
         try:
             preview_path = asset_path / "preview.png"
@@ -146,9 +146,9 @@ class AssetService:
         self,
         category: AssetType,
         name: str,
-        files: Dict[str, UploadFile],
-        metadata: Optional[Dict[str, Any]] = None,
-        tags: Optional[List[str]] = None,
+        files: dict[str, UploadFile],
+        metadata: dict[str, Any] | None = None,
+        tags: list[str] | None = None,
     ) -> AssetReference:
         """
         Import a new asset into the workspace library.
@@ -251,11 +251,11 @@ class AssetService:
 
     async def list_assets(
         self,
-        category: Optional[AssetType] = None,
-        tags: Optional[List[str]] = None,
+        category: AssetType | None = None,
+        tags: list[str] | None = None,
         limit: int = 1000,
         offset: int = 0,
-    ) -> List[AssetReference]:
+    ) -> list[AssetReference]:
         """
         List assets with optional filtering.
 
@@ -316,7 +316,7 @@ class AssetService:
         # Apply pagination
         return assets[offset : offset + limit]
 
-    async def get_asset(self, category: AssetType, asset_id: str) -> Optional[AssetReference]:
+    async def get_asset(self, category: AssetType, asset_id: str) -> AssetReference | None:
         """
         Get a specific asset by ID and category.
 
@@ -386,10 +386,10 @@ class AssetService:
     async def search_assets(
         self,
         query: str,
-        category: Optional[AssetType] = None,
-        tags: Optional[List[str]] = None,
+        category: AssetType | None = None,
+        tags: list[str] | None = None,
         limit: int = 100,
-    ) -> List[AssetReference]:
+    ) -> list[AssetReference]:
         """
         Search assets by name and description.
 
@@ -434,10 +434,10 @@ class AssetService:
         self,
         category: AssetType,
         asset_id: str,
-        name: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[AssetReference]:
+        name: str | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> AssetReference | None:
         """
         Update asset metadata.
 
@@ -494,7 +494,7 @@ class AssetService:
             logger.error(f"Failed to update asset metadata {asset_id}: {e}")
             return None
 
-    def get_asset_statistics(self) -> Dict[str, Any]:
+    def get_asset_statistics(self) -> dict[str, Any]:
         """
         Get statistics about workspace assets.
 

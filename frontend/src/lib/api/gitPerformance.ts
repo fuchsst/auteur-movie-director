@@ -71,9 +71,7 @@ class GitPerformanceApi {
    * Get cached Git status
    */
   async getCachedStatus(projectId: string): Promise<GitStatus> {
-    const response = await fetch(
-      `${this.baseUrl}/api/v1/git/performance/${projectId}/status`
-    );
+    const response = await fetch(`${this.baseUrl}/api/v1/git/performance/${projectId}/status`);
     if (!response.ok) {
       throw new Error(`Failed to get cached status: ${response.statusText}`);
     }
@@ -91,7 +89,7 @@ class GitPerformanceApi {
   ): Promise<PaginatedHistory> {
     const params = new URLSearchParams({
       page: page.toString(),
-      limit: limit.toString(),
+      limit: limit.toString()
     });
     if (branch) {
       params.append('branch', branch);
@@ -109,20 +107,17 @@ class GitPerformanceApi {
   /**
    * Trigger repository optimization
    */
-  async optimizeRepository(projectId: string): Promise<{ 
-    task_id?: string; 
-    status: string; 
-    message: string; 
+  async optimizeRepository(projectId: string): Promise<{
+    task_id?: string;
+    status: string;
+    message: string;
   }> {
-    const response = await fetch(
-      `${this.baseUrl}/api/v1/git/performance/${projectId}/optimize`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    const response = await fetch(`${this.baseUrl}/api/v1/git/performance/${projectId}/optimize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
       }
-    );
+    });
     if (!response.ok) {
       throw new Error(`Failed to optimize repository: ${response.statusText}`);
     }
@@ -137,7 +132,7 @@ class GitPerformanceApi {
     const response = await fetch(
       `${this.baseUrl}/api/v1/git/performance/${projectId}/cache${params}`,
       {
-        method: 'DELETE',
+        method: 'DELETE'
       }
     );
     if (!response.ok) {
@@ -158,12 +153,12 @@ class GitPerformanceApi {
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           file_paths: filePaths,
-          message: message,
-        }),
+          message: message
+        })
       }
     );
     if (!response.ok) {
@@ -176,9 +171,7 @@ class GitPerformanceApi {
    * Check performance subsystem health
    */
   async checkHealth(): Promise<PerformanceHealth> {
-    const response = await fetch(
-      `${this.baseUrl}/api/v1/git/performance/health`
-    );
+    const response = await fetch(`${this.baseUrl}/api/v1/git/performance/health`);
     if (!response.ok) {
       throw new Error(`Failed to check performance health: ${response.statusText}`);
     }

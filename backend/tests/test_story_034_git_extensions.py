@@ -5,16 +5,15 @@ Validates auto-commit, enhanced history, rollback, and tag functionality.
 
 import asyncio
 import tempfile
-import time
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import git
 import pytest
 
-from app.services.git import GitService, AutoCommitManager
-from app.services.workspace import WorkspaceService
 from app.schemas.project import ProjectCreate, QualityLevel
+from app.services.git import AutoCommitManager, GitService
+from app.services.workspace import WorkspaceService
 
 
 class TestStory034GitExtensions:
@@ -26,6 +25,7 @@ class TestStory034GitExtensions:
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         import shutil
+
         shutil.rmtree(temp_dir)
 
     @pytest.fixture
@@ -46,7 +46,7 @@ class TestStory034GitExtensions:
                 mock_validation = MagicMock()
                 mock_validation.valid = True
                 mock_validation.git_initialized = True
-                
+
                 with patch.object(
                     workspace_service, "validate_project_structure", return_value=mock_validation
                 ):
@@ -54,17 +54,17 @@ class TestStory034GitExtensions:
                         name="Test Git Project", quality=QualityLevel.STANDARD
                     )
                     project_path, manifest = workspace_service.create_project(project_data)
-                    
+
                     # Actually initialize Git for testing
                     repo = git.Repo.init(project_path)
                     repo.config_writer().set_value("user", "name", "Test User").release()
                     repo.config_writer().set_value("user", "email", "test@example.com").release()
-                    
+
                     # Create initial commit
                     (project_path / "README.md").write_text("# Test Project")
                     repo.index.add(["README.md"])
                     repo.index.commit("Initial commit")
-                    
+
                     return {"id": manifest.id, "path": Path(project_path), "repo": repo}
 
     def test_generate_commit_message(self, git_service):
@@ -191,9 +191,7 @@ class TestStory034GitExtensions:
         project_path = sample_project["path"]
 
         # Create annotated tag
-        success = await git_service.create_tag(
-            project_path, "release-1.0", message="First release"
-        )
+        success = await git_service.create_tag(project_path, "release-1.0", message="First release")
         assert success is True
 
         # Verify tag exists and has message
@@ -215,7 +213,7 @@ class TestStory034GitExtensions:
     def test_auto_commit_manager_initialization(self, git_service):
         """Test AC: AutoCommitManager initialization"""
         manager = AutoCommitManager(git_service)
-        
+
         assert manager.batch_window == 300  # 5 minutes
         assert manager.max_batch_size == 50
         assert manager.pending_changes == {}
@@ -224,13 +222,13 @@ class TestStory034GitExtensions:
     async def test_auto_commit_tracking(self, git_service):
         """Test AC: Track changes for auto-commit"""
         manager = AutoCommitManager(git_service)
-        
+
         project_id = "test-project"
         project_path = Path("/tmp/test-project")
-        
+
         # Track a change
         await manager.track_change(project_id, project_path, "file1.txt")
-        
+
         # Verify tracking
         assert project_id in manager.pending_changes
         assert "file1.txt" in manager.pending_changes[project_id]["files"]
@@ -239,31 +237,31 @@ class TestStory034GitExtensions:
     async def test_auto_commit_batching(self, git_service, sample_project):
         """Test AC: Auto-commit batches changes within window"""
         manager = AutoCommitManager(git_service)
-        
+
         project_id = sample_project["id"]
         project_path = sample_project["path"]
-        
+
         # Track multiple changes
         await manager.track_change(project_id, project_path, "01_Assets/asset1.png")
         await manager.track_change(project_id, project_path, "01_Assets/asset2.png")
         await manager.track_change(project_id, project_path, "01_Assets/asset3.png")
-        
+
         # Should still be pending (within batch window)
         assert len(manager.pending_changes[project_id]["files"]) == 3
 
     async def test_auto_commit_max_batch_size(self, git_service):
         """Test AC: Auto-commit triggers at max batch size"""
         manager = AutoCommitManager(git_service)
-        
+
         # Mock the commit method
         with patch.object(git_service, "commit_changes", new=AsyncMock(return_value=True)):
             project_id = "test-project"
             project_path = Path("/tmp/test-project")
-            
+
             # Track files up to max batch size
             for i in range(manager.max_batch_size):
                 await manager.track_change(project_id, project_path, f"file{i}.txt")
-            
+
             # Verify commit was called
             git_service.commit_changes.assert_called()
 
@@ -271,28 +269,28 @@ class TestStory034GitExtensions:
         """Test AC: Auto-commit triggers after time window"""
         manager = AutoCommitManager(git_service)
         manager.batch_window = 0.1  # Set very short for testing
-        
+
         # Mock the commit method
         with patch.object(git_service, "commit_changes", new=AsyncMock(return_value=True)):
             project_id = "test-project"
             project_path = Path("/tmp/test-project")
-            
+
             # Track initial change
             await manager.track_change(project_id, project_path, "file1.txt")
-            
+
             # Wait for batch window
             await asyncio.sleep(0.2)
-            
+
             # Track another change - should trigger commit
             await manager.track_change(project_id, project_path, "file2.txt")
-            
+
             # Verify commit was called
             git_service.commit_changes.assert_called()
 
     async def test_force_commit_all(self, git_service):
         """Test AC: Force commit all pending changes"""
         manager = AutoCommitManager(git_service)
-        
+
         # Mock the commit method
         with patch.object(git_service, "commit_changes", new=AsyncMock(return_value=True)):
             # Track changes for multiple projects
@@ -300,10 +298,10 @@ class TestStory034GitExtensions:
                 project_id = f"project-{i}"
                 project_path = Path(f"/tmp/project-{i}")
                 await manager.track_change(project_id, project_path, "file.txt")
-            
+
             # Force commit all
             await manager.force_commit_all()
-            
+
             # Verify all projects were committed
             assert len(manager.pending_changes) == 0
             assert git_service.commit_changes.call_count == 3
@@ -311,7 +309,7 @@ class TestStory034GitExtensions:
     async def test_rollback_invalid_commit(self, git_service, sample_project):
         """Test AC: Rollback fails with invalid commit hash"""
         project_path = sample_project["path"]
-        
+
         # Try to rollback to non-existent commit
         success = await git_service.rollback(project_path, "invalid-hash")
         assert success is False
@@ -320,25 +318,25 @@ class TestStory034GitExtensions:
         """Test AC: Get history for specific file"""
         repo = sample_project["repo"]
         project_path = sample_project["path"]
-        
+
         # Create commits affecting different files
         (project_path / "file1.txt").write_text("Content 1")
         repo.index.add(["file1.txt"])
         repo.index.commit("Add file1")
-        
+
         (project_path / "file2.txt").write_text("Content 2")
         repo.index.add(["file2.txt"])
         repo.index.commit("Add file2")
-        
+
         (project_path / "file1.txt").write_text("Modified content 1")
         repo.index.add(["file1.txt"])
         repo.index.commit("Modify file1")
-        
+
         # Get history for file1 only
         history = await git_service.get_enhanced_history(
             project_path, limit=10, file_path="file1.txt"
         )
-        
+
         # Should only include commits affecting file1
         assert len(history) == 2
         assert all("file1" in commit["message"] for commit in history)

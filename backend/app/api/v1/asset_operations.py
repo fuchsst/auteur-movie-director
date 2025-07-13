@@ -4,7 +4,6 @@ Implements STORY-031 requirements for copying assets from library to projects.
 """
 
 import logging
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -22,14 +21,14 @@ class AssetCopyRequest(BaseModel):
 
     source_category: AssetType = Field(..., description="Source asset category in library")
     source_asset_id: str = Field(..., description="Source asset ID in library")
-    target_name: Optional[str] = Field(None, description="Optional new name for copied asset")
+    target_name: str | None = Field(None, description="Optional new name for copied asset")
     replace_existing: bool = Field(False, description="Replace existing asset with same name")
 
 
 class BatchAssetCopyRequest(BaseModel):
     """Request to copy multiple assets from library to project"""
 
-    assets: List[AssetCopyRequest] = Field(..., description="List of assets to copy")
+    assets: list[AssetCopyRequest] = Field(..., description="List of assets to copy")
     replace_existing: bool = Field(False, description="Replace existing assets with same names")
 
 
@@ -45,7 +44,7 @@ class BatchAssetCopyResponse(BaseModel):
     """Response for batch asset copy operation"""
 
     success: bool
-    copied_assets: List[AssetReference]
+    copied_assets: list[AssetReference]
     total_requested: int
     total_copied: int
     message: str
@@ -54,9 +53,9 @@ class BatchAssetCopyResponse(BaseModel):
 class ProjectAssetsResponse(BaseModel):
     """Response for project assets listing"""
 
-    assets: List[AssetReference]
+    assets: list[AssetReference]
     project_id: str
-    category: Optional[str] = None
+    category: str | None = None
     total: int
 
 
@@ -133,7 +132,7 @@ async def copy_multiple_assets_to_project(project_id: str, batch_request: BatchA
 @router.get("/projects/{project_id}/assets", response_model=ProjectAssetsResponse)
 async def list_project_assets(
     project_id: str,
-    category: Optional[AssetType] = Query(None, description="Filter by asset category"),
+    category: AssetType | None = Query(None, description="Filter by asset category"),
 ):
     """
     List all assets that have been copied to a specific project.
@@ -160,7 +159,7 @@ async def list_project_assets(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/projects/{project_id}/assets/{category}", response_model=List[AssetReference])
+@router.get("/projects/{project_id}/assets/{category}", response_model=list[AssetReference])
 async def list_project_assets_by_category(project_id: str, category: AssetType):
     """
     List project assets in a specific category.

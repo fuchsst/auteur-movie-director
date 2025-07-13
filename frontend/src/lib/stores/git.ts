@@ -1,6 +1,6 @@
 /**
  * Git Store
- * 
+ *
  * Manages Git-related state including commit history,
  * repository status, and ongoing operations.
  * Integrates with Git Performance API for optimized operations.
@@ -13,21 +13,24 @@ import type { GitPerformanceMetrics } from '$lib/api/gitPerformance';
 interface GitState {
   // Commit history cache by project ID
   history: Map<string, EnhancedGitCommit[]>;
-  
+
   // Repository status by project ID
   status: Map<string, GitStatus>;
-  
+
   // Pagination state for history
-  pagination: Map<string, {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  }>;
-  
+  pagination: Map<
+    string,
+    {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    }
+  >;
+
   // Performance metrics
   performance: GitPerformanceMetrics | null;
-  
+
   // Ongoing operations
   operations: {
     rollback: boolean;
@@ -35,7 +38,7 @@ interface GitState {
     tag: boolean;
     optimize: boolean;
   };
-  
+
   // Error states
   errors: Map<string, string>;
 }
@@ -60,7 +63,7 @@ function createGitStore() {
 
     // Set commit history for a project
     setHistory(projectId: string, commits: EnhancedGitCommit[]) {
-      update(state => {
+      update((state) => {
         state.history.set(projectId, commits);
         return state;
       });
@@ -74,7 +77,7 @@ function createGitStore() {
 
     // Set repository status
     setStatus(projectId: string, status: GitStatus) {
-      update(state => {
+      update((state) => {
         state.status.set(projectId, status);
         return state;
       });
@@ -88,7 +91,7 @@ function createGitStore() {
 
     // Set operation state
     setOperation(operation: keyof GitState['operations'], isActive: boolean) {
-      update(state => {
+      update((state) => {
         state.operations[operation] = isActive;
         return state;
       });
@@ -96,7 +99,7 @@ function createGitStore() {
 
     // Set error for a project
     setError(projectId: string, error: string | null) {
-      update(state => {
+      update((state) => {
         if (error) {
           state.errors.set(projectId, error);
         } else {
@@ -108,7 +111,7 @@ function createGitStore() {
 
     // Clear all data for a project
     clearProject(projectId: string) {
-      update(state => {
+      update((state) => {
         state.history.delete(projectId);
         state.status.delete(projectId);
         state.errors.delete(projectId);
@@ -117,8 +120,11 @@ function createGitStore() {
     },
 
     // Set pagination info for a project
-    setPagination(projectId: string, pagination: GitState['pagination'] extends Map<any, infer V> ? V : never) {
-      update(state => {
+    setPagination(
+      projectId: string,
+      pagination: GitState['pagination'] extends Map<any, infer V> ? V : never
+    ) {
+      update((state) => {
         state.pagination.set(projectId, pagination);
         return state;
       });
@@ -126,7 +132,7 @@ function createGitStore() {
 
     // Set performance metrics
     setPerformance(metrics: GitPerformanceMetrics) {
-      update(state => {
+      update((state) => {
         state.performance = metrics;
         return state;
       });
@@ -154,16 +160,13 @@ function createGitStore() {
 export const gitStore = createGitStore();
 
 // Derived store for checking if any operation is in progress
-export const gitOperationInProgress = derived(
-  gitStore,
-  $git => Object.values($git.operations).some(op => op)
+export const gitOperationInProgress = derived(gitStore, ($git) =>
+  Object.values($git.operations).some((op) => op)
 );
 
 // Derived store for checking if a project has uncommitted changes
-export const hasUncommittedChanges = (projectId: string) => derived(
-  gitStore,
-  $git => {
+export const hasUncommittedChanges = (projectId: string) =>
+  derived(gitStore, ($git) => {
     const status = $git.status.get(projectId);
     return status?.is_dirty || false;
-  }
-);
+  });

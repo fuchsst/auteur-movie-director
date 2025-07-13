@@ -18,8 +18,8 @@ from app.schemas.project import (
     ProjectUpdate,
 )
 from app.services.git import git_service
-from app.services.workspace import get_workspace_service
 from app.services.takes import takes_service
+from app.services.workspace import get_workspace_service
 
 logger = logging.getLogger(__name__)
 
@@ -503,13 +503,13 @@ async def validate_project(project_id: str):
 async def get_project_storage_metrics(project_id: str):
     """
     Get detailed storage metrics for a project.
-    
+
     Returns breakdown by takes, thumbnails, assets, and quality levels.
     """
     try:
         workspace_service = get_workspace_service()
         project_path = workspace_service.get_project_path(project_id)
-        
+
         if not project_path:
             raise HTTPException(
                 status_code=404,
@@ -521,34 +521,34 @@ async def get_project_storage_metrics(project_id: str):
                     }
                 },
             )
-        
+
         # Get takes storage metrics
         takes_metrics = await takes_service.get_storage_metrics(project_path)
-        
+
         # Calculate additional storage metrics
         total_size = 0
         assets_size = 0
         exports_size = 0
-        
+
         # Assets directory
         assets_dir = project_path / "01_Assets"
         if assets_dir.exists():
             for file in assets_dir.rglob("*"):
                 if file.is_file():
                     assets_size += file.stat().st_size
-        
+
         # Exports directory
         exports_dir = project_path / "06_Exports"
         if exports_dir.exists():
             for file in exports_dir.rglob("*"):
                 if file.is_file():
                     exports_size += file.stat().st_size
-        
+
         # Total project size
         for file in project_path.rglob("*"):
             if file.is_file():
                 total_size += file.stat().st_size
-        
+
         return {
             "project_id": project_id,
             "total_size": total_size,
@@ -569,7 +569,7 @@ async def get_project_storage_metrics(project_id: str):
             "storage_limit": 10 * 1024 * 1024 * 1024,  # 10GB default limit
             "usage_percentage": round((total_size / (10 * 1024 * 1024 * 1024)) * 100, 2),
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -581,13 +581,13 @@ async def get_project_storage_metrics(project_id: str):
 async def cleanup_project_storage(project_id: str):
     """
     Clean up orphaned files and old deleted takes.
-    
+
     Returns statistics about cleaned up files.
     """
     try:
         workspace_service = get_workspace_service()
         project_path = workspace_service.get_project_path(project_id)
-        
+
         if not project_path:
             raise HTTPException(
                 status_code=404,
@@ -599,16 +599,16 @@ async def cleanup_project_storage(project_id: str):
                     }
                 },
             )
-        
+
         # Run cleanup
         cleanup_stats = await takes_service.cleanup_orphaned_files(project_path)
-        
+
         return {
             "project_id": project_id,
             "cleanup_stats": cleanup_stats,
             "message": f"Cleaned up {cleanup_stats['orphaned_directories']} directories, freed {cleanup_stats['bytes_freed']} bytes",
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:

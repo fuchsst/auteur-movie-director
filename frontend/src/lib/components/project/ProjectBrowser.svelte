@@ -6,6 +6,7 @@
   import ProjectTree from './ProjectTree.svelte';
   import NewProjectDialog from './NewProjectDialog.svelte';
   import ProjectExportDialog from './ProjectExportDialog.svelte';
+  import ProjectImportDialog from './ProjectImportDialog.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -21,6 +22,7 @@
   let showNewProjectDialog = false;
   let showExportDialog = false;
   let exportProject: ProjectResponse | null = null;
+  let showImportDialog = false;
   let refreshing = false;
   let loading = false;
 
@@ -221,7 +223,7 @@
 
   function handleExportProject() {
     if (!selectedProject) return;
-    
+
     exportProject = selectedProject;
     showExportDialog = true;
     hideContextMenu();
@@ -339,6 +341,9 @@
         <button class="btn-icon primary" title="New Project (Ctrl+N)" on:click={handleNewProject}>
           +
         </button>
+        <button class="btn-icon" title="Import Project" on:click={() => (showImportDialog = true)}>
+          ⬆
+        </button>
       </div>
     </div>
   </div>
@@ -444,6 +449,7 @@
     <button on:click={handleRenameProject}>Rename</button>
     <button on:click={handleDuplicateProject}>Duplicate</button>
     <button on:click={handleExportProject}>Export...</button>
+    <button on:click={() => (showImportDialog = true)}>Import...</button>
     <hr />
     <button on:click={handleDeleteProject} class="dangerous">Delete</button>
   </div>
@@ -466,6 +472,21 @@
     on:close={() => {
       showExportDialog = false;
       exportProject = null;
+    }}
+  />
+{/if}
+
+<!-- Import Project Dialog -->
+{#if showImportDialog}
+  <ProjectImportDialog
+    bind:open={showImportDialog}
+    on:close={() => (showImportDialog = false)}
+    on:imported={async (event) => {
+      await loadProjects();
+      const importedProject = allProjects.find((p) => p.id === event.detail.projectId);
+      if (importedProject) {
+        handleProjectSelect(importedProject);
+      }
     }}
   />
 {/if}

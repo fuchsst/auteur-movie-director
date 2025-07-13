@@ -143,7 +143,7 @@ describe('GitTimeline', () => {
 
     // Test arrow key navigation
     await fireEvent.keyDown(window, { key: 'ArrowDown' });
-    
+
     const selectedNode = container.querySelector('.commit-node.selected');
     expect(selectedNode).toBeInTheDocument();
   });
@@ -196,12 +196,14 @@ describe('GitTimeline', () => {
 
   it('loads more commits when scrolled to bottom', async () => {
     // Mock returning 100 commits initially
-    const manyCommits = Array(100).fill(null).map((_, i) => ({
-      ...mockCommits[0],
-      hash: `commit${i}`,
-      shortHash: `commit${i}`.substring(0, 7)
-    }));
-    
+    const manyCommits = Array(100)
+      .fill(null)
+      .map((_, i) => ({
+        ...mockCommits[0],
+        hash: `commit${i}`,
+        shortHash: `commit${i}`.substring(0, 7)
+      }));
+
     (gitApi.getEnhancedHistory as any).mockResolvedValue(manyCommits);
 
     const { getByText } = render(GitTimeline, {

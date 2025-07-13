@@ -5,7 +5,7 @@ Verifies all API acceptance criteria for asset management.
 
 import tempfile
 from io import BytesIO
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -401,7 +401,6 @@ class TestStory029AssetAPI:
     def test_api_029_20_concurrent_access_handling(self, client, sample_image_bytes):
         """Test concurrent access to asset operations"""
         import threading
-        import time
 
         results = []
 

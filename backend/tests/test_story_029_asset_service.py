@@ -6,7 +6,7 @@ Verifies all acceptance criteria for asset management functionality.
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import UploadFile
@@ -463,7 +463,7 @@ class TestStory029AssetService:
                 category=AssetType.CHARACTERS,
                 name=f"Perf Test Character {i}",
                 files=files,
-                tags=[f"performance", f"batch{i // 5}"],
+                tags=["performance", f"batch{i // 5}"],
             )
 
         # Measure list performance

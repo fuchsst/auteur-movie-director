@@ -41,7 +41,7 @@ describe('ProjectExportDialog', () => {
 
   it('renders export dialog with options', () => {
     const { getByText, getByLabelText } = render(ProjectExportDialog, defaultProps);
-    
+
     expect(getByText('Export Project')).toBeInTheDocument();
     expect(getByText('Test Project')).toBeInTheDocument();
     expect(getByLabelText('ZIP')).toBeInTheDocument();
@@ -57,18 +57,18 @@ describe('ProjectExportDialog', () => {
     });
 
     const { getByText, getByLabelText } = render(ProjectExportDialog, defaultProps);
-    
+
     // Select options
     const tarOption = getByLabelText('TAR.GZ');
     await fireEvent.click(tarOption);
-    
+
     const historyCheckbox = getByLabelText(/Include Git History/);
     expect(historyCheckbox).toBeChecked();
-    
+
     // Start export
     const exportButton = getByText('Start Export');
     await fireEvent.click(exportButton);
-    
+
     await waitFor(() => {
       expect(exportApi.exportProject).toHaveBeenCalledWith(
         'test-project',
@@ -86,10 +86,10 @@ describe('ProjectExportDialog', () => {
 
   it('displays progress updates', async () => {
     const { getByText, rerender } = render(ProjectExportDialog, defaultProps);
-    
+
     // Start export
     await fireEvent.click(getByText('Start Export'));
-    
+
     // Simulate progress update via WebSocket
     websocketStore.subscribe = vi.fn((callback) => {
       callback({
@@ -103,21 +103,21 @@ describe('ProjectExportDialog', () => {
       });
       return () => {};
     });
-    
+
     await rerender(defaultProps);
-    
+
     expect(getByText('Creating archive...')).toBeInTheDocument();
     expect(getByText('50%')).toBeInTheDocument();
   });
 
   it('shows download button on completion', async () => {
     vi.mocked(exportApi.getDownloadUrl).mockReturnValue('http://localhost/download/export.zip');
-    
+
     const { getByText, rerender } = render(ProjectExportDialog, defaultProps);
-    
+
     // Start export
     await fireEvent.click(getByText('Start Export'));
-    
+
     // Simulate completion via WebSocket
     websocketStore.subscribe = vi.fn((callback) => {
       callback({
@@ -130,12 +130,12 @@ describe('ProjectExportDialog', () => {
       });
       return () => {};
     });
-    
+
     await rerender(defaultProps);
-    
+
     expect(getByText('Export Complete!')).toBeInTheDocument();
     expect(getByText('Download Archive')).toBeInTheDocument();
-    
+
     expect(notificationStore.add).toHaveBeenCalledWith({
       type: 'success',
       title: 'Export Complete',
@@ -146,10 +146,10 @@ describe('ProjectExportDialog', () => {
 
   it('handles export errors', async () => {
     const { getByText, rerender } = render(ProjectExportDialog, defaultProps);
-    
+
     // Start export
     await fireEvent.click(getByText('Start Export'));
-    
+
     // Simulate error via WebSocket
     websocketStore.subscribe = vi.fn((callback) => {
       callback({
@@ -162,9 +162,9 @@ describe('ProjectExportDialog', () => {
       });
       return () => {};
     });
-    
+
     await rerender(defaultProps);
-    
+
     expect(notificationStore.add).toHaveBeenCalledWith({
       type: 'error',
       title: 'Export Failed',
@@ -178,10 +178,10 @@ describe('ProjectExportDialog', () => {
       ...defaultProps,
       onclose: handleClose
     });
-    
+
     const cancelButton = getByText('Cancel');
     await fireEvent.click(cancelButton);
-    
+
     expect(handleClose).toHaveBeenCalled();
   });
 });

@@ -200,7 +200,10 @@
     ];
   }
 
-  async function getShotProperties(projectId: string, shotId?: string): Promise<PropertyDefinition[]> {
+  async function getShotProperties(
+    projectId: string,
+    shotId?: string
+  ): Promise<PropertyDefinition[]> {
     if (!shotId) return [];
 
     // Parse shot ID to extract components
@@ -565,7 +568,7 @@
           {/each}
         </PropertyGroup>
       {/each}
-      
+
       <!-- Show takes panel for shot selections -->
       {#if selection?.type === 'shot' && selection.id && selection.shotId}
         <div class="takes-panel-container">

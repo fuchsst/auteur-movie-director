@@ -46,16 +46,13 @@ class ExportApi {
     clientId?: string
   ): Promise<ExportTask> {
     const params = clientId ? `?client_id=${clientId}` : '';
-    const response = await apiClient.post(
-      `/export/${projectId}${params}`,
-      {
-        format: options.format,
-        include_history: options.includeHistory,
-        include_cache: options.includeCache,
-        compress_media: options.compressMedia,
-        split_size_mb: options.splitSizeMb
-      }
-    );
+    const response = await apiClient.post(`/export/${projectId}${params}`, {
+      format: options.format,
+      include_history: options.includeHistory,
+      include_cache: options.includeCache,
+      compress_media: options.compressMedia,
+      split_size_mb: options.splitSizeMb
+    });
     return response.data;
   }
 

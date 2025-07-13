@@ -8,13 +8,14 @@ import json
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from PIL import Image
 
+from app.schemas.project import ProjectCreate, QualityLevel
 from app.services.takes import TakesService
 from app.services.thumbnails import ThumbnailService
 from app.services.workspace import WorkspaceService
-from app.schemas.project import ProjectCreate, QualityLevel
 
 
 class TestStory033TakesIntegration:
@@ -26,6 +27,7 @@ class TestStory033TakesIntegration:
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         import shutil
+
         shutil.rmtree(temp_dir)
 
     @pytest.fixture
@@ -134,7 +136,7 @@ class TestStory033TakesIntegration:
         self.create_test_video_file(source_video)
 
         output_path = Path(temp_workspace) / "video_thumb.png"
-        
+
         # Mock the subprocess call since we can't actually run ffmpeg
         with patch("asyncio.create_subprocess_exec") as mock_subprocess:
             mock_process = MagicMock()
@@ -156,10 +158,11 @@ class TestStory033TakesIntegration:
     async def test_take_creation_with_thumbnails(self, takes_service, sample_project):
         """Test AC: Automatic thumbnail generation on take creation"""
         shot_id = "01_Chapter/01_Scene/001_Shot"
-        
+
         # Create test image content
         img = Image.new("RGB", (640, 480), (0, 255, 0))
         import io
+
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
         file_content = buffer.getvalue()
@@ -178,10 +181,15 @@ class TestStory033TakesIntegration:
 
         # Verify thumbnails were generated
         take_dir = (
-            sample_project["path"] / "03_Renders" / "01_Chapter" / "01_Scene" / 
-            "001_Shot" / "takes" / "take_001"
+            sample_project["path"]
+            / "03_Renders"
+            / "01_Chapter"
+            / "01_Scene"
+            / "001_Shot"
+            / "takes"
+            / "take_001"
         )
-        
+
         # Check for thumbnail files
         thumb_files = list(take_dir.glob("*_thumb_*.png"))
         assert len(thumb_files) > 0  # At least one thumbnail should exist
@@ -189,11 +197,11 @@ class TestStory033TakesIntegration:
     async def test_git_lfs_tracking(self, takes_service, sample_project):
         """Test AC: Automatic Git LFS tracking for video takes"""
         shot_id = "01_Chapter/01_Scene/002_Video_Shot"
-        
+
         # Mock git LFS service
         with patch("app.services.takes.git_lfs_service") as mock_lfs:
             mock_lfs.track_file = AsyncMock()
-            
+
             # Create video take
             take_data = await takes_service.create_and_save_take(
                 project_path=sample_project["path"],
@@ -214,7 +222,7 @@ class TestStory033TakesIntegration:
         for i in range(3):
             shot_id = f"01_Chapter/01_Scene/{i:03d}_Shot"
             quality = ["draft", "standard", "high"][i]
-            
+
             await takes_service.create_and_save_take(
                 project_path=sample_project["path"],
                 shot_id=shot_id,
@@ -249,7 +257,7 @@ class TestStory033TakesIntegration:
     async def test_cleanup_orphaned_files(self, takes_service, sample_project):
         """Test AC: Cleanup of orphaned take files"""
         shot_id = "01_Chapter/01_Scene/001_Shot"
-        
+
         # Create a legitimate take
         await takes_service.create_and_save_take(
             project_path=sample_project["path"],
@@ -260,8 +268,13 @@ class TestStory033TakesIntegration:
 
         # Create an orphaned directory
         orphan_dir = (
-            sample_project["path"] / "03_Renders" / "01_Chapter" / "01_Scene" / 
-            "001_Shot" / "takes" / "take_999"
+            sample_project["path"]
+            / "03_Renders"
+            / "01_Chapter"
+            / "01_Scene"
+            / "001_Shot"
+            / "takes"
+            / "take_999"
         )
         orphan_dir.mkdir(parents=True)
         orphan_file = orphan_dir / "orphan.mp4"
@@ -279,17 +292,22 @@ class TestStory033TakesIntegration:
 
         # Verify legitimate take still exists
         legit_dir = (
-            sample_project["path"] / "03_Renders" / "01_Chapter" / "01_Scene" / 
-            "001_Shot" / "takes" / "take_001"
+            sample_project["path"]
+            / "03_Renders"
+            / "01_Chapter"
+            / "01_Scene"
+            / "001_Shot"
+            / "takes"
+            / "take_001"
         )
         assert legit_dir.exists()
 
     async def test_cleanup_old_deleted_takes(self, takes_service, sample_project):
         """Test AC: Cleanup of old soft-deleted takes"""
         import time
-        
+
         shot_id = "01_Chapter/01_Scene/001_Shot"
-        
+
         # Create and delete a take
         await takes_service.create_and_save_take(
             project_path=sample_project["path"],
@@ -297,15 +315,20 @@ class TestStory033TakesIntegration:
             file_content=b"to be deleted",
             file_extension="mp4",
         )
-        
+
         # Delete the take
         await takes_service.delete_take(sample_project["path"], shot_id, "take_001")
 
         # Create an old deleted directory (>7 days)
         old_timestamp = int(time.time()) - (8 * 24 * 60 * 60)
         old_deleted = (
-            sample_project["path"] / "03_Renders" / "01_Chapter" / "01_Scene" / 
-            "001_Shot" / "takes" / f".deleted_take_002_{old_timestamp}"
+            sample_project["path"]
+            / "03_Renders"
+            / "01_Chapter"
+            / "01_Scene"
+            / "001_Shot"
+            / "takes"
+            / f".deleted_take_002_{old_timestamp}"
         )
         old_deleted.mkdir(parents=True)
         old_file = old_deleted / "old.mp4"
@@ -321,7 +344,7 @@ class TestStory033TakesIntegration:
     async def test_project_metadata_updates(self, takes_service, sample_project):
         """Test AC: Project metadata includes take information"""
         shot_id = "01_Chapter/01_Scene/001_Shot"
-        
+
         # Create multiple takes
         for i in range(3):
             await takes_service.create_and_save_take(
@@ -339,7 +362,7 @@ class TestStory033TakesIntegration:
         # Verify takes information in metadata
         assert "takes" in project_data
         assert shot_id in project_data["takes"]
-        
+
         shot_takes = project_data["takes"][shot_id]
         assert shot_takes["total_takes"] == 3
         assert shot_takes["active_take"] == "take_001"  # First take is active by default
@@ -348,7 +371,7 @@ class TestStory033TakesIntegration:
     async def test_performance_large_take_list(self, takes_service, sample_project):
         """Test AC: Performance with many takes"""
         shot_id = "01_Chapter/01_Scene/001_Shot"
-        
+
         # Create 50 takes (not 100 to keep test fast)
         tasks = []
         for i in range(50):
@@ -360,12 +383,13 @@ class TestStory033TakesIntegration:
                 generation_params={"index": i},
             )
             tasks.append(task)
-        
+
         # Create takes concurrently
         await asyncio.gather(*tasks)
 
         # Measure list performance
         import time
+
         start = time.time()
         takes = await takes_service.list_takes(sample_project["path"], shot_id)
         duration = time.time() - start
@@ -388,9 +412,7 @@ class TestStory033TakesIntegration:
         for i, source in enumerate(source_images):
             output_dir = Path(temp_workspace) / f"thumbs_{i}"
             output_dir.mkdir()
-            task = thumbnail_service.generate_multiple_sizes(
-                source, output_dir, f"test_{i}"
-            )
+            task = thumbnail_service.generate_multiple_sizes(source, output_dir, f"test_{i}")
             tasks.append(task)
 
         results = await asyncio.gather(*tasks)

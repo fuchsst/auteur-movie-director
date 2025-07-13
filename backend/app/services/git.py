@@ -4,14 +4,13 @@ Manages version control for project repositories.
 """
 
 import asyncio
-import json
 import logging
 import subprocess
 import time
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
@@ -542,62 +541,66 @@ class GitService:
 
     async def get_enhanced_history(
         self, project_path: Path, limit: int = 50, file_path: str | None = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get enhanced commit history with diff statistics.
-        
+
         Args:
             project_path: Path to project directory
             limit: Maximum number of commits to return
             file_path: Optional path to get history for specific file
-            
+
         Returns:
             List of enhanced commit information with diffs
         """
         try:
             repo = git.Repo(project_path)
-            
+
             # Get commits
             if file_path:
                 commits = list(repo.iter_commits(paths=file_path, max_count=limit))
             else:
                 commits = list(repo.iter_commits(max_count=limit))
-            
+
             history = []
             for commit in commits:
                 # Get diff statistics
                 stats = commit.stats.total
-                
+
                 # Get list of changed files
                 changed_files = []
                 if commit.parents:
                     diffs = commit.diff(commit.parents[0])
                     for diff in diffs:
-                        changed_files.append({
-                            "path": diff.a_path or diff.b_path,
-                            "change_type": diff.change_type,
-                            "additions": diff.diff.count(b'\n+'),
-                            "deletions": diff.diff.count(b'\n-'),
-                        })
-                
-                history.append({
-                    "hash": commit.hexsha,
-                    "short_hash": commit.hexsha[:8],
-                    "message": commit.message.strip(),
-                    "author": commit.author.name,
-                    "email": commit.author.email,
-                    "date": datetime.fromtimestamp(commit.committed_date).isoformat(),
-                    "stats": {
-                        "additions": stats.get("insertions", 0),
-                        "deletions": stats.get("deletions", 0),
-                        "files": stats.get("files", 0),
-                    },
-                    "files": changed_files[:10],  # Limit to 10 files for performance
-                    "parent_hashes": [p.hexsha for p in commit.parents],
-                })
-            
+                        changed_files.append(
+                            {
+                                "path": diff.a_path or diff.b_path,
+                                "change_type": diff.change_type,
+                                "additions": diff.diff.count(b"\n+"),
+                                "deletions": diff.diff.count(b"\n-"),
+                            }
+                        )
+
+                history.append(
+                    {
+                        "hash": commit.hexsha,
+                        "short_hash": commit.hexsha[:8],
+                        "message": commit.message.strip(),
+                        "author": commit.author.name,
+                        "email": commit.author.email,
+                        "date": datetime.fromtimestamp(commit.committed_date).isoformat(),
+                        "stats": {
+                            "additions": stats.get("insertions", 0),
+                            "deletions": stats.get("deletions", 0),
+                            "files": stats.get("files", 0),
+                        },
+                        "files": changed_files[:10],  # Limit to 10 files for performance
+                        "parent_hashes": [p.hexsha for p in commit.parents],
+                    }
+                )
+
             return history
-            
+
         except Exception as e:
             logger.error(f"Failed to get enhanced history: {e}")
             return []
@@ -605,30 +608,30 @@ class GitService:
     async def rollback(self, project_path: Path, commit_hash: str, mode: str = "soft") -> bool:
         """
         Rollback to a specific commit.
-        
+
         Args:
             project_path: Path to project directory
             commit_hash: Hash of commit to rollback to
             mode: Rollback mode - "soft" (keep changes), "mixed" (unstage), "hard" (discard)
-            
+
         Returns:
             True if successful
         """
         try:
             repo = git.Repo(project_path)
-            
+
             # Validate commit exists
             try:
                 commit = repo.commit(commit_hash)
             except Exception:
                 logger.error(f"Invalid commit hash: {commit_hash}")
                 return False
-            
+
             # Check for uncommitted changes if hard reset
             if mode == "hard" and repo.is_dirty():
                 logger.warning("Repository has uncommitted changes, cannot hard reset")
                 return False
-            
+
             # Perform rollback
             if mode == "soft":
                 repo.head.reset(commit, index=False, working_tree=False)
@@ -639,10 +642,10 @@ class GitService:
             else:
                 logger.error(f"Invalid rollback mode: {mode}")
                 return False
-            
+
             logger.info(f"Rolled back to commit {commit_hash} ({mode} mode)")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to rollback: {e}")
             return False
@@ -652,23 +655,23 @@ class GitService:
     ) -> bool:
         """
         Create a tag at the current HEAD.
-        
+
         Args:
             project_path: Path to project directory
             tag_name: Name for the tag
             message: Optional tag message (creates annotated tag)
-            
+
         Returns:
             True if successful
         """
         try:
             repo = git.Repo(project_path)
-            
+
             # Check if tag already exists
             if tag_name in [tag.name for tag in repo.tags]:
                 logger.error(f"Tag '{tag_name}' already exists")
                 return False
-            
+
             # Create tag
             if message:
                 # Annotated tag
@@ -676,32 +679,32 @@ class GitService:
             else:
                 # Lightweight tag
                 repo.create_tag(tag_name)
-            
+
             logger.info(f"Created tag: {tag_name}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to create tag: {e}")
             return False
 
-    def generate_commit_message(self, changes: List[str]) -> str:
+    def generate_commit_message(self, changes: list[str]) -> str:
         """
         Generate descriptive commit message based on changed files.
-        
+
         Args:
             changes: List of changed file paths
-            
+
         Returns:
             Generated commit message
         """
         if not changes:
             return "chore: Update files"
-        
+
         # Analyze changes
         categories = defaultdict(list)
         for file_path in changes:
             path = Path(file_path)
-            
+
             # Categorize by directory
             if path.parts:
                 if "01_Assets" in path.parts:
@@ -718,12 +721,12 @@ class GitService:
                     categories["exports"].append(path.name)
                 else:
                     categories["other"].append(path.name)
-        
+
         # Generate message based on categories
         if len(categories) == 1:
             category = list(categories.keys())[0]
             count = len(list(categories.values())[0])
-            
+
             messages = {
                 "assets": f"feat: Add {count} new asset{'s' if count > 1 else ''}",
                 "renders": f"feat: Generate {count} new render{'s' if count > 1 else ''}",
@@ -744,19 +747,19 @@ class AutoCommitManager:
     """
     Manages automatic commits with batching and smart message generation.
     """
-    
+
     def __init__(self, git_service: GitService):
         self.git_service = git_service
-        self.pending_changes: Dict[str, Dict[str, Any]] = {}  # project_id -> changes
-        self.last_batch_time: Dict[str, float] = {}  # project_id -> timestamp
+        self.pending_changes: dict[str, dict[str, Any]] = {}  # project_id -> changes
+        self.last_batch_time: dict[str, float] = {}  # project_id -> timestamp
         self.batch_window = 300  # 5 minutes
         self.max_batch_size = 50
         self._lock = asyncio.Lock()
-    
+
     async def track_change(self, project_id: str, project_path: Path, file_path: str):
         """
         Track a file change for potential auto-commit.
-        
+
         Args:
             project_id: Project identifier
             project_path: Path to project directory
@@ -764,7 +767,7 @@ class AutoCommitManager:
         """
         async with self._lock:
             current_time = time.time()
-            
+
             # Initialize project tracking if needed
             if project_id not in self.pending_changes:
                 self.pending_changes[project_id] = {
@@ -773,39 +776,39 @@ class AutoCommitManager:
                     "start_time": current_time,
                 }
                 self.last_batch_time[project_id] = current_time
-            
+
             # Add file to pending changes
             self.pending_changes[project_id]["files"].add(file_path)
-            
+
             # Check if we should commit
             time_elapsed = current_time - self.last_batch_time[project_id]
             file_count = len(self.pending_changes[project_id]["files"])
-            
+
             # Commit if batch window expired or max size reached
             if time_elapsed >= self.batch_window or file_count >= self.max_batch_size:
                 await self._commit_batch(project_id)
-    
+
     async def _commit_batch(self, project_id: str):
         """Commit pending changes for a project."""
         if project_id not in self.pending_changes:
             return
-        
+
         changes = self.pending_changes[project_id]
         if not changes["files"]:
             return
-        
+
         try:
             # Generate commit message
             file_list = list(changes["files"])
             message = self.git_service.generate_commit_message(file_list)
-            
+
             # Perform commit
             success = await self.git_service.commit_changes(
                 project_path=changes["path"],
                 message=f"[auto] {message}",
                 files=file_list,
             )
-            
+
             if success:
                 logger.info(f"Auto-committed {len(file_list)} files for project {project_id}")
                 # Clear pending changes
@@ -813,10 +816,10 @@ class AutoCommitManager:
                 del self.last_batch_time[project_id]
             else:
                 logger.error(f"Auto-commit failed for project {project_id}")
-                
+
         except Exception as e:
             logger.error(f"Error during auto-commit: {e}")
-    
+
     async def force_commit_all(self):
         """Force commit all pending changes across all projects."""
         async with self._lock:

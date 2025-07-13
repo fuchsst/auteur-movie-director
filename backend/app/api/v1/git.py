@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.services.git import git_service, auto_commit_manager
+from app.services.git import auto_commit_manager, git_service
 from app.services.workspace import get_workspace_service
 
 logger = logging.getLogger(__name__)
@@ -270,7 +270,7 @@ async def check_lfs_installation():
 
 class EnhancedCommitInfo(BaseModel):
     """Enhanced commit information with diffs"""
-    
+
     hash: str
     short_hash: str
     message: str
@@ -284,14 +284,14 @@ class EnhancedCommitInfo(BaseModel):
 
 class RollbackRequest(BaseModel):
     """Request to rollback to a commit"""
-    
+
     commit_hash: str = Field(description="Hash of commit to rollback to")
     mode: str = Field("soft", description="Rollback mode: soft, mixed, or hard")
 
 
 class TagRequest(BaseModel):
     """Request to create a tag"""
-    
+
     tag_name: str = Field(description="Name for the tag")
     message: str | None = Field(None, description="Optional tag message")
 
@@ -304,7 +304,7 @@ async def get_enhanced_history(
 ):
     """
     Get enhanced commit history with diff statistics.
-    
+
     Returns detailed information including:
     - Commit statistics (additions, deletions, files changed)
     - List of changed files with diff counts
@@ -316,11 +316,11 @@ async def get_enhanced_history(
         project_path = workspace_service.get_project_path(project_id)
         if not project_path:
             raise HTTPException(status_code=404, detail="Project not found")
-        
+
         # Get enhanced history
         history = await git_service.get_enhanced_history(project_path, limit, file_path)
         return [EnhancedCommitInfo(**commit) for commit in history]
-    
+
     except Exception as e:
         logger.error(f"Error getting enhanced history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -330,12 +330,12 @@ async def get_enhanced_history(
 async def rollback_to_commit(project_id: str, request: RollbackRequest):
     """
     Rollback repository to a specific commit.
-    
+
     Modes:
     - soft: Move HEAD only (keeps changes staged)
     - mixed: Move HEAD and index (unstages changes)
     - hard: Move HEAD, index, and working tree (discards all changes)
-    
+
     Note: Hard reset will fail if there are uncommitted changes.
     """
     try:
@@ -344,22 +344,22 @@ async def rollback_to_commit(project_id: str, request: RollbackRequest):
         project_path = workspace_service.get_project_path(project_id)
         if not project_path:
             raise HTTPException(status_code=404, detail="Project not found")
-        
+
         # Validate mode
         if request.mode not in ["soft", "mixed", "hard"]:
             raise HTTPException(status_code=400, detail="Invalid rollback mode")
-        
+
         # Perform rollback
         success = await git_service.rollback(project_path, request.commit_hash, request.mode)
-        
+
         if not success:
             raise HTTPException(status_code=400, detail="Rollback failed")
-        
+
         return {
             "success": True,
             "message": f"Rolled back to commit {request.commit_hash} ({request.mode} mode)",
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -371,11 +371,11 @@ async def rollback_to_commit(project_id: str, request: RollbackRequest):
 async def create_tag(project_id: str, request: TagRequest):
     """
     Create a tag at the current HEAD.
-    
+
     Creates either:
     - Lightweight tag (no message)
     - Annotated tag (with message)
-    
+
     Tags are useful for marking release versions or milestones.
     """
     try:
@@ -384,19 +384,19 @@ async def create_tag(project_id: str, request: TagRequest):
         project_path = workspace_service.get_project_path(project_id)
         if not project_path:
             raise HTTPException(status_code=404, detail="Project not found")
-        
+
         # Create tag
         success = await git_service.create_tag(project_path, request.tag_name, request.message)
-        
+
         if not success:
             raise HTTPException(status_code=400, detail="Failed to create tag")
-        
+
         return {
             "success": True,
             "message": f"Created tag '{request.tag_name}'",
             "type": "annotated" if request.message else "lightweight",
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -408,7 +408,7 @@ async def create_tag(project_id: str, request: TagRequest):
 async def track_file_change(project_id: str, file_path: str):
     """
     Track a file change for auto-commit batching.
-    
+
     Changes are batched for up to 5 minutes or 50 files.
     Auto-commits use descriptive messages based on changed files.
     """
@@ -418,15 +418,15 @@ async def track_file_change(project_id: str, file_path: str):
         project_path = workspace_service.get_project_path(project_id)
         if not project_path:
             raise HTTPException(status_code=404, detail="Project not found")
-        
+
         # Track change
         await auto_commit_manager.track_change(project_id, project_path, file_path)
-        
+
         return {
             "success": True,
             "message": f"Tracked change to {file_path}",
         }
-    
+
     except Exception as e:
         logger.error(f"Error tracking change: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -436,7 +436,7 @@ async def track_file_change(project_id: str, file_path: str):
 async def force_auto_commit_all():
     """
     Force commit all pending auto-commit batches.
-    
+
     Useful for ensuring all changes are committed before:
     - Shutdown
     - Export
@@ -448,7 +448,7 @@ async def force_auto_commit_all():
             "success": True,
             "message": "Forced commit of all pending changes",
         }
-    
+
     except Exception as e:
         logger.error(f"Error forcing commits: {e}")
         raise HTTPException(status_code=500, detail=str(e))

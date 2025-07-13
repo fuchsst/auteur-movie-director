@@ -22,19 +22,19 @@
   let loading = true;
   let error: string | null = null;
   let selectedTakeId: string | null = null;
-  
+
   // View mode state
   type ViewMode = 'grid' | 'compare' | 'fullscreen';
   let viewMode: ViewMode = 'grid';
   let comparisonTakes: TakeMetadata[] = [];
   let fullscreenTake: TakeMetadata | null = null;
-  
+
   // Filter state
   let filterStatus: 'all' | 'complete' | 'generating' | 'failed' = 'all';
   let filterQuality: 'all' | 'draft' | 'standard' | 'high' = 'all';
   let filterDateRange: { start: string; end: string } = { start: '', end: '' };
   let showFilters = false;
-  
+
   // Keyboard navigation
   let focusedIndex = 0;
   let galleryElement: HTMLElement;
@@ -43,11 +43,11 @@
     loadTakes();
     document.addEventListener('keydown', handleKeydown);
   });
-  
+
   onDestroy(() => {
     document.removeEventListener('keydown', handleKeydown);
   });
-  
+
   // Update filtered takes when takes or filters change
   $: {
     filteredTakes = filterTakes(takes);
@@ -146,19 +146,19 @@
   function generateNewTake() {
     dispatch('generate');
   }
-  
+
   function filterTakes(allTakes: TakeMetadata[]): TakeMetadata[] {
-    return allTakes.filter(take => {
+    return allTakes.filter((take) => {
       // Status filter
       if (filterStatus !== 'all' && take.status !== filterStatus) {
         return false;
       }
-      
+
       // Quality filter
       if (filterQuality !== 'all' && take.resources?.quality !== filterQuality) {
         return false;
       }
-      
+
       // Date range filter
       if (filterDateRange.start || filterDateRange.end) {
         const takeDate = new Date(take.created);
@@ -169,50 +169,50 @@
           return false;
         }
       }
-      
+
       return true;
     });
   }
-  
+
   function clearFilters() {
     filterStatus = 'all';
     filterQuality = 'all';
     filterDateRange = { start: '', end: '' };
   }
-  
+
   function toggleComparison(take: TakeMetadata) {
-    const index = comparisonTakes.findIndex(t => t.id === take.id);
+    const index = comparisonTakes.findIndex((t) => t.id === take.id);
     if (index >= 0) {
-      comparisonTakes = comparisonTakes.filter(t => t.id !== take.id);
+      comparisonTakes = comparisonTakes.filter((t) => t.id !== take.id);
     } else if (comparisonTakes.length < 4) {
       comparisonTakes = [...comparisonTakes, take];
     }
-    
+
     if (comparisonTakes.length >= 2 && viewMode === 'grid') {
       viewMode = 'compare';
     } else if (comparisonTakes.length < 2 && viewMode === 'compare') {
       viewMode = 'grid';
     }
   }
-  
+
   function exitComparison() {
     viewMode = 'grid';
     comparisonTakes = [];
   }
-  
+
   function openFullscreen(take: TakeMetadata) {
     fullscreenTake = take;
     viewMode = 'fullscreen';
   }
-  
+
   function exitFullscreen() {
     viewMode = 'grid';
     fullscreenTake = null;
   }
-  
+
   function handleKeydown(event: KeyboardEvent) {
     if (!galleryElement?.contains(document.activeElement)) return;
-    
+
     switch (event.key) {
       case 'ArrowRight':
       case 'ArrowDown':
@@ -288,33 +288,43 @@
   }
 </script>
 
-<div class="takes-gallery" class:compact bind:this={galleryElement} role="region" aria-label="Takes Gallery">
+<div
+  class="takes-gallery"
+  class:compact
+  bind:this={galleryElement}
+  role="region"
+  aria-label="Takes Gallery"
+>
   <div class="takes-header">
     <div class="header-info">
-      <h3>Takes ({filteredTakes.length}{filteredTakes.length !== takes.length ? ` of ${takes.length}` : ''})</h3>
+      <h3>
+        Takes ({filteredTakes.length}{filteredTakes.length !== takes.length
+          ? ` of ${takes.length}`
+          : ''})
+      </h3>
       <div class="view-controls">
-        <button 
-          class="btn-icon" 
+        <button
+          class="btn-icon"
           class:active={viewMode === 'grid'}
-          on:click={() => viewMode = 'grid'}
+          on:click={() => (viewMode = 'grid')}
           title="Grid view"
           aria-label="Switch to grid view"
         >
           <Icon name="grid" size={16} />
         </button>
-        <button 
-          class="btn-icon" 
+        <button
+          class="btn-icon"
           class:active={viewMode === 'compare'}
           disabled={comparisonTakes.length < 2}
-          on:click={() => viewMode = 'compare'}
+          on:click={() => (viewMode = 'compare')}
           title="Compare view"
           aria-label="Switch to compare view"
         >
           <Icon name="columns" size={16} />
         </button>
-        <button 
-          class="btn-icon" 
-          on:click={() => showFilters = !showFilters}
+        <button
+          class="btn-icon"
+          on:click={() => (showFilters = !showFilters)}
           class:active={showFilters}
           title="Toggle filters"
           aria-label="Toggle filter panel"
@@ -328,7 +338,7 @@
       New Take
     </button>
   </div>
-  
+
   {#if showFilters}
     <div class="filters-panel" role="region" aria-label="Filters">
       <div class="filter-group">
@@ -352,18 +362,14 @@
       <div class="filter-group">
         <label for="date-start">Date Range:</label>
         <div class="date-range">
-          <input 
-            id="date-start" 
-            type="date" 
+          <input
+            id="date-start"
+            type="date"
             bind:value={filterDateRange.start}
             aria-label="Start date"
-          >
+          />
           <span>to</span>
-          <input 
-            type="date" 
-            bind:value={filterDateRange.end}
-            aria-label="End date"
-          >
+          <input type="date" bind:value={filterDateRange.end} aria-label="End date" />
         </div>
       </div>
       <button class="btn-secondary small" on:click={clearFilters}>
@@ -372,7 +378,7 @@
       </button>
     </div>
   {/if}
-  
+
   {#if viewMode === 'compare' && comparisonTakes.length >= 2}
     <div class="comparison-header">
       <h4>Comparing {comparisonTakes.length} takes</h4>
@@ -532,7 +538,7 @@
           class:selected={take.id === selectedTakeId}
           class:failed={take.status === 'failed'}
           class:focused={index === focusedIndex}
-          class:in-comparison={comparisonTakes.some(t => t.id === take.id)}
+          class:in-comparison={comparisonTakes.some((t) => t.id === take.id)}
           on:click={() => selectTake(take)}
           on:dblclick={() => openFullscreen(take)}
           role="gridcell"
@@ -562,8 +568,8 @@
             <div class="status-badge {getStatusColor(take.status)}" title={take.status}>
               <Icon name={getStatusIcon(take.status)} size={14} />
             </div>
-            
-            {#if comparisonTakes.some(t => t.id === take.id)}
+
+            {#if comparisonTakes.some((t) => t.id === take.id)}
               <div class="comparison-badge" title="In comparison">
                 <Icon name="columns" size={14} />
               </div>
@@ -637,7 +643,7 @@
     align-items: center;
     padding: 0 0.5rem;
   }
-  
+
   .header-info {
     display: flex;
     align-items: center;
@@ -649,12 +655,12 @@
     font-weight: 600;
     color: var(--text-primary);
   }
-  
+
   .view-controls {
     display: flex;
     gap: 0.25rem;
   }
-  
+
   .filters-panel {
     display: flex;
     flex-wrap: wrap;
@@ -665,20 +671,20 @@
     border: 1px solid var(--border-color);
     align-items: end;
   }
-  
+
   .filter-group {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     min-width: 120px;
   }
-  
+
   .filter-group label {
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--text-secondary);
   }
-  
+
   .filter-group select,
   .filter-group input {
     padding: 0.375rem 0.5rem;
@@ -688,18 +694,18 @@
     color: var(--text-primary);
     font-size: 0.875rem;
   }
-  
+
   .date-range {
     display: flex;
     align-items: center;
     gap: 0.5rem;
   }
-  
+
   .date-range span {
     font-size: 0.875rem;
     color: var(--text-secondary);
   }
-  
+
   .comparison-header {
     display: flex;
     justify-content: space-between;
@@ -709,7 +715,7 @@
     border-radius: 0.375rem;
     border: 1px solid var(--border-color);
   }
-  
+
   .comparison-header h4 {
     margin: 0;
     font-size: 1rem;
@@ -760,12 +766,12 @@
   .take-item.failed {
     opacity: 0.7;
   }
-  
+
   .take-item.focused {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
   }
-  
+
   .take-item.in-comparison {
     border-color: var(--accent-color);
     background: var(--bg-primary);
@@ -817,7 +823,7 @@
     align-items: center;
     justify-content: center;
   }
-  
+
   .comparison-badge {
     position: absolute;
     top: 0.5rem;
@@ -914,7 +920,7 @@
     background: var(--error-color);
     color: white;
   }
-  
+
   .btn-icon.active {
     background: var(--primary-color);
     color: white;
@@ -952,7 +958,7 @@
   .btn-secondary:hover {
     background: var(--bg-tertiary);
   }
-  
+
   .btn-secondary.small {
     padding: 0.375rem 0.75rem;
     font-size: 0.75rem;
@@ -970,7 +976,7 @@
       transform: rotate(360deg);
     }
   }
-  
+
   /* Fullscreen Modal */
   .fullscreen-modal {
     position: fixed;
@@ -984,7 +990,7 @@
     justify-content: center;
     z-index: 1000;
   }
-  
+
   .fullscreen-content {
     background: var(--bg-primary);
     border-radius: 0.5rem;
@@ -994,7 +1000,7 @@
     flex-direction: column;
     overflow: hidden;
   }
-  
+
   .fullscreen-header {
     display: flex;
     justify-content: space-between;
@@ -1002,14 +1008,14 @@
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
   }
-  
+
   .fullscreen-header h3 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-primary);
   }
-  
+
   .fullscreen-media {
     display: flex;
     align-items: center;
@@ -1018,20 +1024,20 @@
     min-height: 400px;
     padding: 1rem;
   }
-  
+
   .fullscreen-media img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
   }
-  
+
   .fullscreen-info {
     padding: 1rem;
     border-top: 1px solid var(--border-color);
     max-height: 200px;
     overflow-y: auto;
   }
-  
+
   .info-grid,
   .params-grid {
     display: grid;
@@ -1039,7 +1045,7 @@
     gap: 0.5rem;
     margin-bottom: 1rem;
   }
-  
+
   .info-item,
   .param-item {
     display: flex;
@@ -1048,20 +1054,20 @@
     background: var(--bg-secondary);
     border-radius: 0.25rem;
   }
-  
+
   .info-item label,
   .param-item label {
     font-weight: 500;
     color: var(--text-secondary);
   }
-  
+
   .generation-params h4 {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
     font-weight: 500;
     color: var(--text-primary);
   }
-  
+
   .fullscreen-actions {
     display: flex;
     gap: 0.5rem;
@@ -1069,27 +1075,27 @@
     border-top: 1px solid var(--border-color);
     justify-content: flex-end;
   }
-  
+
   /* Comparison View */
   .comparison-view {
     flex: 1;
     overflow: auto;
   }
-  
+
   .comparison-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1rem;
     padding: 1rem;
   }
-  
+
   .comparison-item {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
     overflow: hidden;
   }
-  
+
   .comparison-item .comparison-header {
     display: flex;
     justify-content: space-between;
@@ -1098,31 +1104,31 @@
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border-color);
   }
-  
+
   .comparison-item h4 {
     margin: 0;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--text-primary);
   }
-  
+
   .comparison-media {
     position: relative;
     aspect-ratio: 16 / 9;
     background: var(--bg-tertiary);
   }
-  
+
   .comparison-media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     cursor: pointer;
   }
-  
+
   .comparison-info {
     padding: 0.75rem;
   }
-  
+
   .params-summary {
     margin-top: 0.5rem;
     font-size: 0.75rem;

@@ -4,7 +4,6 @@ Implements STORY-029 requirements with RESTful design.
 """
 
 import logging
-from typing import List, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
@@ -22,8 +21,8 @@ class AssetImportRequest(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=255, description="Asset name")
     category: AssetType = Field(..., description="Asset category")
-    tags: Optional[List[str]] = Field(default=None, description="Asset tags")
-    description: Optional[str] = Field(default=None, description="Asset description")
+    tags: list[str] | None = Field(default=None, description="Asset tags")
+    description: str | None = Field(default=None, description="Asset description")
 
 
 class AssetImportResponse(BaseModel):
@@ -37,19 +36,19 @@ class AssetImportResponse(BaseModel):
 class AssetUpdateRequest(BaseModel):
     """Asset metadata update request"""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    tags: Optional[List[str]] = None
-    description: Optional[str] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    tags: list[str] | None = None
+    description: str | None = None
 
 
 class AssetListResponse(BaseModel):
     """Asset list response with pagination info"""
 
-    assets: List[AssetReference]
+    assets: list[AssetReference]
     total: int
     offset: int
     limit: int
-    category: Optional[str] = None
+    category: str | None = None
 
 
 class AssetStatsResponse(BaseModel):
@@ -71,8 +70,8 @@ class ErrorResponse(BaseModel):
 
 @router.get("", response_model=AssetListResponse)
 async def list_assets(
-    category: Optional[AssetType] = Query(None, description="Filter by asset category"),
-    tags: Optional[str] = Query(None, description="Comma-separated tags to filter by"),
+    category: AssetType | None = Query(None, description="Filter by asset category"),
+    tags: str | None = Query(None, description="Comma-separated tags to filter by"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum assets to return"),
     offset: int = Query(0, ge=0, description="Number of assets to skip"),
 ):
@@ -110,11 +109,11 @@ async def list_assets(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/search", response_model=List[AssetReference])
+@router.get("/search", response_model=list[AssetReference])
 async def search_assets(
     q: str = Query(..., min_length=1, description="Search query"),
-    category: Optional[AssetType] = Query(None, description="Filter by category"),
-    tags: Optional[str] = Query(None, description="Comma-separated tags filter"),
+    category: AssetType | None = Query(None, description="Filter by category"),
+    tags: str | None = Query(None, description="Comma-separated tags filter"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum results"),
 ):
     """
@@ -159,10 +158,10 @@ async def get_asset_statistics():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{category}", response_model=List[AssetReference])
+@router.get("/{category}", response_model=list[AssetReference])
 async def list_assets_by_category(
     category: AssetType,
-    tags: Optional[str] = Query(None, description="Comma-separated tags filter"),
+    tags: str | None = Query(None, description="Comma-separated tags filter"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum assets to return"),
     offset: int = Query(0, ge=0, description="Number of assets to skip"),
 ):
@@ -224,9 +223,9 @@ async def get_asset(category: AssetType, asset_id: str):
 async def import_asset(
     category: AssetType,
     name: str = Form(..., description="Asset name"),
-    tags: Optional[str] = Form(None, description="Comma-separated tags"),
-    description: Optional[str] = Form(None, description="Asset description"),
-    files: List[UploadFile] = File(..., description="Asset files"),
+    tags: str | None = Form(None, description="Comma-separated tags"),
+    description: str | None = Form(None, description="Asset description"),
+    files: list[UploadFile] = File(..., description="Asset files"),
 ):
     """
     Import a new asset into the workspace library.

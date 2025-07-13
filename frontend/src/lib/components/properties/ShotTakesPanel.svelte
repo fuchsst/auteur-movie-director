@@ -28,14 +28,14 @@
 </script>
 
 <div class="shot-takes-panel" class:expanded>
-  <div class="panel-header" on:click={() => expanded = !expanded} role="button" tabindex="0">
+  <div class="panel-header" on:click={() => (expanded = !expanded)} role="button" tabindex="0">
     <div class="header-content">
       <Icon name="film" size={16} />
       <span>Takes</span>
     </div>
     <Icon name="chevron-down" size={16} class={expanded ? 'expanded' : 'collapsed'} />
   </div>
-  
+
   {#if expanded}
     <div class="panel-content">
       <TakesGallery

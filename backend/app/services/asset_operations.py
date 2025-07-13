@@ -8,7 +8,7 @@ import logging
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from app.schemas.project import AssetReference, AssetType
@@ -40,7 +40,7 @@ class AssetOperationsService:
         project_id: str,
         source_category: AssetType,
         source_asset_id: str,
-        target_name: Optional[str] = None,
+        target_name: str | None = None,
         replace_existing: bool = False,
     ) -> AssetReference:
         """
@@ -144,9 +144,9 @@ class AssetOperationsService:
     async def copy_multiple_assets_to_project(
         self,
         project_id: str,
-        asset_requests: List[Dict[str, Any]],
+        asset_requests: list[dict[str, Any]],
         replace_existing: bool = False,
-    ) -> List[AssetReference]:
+    ) -> list[AssetReference]:
         """
         Copy multiple assets from library to project in a batch operation.
 
@@ -190,8 +190,8 @@ class AssetOperationsService:
         return copied_assets
 
     async def get_project_assets(
-        self, project_id: str, category: Optional[AssetType] = None
-    ) -> List[AssetReference]:
+        self, project_id: str, category: AssetType | None = None
+    ) -> list[AssetReference]:
         """
         Get assets that have been copied to a specific project.
 
@@ -330,7 +330,7 @@ class AssetOperationsService:
 
         return f"{target_name}_{counter}"
 
-    async def _atomic_copy_asset(self, source_path: Path, target_path: Path) -> Dict[str, str]:
+    async def _atomic_copy_asset(self, source_path: Path, target_path: Path) -> dict[str, str]:
         """Perform atomic file copy operation with rollback on failure"""
         target_path.mkdir(parents=True, exist_ok=True)
         copied_files = {}
@@ -356,9 +356,9 @@ class AssetOperationsService:
         source_category: AssetType,
         target_asset_id: str,
         final_name: str,
-        copied_files: Dict[str, str],
+        copied_files: dict[str, str],
         target_path: Path,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create metadata for project asset copy"""
         now = datetime.now(UTC).isoformat()
 
@@ -384,7 +384,7 @@ class AssetOperationsService:
         }
 
     async def _update_project_asset_references(
-        self, project_id: str, asset_metadata: Dict[str, Any]
+        self, project_id: str, asset_metadata: dict[str, Any]
     ) -> None:
         """Update project manifest with new asset reference"""
         try:
@@ -449,7 +449,7 @@ class AssetOperationsService:
             logger.warning(f"Failed to remove project asset reference: {e}")
 
     async def _rollback_copied_assets(
-        self, project_id: str, copied_assets: List[AssetReference]
+        self, project_id: str, copied_assets: list[AssetReference]
     ) -> None:
         """Rollback copied assets on batch operation failure"""
         for asset in copied_assets:

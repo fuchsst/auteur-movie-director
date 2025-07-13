@@ -42,15 +42,15 @@
       const response = await fetch(`/api/v1/projects/${projectId}/cleanup`, {
         method: 'POST'
       });
-      
+
       if (!response.ok) throw new Error('Cleanup failed');
-      
+
       const result = await response.json();
       progressStore.addNotification({
         message: result.message,
         type: 'success'
       });
-      
+
       // Reload metrics
       await loadMetrics();
     } catch (e) {
@@ -77,7 +77,7 @@
       { label: 'Assets', value: breakdown.assets, color: '#F59E0B' },
       { label: 'Exports', value: breakdown.exports, color: '#8B5CF6' },
       { label: 'Other', value: breakdown.other, color: '#6B7280' }
-    ].filter(item => item.value > 0);
+    ].filter((item) => item.value > 0);
   }
 </script>
 
@@ -87,12 +87,7 @@
       <Icon name="hard-drive" size={20} />
       Storage Usage
     </h3>
-    <button 
-      class="btn-icon" 
-      on:click={loadMetrics} 
-      disabled={loading}
-      title="Refresh"
-    >
+    <button class="btn-icon" on:click={loadMetrics} disabled={loading} title="Refresh">
       <Icon name="refresh-cw" size={16} class={loading ? 'animate-spin' : ''} />
     </button>
   </div>
@@ -118,9 +113,11 @@
           </span>
         </div>
         <div class="usage-bar">
-          <div 
-            class="usage-fill" 
-            style="width: {metrics.usagePercentage}%; background-color: {getUsageColor(metrics.usagePercentage)}"
+          <div
+            class="usage-fill"
+            style="width: {metrics.usagePercentage}%; background-color: {getUsageColor(
+              metrics.usagePercentage
+            )}"
           />
         </div>
       </div>
@@ -139,9 +136,10 @@
                 <span class="item-size">{formatBytes(item.value)}</span>
               </div>
               <div class="item-bar">
-                <div 
-                  class="bar-fill" 
-                  style="width: {(item.value / metrics.totalSize) * 100}%; background-color: {item.color}"
+                <div
+                  class="bar-fill"
+                  style="width: {(item.value / metrics.totalSize) *
+                    100}%; background-color: {item.color}"
                 />
               </div>
             </div>
@@ -153,7 +151,7 @@
       {#if metrics.takesDetails.count > 0}
         <div class="takes-section">
           <h4>Takes Storage ({metrics.takesDetails.count} takes)</h4>
-          
+
           <div class="quality-breakdown">
             <h5>By Quality</h5>
             <div class="quality-items">
@@ -184,11 +182,7 @@
 
       <!-- Cleanup Action -->
       <div class="cleanup-section">
-        <button 
-          class="btn-secondary cleanup-btn" 
-          on:click={runCleanup}
-          disabled={cleaning}
-        >
+        <button class="btn-secondary cleanup-btn" on:click={runCleanup} disabled={cleaning}>
           {#if cleaning}
             <Icon name="loader" size={16} class="animate-spin" />
             Cleaning...

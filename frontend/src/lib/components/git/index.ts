@@ -1,6 +1,6 @@
 /**
  * Git UI Components
- * 
+ *
  * Visual components for interacting with Git version control
  */
 
