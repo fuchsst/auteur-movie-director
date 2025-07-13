@@ -108,7 +108,25 @@ test-integration: ## Run integration tests
 	@npm run test:integration
 
 test-e2e: ## Run end-to-end tests with Docker
-	@npm run test:e2e
+	@./scripts/test-docker.sh all
+
+test-backend: ## Run backend tests only
+	@cd backend && pytest
+
+test-frontend: ## Run frontend tests only
+	@cd frontend && npm test
+
+test-docker: ## Run all tests in Docker containers
+	@./scripts/test-docker.sh all
+
+test-docker-backend: ## Run backend tests in Docker
+	@./scripts/test-docker.sh backend
+
+test-docker-frontend: ## Run frontend tests in Docker
+	@./scripts/test-docker.sh frontend
+
+test-docker-coverage: ## Run tests with coverage in Docker
+	@./scripts/test-docker.sh coverage
 
 lint:
 	@npm run lint

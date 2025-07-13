@@ -29,9 +29,19 @@ make format            # Auto-format code
 make lint             # Check code quality  
 make test             # Run all tests
 
-# During development:
-make test-backend      # Test Python code
-make test-frontend     # Test JavaScript code
+# Testing commands:
+make test             # Run all tests
+make test-coverage    # Run with coverage report
+make test-quick       # Fast unit tests only
+make test-e2e         # Full test suite in Docker (CI-like)
+
+# Test specific areas:
+cd backend && pytest -xvs tests/test_file.py    # Debug specific backend test
+cd frontend && npm test ComponentName            # Test specific frontend component
+
+# Docker testing (recommended for consistency):
+docker-compose -f docker-compose.test.yml up     # Run complete test suite
+docker-compose -f docker-compose.test.yml down -v # Clean up after tests
 ```
 
 ## 🏗️ Architecture Overview
@@ -219,12 +229,33 @@ REDIS_URL=redis://localhost:6379
 - **frontend**: SvelteKit on port 3000  
 - **redis**: Cache and pubsub (optional)
 
+## 🧪 Testing
+
+### Running Tests
+- **All Tests**: `make test`
+- **With Coverage**: `make test-coverage` (target: 80% minimum)
+- **In Docker**: `make test-e2e` (recommended - same as CI)
+- **Quick Tests**: `make test-quick` (skip integration tests)
+
+### Test Structure
+- **Backend**: `backend/tests/` - pytest with async support
+- **Frontend**: `frontend/src/lib/**/*.test.ts` - vitest with Svelte support
+- **E2E**: `tests/integration/` - Playwright tests
+
+### Before Committing
+```bash
+make format && make test  # Format code and run tests
+```
+
+See `.bmad-core/methods/TESTING-GUIDE.md` for detailed testing documentation.
+
 ## 📚 Documentation
 
 - **API Docs**: http://localhost:8000/docs (interactive)
 - **PRDs**: `.bmad-core/prds/` - Product requirements
 - **Stories**: `.bmad-core/stories/` - Implementation stories
 - **Validation**: `.bmad-core/validation/` - Test reports
+- **Testing Guide**: `.bmad-core/methods/TESTING-GUIDE.md`
 
 ---
 

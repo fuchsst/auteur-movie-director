@@ -16,6 +16,30 @@ Use the QA Engineer persona from `.bmad-core/personas/qa-engineer.md`:
 - **Regression Prevention** - Ensure new changes don't break existing functionality
 
 ## Validation Framework
+
+### Test Execution Commands
+```bash
+# Run all tests (local)
+make test
+
+# Run tests with coverage
+make test-coverage
+
+# Run tests in Docker (recommended for consistency)
+make test-e2e
+docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+
+# Run specific test categories
+make test-backend     # Backend tests only
+make test-frontend    # Frontend tests only
+make test-quick      # Unit tests only (skip integration)
+
+# Debug specific tests
+cd backend && pytest -xvs tests/test_specific.py
+cd frontend && npm test ComponentName
+```
+
+### Validation Process
 ```bash
 # 1. Acceptance Criteria Validation
 # Verify each acceptance criterion is met
@@ -42,6 +66,13 @@ done
 - Error messaging and user feedback
 - Documentation accuracy
 ```
+
+### Coverage Requirements
+- **Unit Tests**: 80% minimum coverage
+- **Critical Paths**: 90% coverage required
+- **New Code**: 100% coverage for new features
+
+See `.bmad-core/methods/TESTING-GUIDE.md` for detailed testing instructions.
 
 ## Testing Categories
 
