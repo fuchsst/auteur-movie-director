@@ -56,6 +56,33 @@ export interface CommitRequest {
   files?: string[];
 }
 
+export interface EnhancedGitCommit extends GitCommit {
+  hash: string;
+  shortHash: string;
+  stats: {
+    additions: number;
+    deletions: number;
+    files: number;
+  };
+  files: Array<{
+    path: string;
+    changeType: string;
+    additions: number;
+    deletions: number;
+  }>;
+  parentHashes: string[];
+}
+
+export interface RollbackRequest {
+  commitHash: string;
+  mode: 'soft' | 'mixed' | 'hard';
+}
+
+export interface TagRequest {
+  tagName: string;
+  message?: string;
+}
+
 export const gitApi = {
   async getStatus(projectId: string): Promise<GitStatus> {
     return api.get<GitStatus>(`/git/projects/${projectId}/status`);
@@ -69,6 +96,32 @@ export const gitApi = {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (file) params.append('file', file);
     return api.get<GitCommit[]>(`/git/projects/${projectId}/history?${params}`);
+  },
+
+  async getEnhancedHistory(
+    projectId: string,
+    limit = 50,
+    file?: string
+  ): Promise<EnhancedGitCommit[]> {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (file) params.append('file_path', file);
+    return api.get<EnhancedGitCommit[]>(`/git/projects/${projectId}/history/enhanced?${params}`);
+  },
+
+  async rollback(projectId: string, request: RollbackRequest): Promise<void> {
+    await api.post(`/git/projects/${projectId}/rollback`, request);
+  },
+
+  async createTag(projectId: string, request: TagRequest): Promise<void> {
+    await api.post(`/git/projects/${projectId}/tags`, request);
+  },
+
+  async trackFileChange(projectId: string, filePath: string): Promise<void> {
+    await api.post(`/git/projects/${projectId}/auto-commit/${encodeURIComponent(filePath)}`);
+  },
+
+  async forceAutoCommitAll(): Promise<void> {
+    await api.post('/git/auto-commit/force-all');
   }
 };
 
