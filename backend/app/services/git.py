@@ -72,6 +72,11 @@ class GitService:
         "*.bmp",
         "*.jp2",
         "*.j2k",
+        "*.png",
+        "*.jpg",
+        "*.jpeg",
+        "*.gif",
+        "*.webp",
         # 3D formats
         "*.blend",
         "*.fbx",
