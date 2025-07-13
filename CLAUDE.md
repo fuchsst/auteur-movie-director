@@ -210,6 +210,8 @@ REDIS_URL=redis://localhost:6379
 | `GET /api/v1/takes/{project}/{shot}` | List takes for shot |
 | `POST /api/v1/takes/{project}/{shot}` | Create new take |
 | `GET /api/v1/git/{project}/status` | Git repository status |
+| `POST /api/v1/export/{project}` | Export project as archive |
+| `GET /api/v1/export/{project}/download/{file}` | Download exported archive |
 | `WS /api/ws/{client_id}` | WebSocket connection |
 
 ### Docker Services:

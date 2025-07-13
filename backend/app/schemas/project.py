@@ -5,7 +5,7 @@ Any deviation from these schemas is a breaking change.
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -226,3 +226,36 @@ class ProjectStructureValidation(BaseModel):
     git_lfs_enabled: bool
     project_json_valid: bool
     errors: list[str] = Field(default_factory=list)
+
+
+class ExportOptions(BaseModel):
+    """Options for project export."""
+    format: str = Field(default="zip", description="Archive format: zip or tar.gz")
+    include_history: bool = Field(default=True, description="Include Git history")
+    include_cache: bool = Field(default=False, description="Include cache files")
+    compress_media: bool = Field(default=False, description="Compress media files")
+    split_size_mb: Optional[int] = Field(default=None, description="Split archive size in MB")
+
+
+class ExportStatistics(BaseModel):
+    """Statistics about an export."""
+    total_files: int
+    total_size_bytes: int
+    git_commits: int
+
+
+class ExportManifest(BaseModel):
+    """Manifest file for project exports."""
+    export_version: str
+    project_id: str
+    exported_at: str
+    export_options: Dict[str, Any]
+    statistics: ExportStatistics
+
+
+class ImportOptions(BaseModel):
+    """Options for project import."""
+    overwrite_existing: bool = Field(default=False, description="Overwrite if project exists")
+    validate_integrity: bool = Field(default=True, description="Validate archive integrity")
+    restore_git_history: bool = Field(default=True, description="Restore Git history")
+    restore_lfs_objects: bool = Field(default=True, description="Restore LFS objects")

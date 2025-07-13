@@ -5,7 +5,7 @@ Main API router that combines all endpoints.
 from fastapi import APIRouter
 
 from app.api.endpoints import health, system, upload, workspace
-from app.api.v1 import assets, asset_operations, git, git_lfs, git_performance, projects, takes
+from app.api.v1 import assets, asset_operations, git, git_lfs, git_performance, projects, takes, export
 
 api_router = APIRouter()
 
@@ -21,3 +21,4 @@ api_router.include_router(git_lfs.router, tags=["git-lfs"])
 api_router.include_router(git_performance.router, tags=["git-performance"])
 api_router.include_router(upload.router, tags=["upload"])
 api_router.include_router(takes.router, tags=["takes"])
+api_router.include_router(export.router, tags=["export"])

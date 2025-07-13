@@ -5,6 +5,7 @@
   import { selectionStore } from '$lib/stores/selection';
   import ProjectTree from './ProjectTree.svelte';
   import NewProjectDialog from './NewProjectDialog.svelte';
+  import ProjectExportDialog from './ProjectExportDialog.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -18,6 +19,8 @@
   let contextMenuX = 0;
   let contextMenuY = 0;
   let showNewProjectDialog = false;
+  let showExportDialog = false;
+  let exportProject: ProjectResponse | null = null;
   let refreshing = false;
   let loading = false;
 
@@ -213,6 +216,14 @@
     } catch (error) {
       setError(`Failed to rename project: ${error}`);
     }
+    hideContextMenu();
+  }
+
+  function handleExportProject() {
+    if (!selectedProject) return;
+    
+    exportProject = selectedProject;
+    showExportDialog = true;
     hideContextMenu();
   }
 
@@ -432,6 +443,7 @@
     <button on:click={() => dispatch('openProject', selectedProject)}>Open</button>
     <button on:click={handleRenameProject}>Rename</button>
     <button on:click={handleDuplicateProject}>Duplicate</button>
+    <button on:click={handleExportProject}>Export...</button>
     <hr />
     <button on:click={handleDeleteProject} class="dangerous">Delete</button>
   </div>
@@ -442,6 +454,19 @@
   <NewProjectDialog
     on:close={() => (showNewProjectDialog = false)}
     on:created={handleProjectCreated}
+  />
+{/if}
+
+<!-- Export Project Dialog -->
+{#if showExportDialog && exportProject}
+  <ProjectExportDialog
+    bind:open={showExportDialog}
+    projectId={exportProject.id}
+    projectName={exportProject.name}
+    on:close={() => {
+      showExportDialog = false;
+      exportProject = null;
+    }}
   />
 {/if}
 
