@@ -13,6 +13,9 @@ from typing import Any
 
 import aiofiles
 
+from app.services.thumbnails import thumbnail_service
+from app.services.git_lfs import git_lfs_service
+
 logger = logging.getLogger(__name__)
 
 
@@ -482,6 +485,171 @@ class TakesService:
         logger.info(f"Exported take {take_id} to {export_path}")
         return export_path
 
+    async def cleanup_orphaned_files(self, project_path: Path) -> dict[str, int]:
+        """
+        Clean up orphaned take files that are not referenced in metadata.
+        
+        Returns:
+            Dictionary with cleanup statistics
+        """
+        stats = {
+            "orphaned_directories": 0,
+            "orphaned_files": 0,
+            "bytes_freed": 0,
+        }
+        
+        renders_dir = project_path / "03_Renders"
+        if not renders_dir.exists():
+            return stats
+        
+        # Find all take directories
+        for chapter_dir in renders_dir.iterdir():
+            if not chapter_dir.is_dir():
+                continue
+                
+            for scene_dir in chapter_dir.iterdir():
+                if not scene_dir.is_dir():
+                    continue
+                    
+                for shot_dir in scene_dir.iterdir():
+                    if not shot_dir.is_dir():
+                        continue
+                        
+                    takes_dir = shot_dir / "takes"
+                    if not takes_dir.exists():
+                        continue
+                    
+                    # Get valid take IDs from metadata
+                    shot_id = f"{chapter_dir.name}/{scene_dir.name}/{shot_dir.name}"
+                    valid_takes = await self.list_takes(project_path, shot_id)
+                    valid_take_ids = {take.get("id") for take in valid_takes if take.get("id")}
+                    
+                    # Check each take directory
+                    for take_dir in takes_dir.iterdir():
+                        if not take_dir.is_dir():
+                            continue
+                            
+                        # Skip deleted directories
+                        if take_dir.name.startswith(".deleted_"):
+                            continue
+                            
+                        # Check if this take is orphaned
+                        if take_dir.name not in valid_take_ids:
+                            # Calculate size before deletion
+                            dir_size = sum(f.stat().st_size for f in take_dir.rglob("*") if f.is_file())
+                            stats["bytes_freed"] += dir_size
+                            
+                            # Remove orphaned directory
+                            try:
+                                shutil.rmtree(take_dir)
+                                stats["orphaned_directories"] += 1
+                                logger.info(f"Removed orphaned take directory: {take_dir}")
+                            except Exception as e:
+                                logger.error(f"Failed to remove orphaned directory {take_dir}: {e}")
+        
+        # Clean up old deleted directories (older than 7 days)
+        cutoff_time = datetime.now(UTC).timestamp() - (7 * 24 * 60 * 60)
+        
+        for deleted_dir in renders_dir.rglob(".deleted_*"):
+            if not deleted_dir.is_dir():
+                continue
+                
+            # Extract timestamp from directory name
+            try:
+                parts = deleted_dir.name.split("_")
+                if len(parts) >= 3:
+                    timestamp = int(parts[-1])
+                    if timestamp < cutoff_time:
+                        dir_size = sum(f.stat().st_size for f in deleted_dir.rglob("*") if f.is_file())
+                        stats["bytes_freed"] += dir_size
+                        
+                        shutil.rmtree(deleted_dir)
+                        stats["orphaned_directories"] += 1
+                        logger.info(f"Removed old deleted directory: {deleted_dir}")
+            except (ValueError, IndexError) as e:
+                logger.warning(f"Could not parse deleted directory timestamp: {deleted_dir}")
+            except Exception as e:
+                logger.error(f"Failed to remove deleted directory {deleted_dir}: {e}")
+        
+        return stats
+
+    async def get_storage_metrics(self, project_path: Path) -> dict[str, Any]:
+        """
+        Calculate storage metrics for all takes in a project.
+        
+        Returns:
+            Dictionary with storage statistics
+        """
+        metrics = {
+            "total_takes": 0,
+            "total_size": 0,
+            "media_size": 0,
+            "thumbnail_size": 0,
+            "by_quality": {},
+            "by_status": {},
+            "largest_takes": [],
+        }
+        
+        renders_dir = project_path / "03_Renders"
+        if not renders_dir.exists():
+            return metrics
+        
+        take_sizes = []
+        
+        # Walk through all takes
+        for take_dir in renders_dir.rglob("take_*"):
+            if not take_dir.is_dir() or take_dir.parent.name != "takes":
+                continue
+                
+            metrics["total_takes"] += 1
+            
+            # Calculate directory size
+            dir_size = 0
+            media_size = 0
+            thumb_size = 0
+            
+            for file in take_dir.iterdir():
+                if file.is_file():
+                    size = file.stat().st_size
+                    dir_size += size
+                    
+                    if "_thumb_" in file.name:
+                        thumb_size += size
+                    else:
+                        media_size += size
+            
+            metrics["total_size"] += dir_size
+            metrics["media_size"] += media_size
+            metrics["thumbnail_size"] += thumb_size
+            
+            # Try to read metadata for quality/status info
+            metadata_files = list(take_dir.glob("*_metadata.json"))
+            if metadata_files:
+                try:
+                    with open(metadata_files[0]) as f:
+                        metadata = json.load(f)
+                        
+                    quality = metadata.get("resources", {}).get("quality", "unknown")
+                    status = metadata.get("status", "unknown")
+                    
+                    metrics["by_quality"][quality] = metrics["by_quality"].get(quality, 0) + dir_size
+                    metrics["by_status"][status] = metrics["by_status"].get(status, 0) + dir_size
+                    
+                    take_sizes.append({
+                        "id": metadata.get("id", take_dir.name),
+                        "shot_id": metadata.get("shotId", "unknown"),
+                        "size": dir_size,
+                        "quality": quality,
+                    })
+                except Exception as e:
+                    logger.warning(f"Could not read metadata for {take_dir}: {e}")
+        
+        # Get top 10 largest takes
+        take_sizes.sort(key=lambda x: x["size"], reverse=True)
+        metrics["largest_takes"] = take_sizes[:10]
+        
+        return metrics
+
     async def create_and_save_take(
         self,
         project_path: Path,
@@ -536,10 +704,27 @@ class TakesService:
         await self.update_take_metadata(metadata_path, updates)
 
         # Generate thumbnail if it's a video/image
-        if file_extension.lower() in ["mp4", "mov", "avi"]:
-            thumbnail_name = f"{filename.rsplit('.', 1)[0]}{self.thumbnail_suffix}"
-            thumbnail_path = take_dir / thumbnail_name
-            await self.generate_thumbnail(file_path, thumbnail_path)
+        if file_extension.lower() in ["mp4", "mov", "avi", "png", "jpg", "jpeg"]:
+            # Use the new thumbnail service for better quality thumbnails
+            base_name = filename.rsplit('.', 1)[0]
+            thumbnails = await thumbnail_service.generate_multiple_sizes(
+                source_path=file_path,
+                output_dir=take_dir,
+                base_name=base_name,
+                timestamp=1.0 if file_extension.lower() in ["mp4", "mov", "avi"] else 0
+            )
+            
+            # Update metadata with thumbnail paths
+            if thumbnails:
+                thumbnail_info = {
+                    f"thumbnailPath_{size}": str(path.relative_to(project_path))
+                    for size, path in thumbnails.items()
+                }
+                updates["thumbnails"] = thumbnail_info
+                
+                # Set the medium thumbnail as the default
+                if "medium" in thumbnails:
+                    updates["thumbnailPath"] = str(thumbnails["medium"].relative_to(project_path))
 
         # Check if this should be the active take (if no active take exists)
         active_take = await self.get_active_take(project_path, shot_id)
@@ -548,6 +733,16 @@ class TakesService:
 
         # Update project metadata
         await self._update_project_metadata(project_path, shot_id, take_id)
+
+        # Track media file with Git LFS (but not thumbnails)
+        try:
+            if file_extension.lower() in ["mp4", "mov", "avi", "mkv", "webm"]:
+                # Track the specific file with LFS
+                relative_path = file_path.relative_to(project_path)
+                await git_lfs_service.track_file(project_path, str(relative_path))
+                logger.info(f"Tracked take file with Git LFS: {relative_path}")
+        except Exception as e:
+            logger.warning(f"Failed to track take file with Git LFS: {e}")
 
         logger.info(f"Created and saved take {take_id} for shot {shot_id}")
 

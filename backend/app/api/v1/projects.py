@@ -19,6 +19,7 @@ from app.schemas.project import (
 )
 from app.services.git import git_service
 from app.services.workspace import get_workspace_service
+from app.services.takes import takes_service
 
 logger = logging.getLogger(__name__)
 
@@ -495,4 +496,121 @@ async def validate_project(project_id: str):
         raise
     except Exception as e:
         logger.error(f"Error validating project: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{project_id}/storage", response_model=dict)
+async def get_project_storage_metrics(project_id: str):
+    """
+    Get detailed storage metrics for a project.
+    
+    Returns breakdown by takes, thumbnails, assets, and quality levels.
+    """
+    try:
+        workspace_service = get_workspace_service()
+        project_path = workspace_service.get_project_path(project_id)
+        
+        if not project_path:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": {
+                        "code": "PROJECT_NOT_FOUND",
+                        "message": f"Project with ID '{project_id}' not found",
+                        "details": {"project_id": project_id},
+                    }
+                },
+            )
+        
+        # Get takes storage metrics
+        takes_metrics = await takes_service.get_storage_metrics(project_path)
+        
+        # Calculate additional storage metrics
+        total_size = 0
+        assets_size = 0
+        exports_size = 0
+        
+        # Assets directory
+        assets_dir = project_path / "01_Assets"
+        if assets_dir.exists():
+            for file in assets_dir.rglob("*"):
+                if file.is_file():
+                    assets_size += file.stat().st_size
+        
+        # Exports directory
+        exports_dir = project_path / "06_Exports"
+        if exports_dir.exists():
+            for file in exports_dir.rglob("*"):
+                if file.is_file():
+                    exports_size += file.stat().st_size
+        
+        # Total project size
+        for file in project_path.rglob("*"):
+            if file.is_file():
+                total_size += file.stat().st_size
+        
+        return {
+            "project_id": project_id,
+            "total_size": total_size,
+            "breakdown": {
+                "takes": takes_metrics["total_size"],
+                "media": takes_metrics["media_size"],
+                "thumbnails": takes_metrics["thumbnail_size"],
+                "assets": assets_size,
+                "exports": exports_size,
+                "other": total_size - takes_metrics["total_size"] - assets_size - exports_size,
+            },
+            "takes_details": {
+                "count": takes_metrics["total_takes"],
+                "by_quality": takes_metrics["by_quality"],
+                "by_status": takes_metrics["by_status"],
+                "largest": takes_metrics["largest_takes"][:5],  # Top 5 only
+            },
+            "storage_limit": 10 * 1024 * 1024 * 1024,  # 10GB default limit
+            "usage_percentage": round((total_size / (10 * 1024 * 1024 * 1024)) * 100, 2),
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting storage metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{project_id}/cleanup")
+async def cleanup_project_storage(project_id: str):
+    """
+    Clean up orphaned files and old deleted takes.
+    
+    Returns statistics about cleaned up files.
+    """
+    try:
+        workspace_service = get_workspace_service()
+        project_path = workspace_service.get_project_path(project_id)
+        
+        if not project_path:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": {
+                        "code": "PROJECT_NOT_FOUND",
+                        "message": f"Project with ID '{project_id}' not found",
+                        "details": {"project_id": project_id},
+                    }
+                },
+            )
+        
+        # Run cleanup
+        cleanup_stats = await takes_service.cleanup_orphaned_files(project_path)
+        
+        return {
+            "project_id": project_id,
+            "cleanup_stats": cleanup_stats,
+            "message": f"Cleaned up {cleanup_stats['orphaned_directories']} directories, freed {cleanup_stats['bytes_freed']} bytes",
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cleaning up project: {e}")
         raise HTTPException(status_code=500, detail=str(e))
