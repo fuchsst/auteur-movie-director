@@ -151,6 +151,10 @@ workspace/
 backend/.env
 frontend/.env.local
 
+# Docker override files
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # Blender specific
 *.blend1
 *.blend2

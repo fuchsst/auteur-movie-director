@@ -1,11 +1,11 @@
 # Story: Function Runner Foundation
 
-**Story ID**: STORY-021  
+**Story ID**: STORY-013  
 **Epic**: EPIC-001-web-platform-foundation  
 **Type**: Infrastructure  
 **Points**: 5 (Medium)  
 **Priority**: High  
-**Status**: 🔲 Not Started  
+**Status**: ⚠️ Partially Completed (January 2025)  
 
 ## Story Description
 As a developer, I need to establish the Function Runner foundation that enables the Celery worker to act as an orchestrator for containerized AI model execution, implementing task dispatching with quality-based pipeline routing, WebSocket task execution protocol, and Redis pub/sub for real-time progress events, without implementing actual AI models.
@@ -714,3 +714,67 @@ async def test_docker_sdk_integration():
 - **Depends On**: STORY-005 (WebSocket), STORY-019 (Celery/Redis)
 - **Blocks**: PRD-003 (Function Runner containers)
 - **Related PRD**: PRD-003-function-runner-architecture
+
+## Implementation Status (January 2025)
+
+### ✅ Completed Components (~60% Complete)
+
+1. **Task Dispatcher Service** - Fully implemented in `backend/app/services/dispatcher.py`:
+   - Quality tiers (low, standard, high, premium) with pipeline mapping
+   - VRAM targets and optimization flags per tier
+   - Container image references for future use
+   - Pipeline configuration schema
+
+2. **WebSocket Task Protocol** - Implemented in `backend/app/api/websocket.py`:
+   - Handles `start_generation` events
+   - Task acknowledgment with task IDs
+   - Connection management per project
+   - Error event handling
+
+3. **Core Dispatcher Architecture** - Implemented in `backend/app/core/dispatcher.py`:
+   - Abstract `TaskHandler` base class
+   - Task registration and routing
+   - `GenerationTaskHandler` for AI tasks (simulation only)
+   - Progress tracking infrastructure
+
+4. **Redis Integration** - Fully implemented:
+   - Progress event publishing
+   - Pub/sub channel management
+   - WebSocket subscription to progress updates
+   - Project state management
+
+5. **Model Storage Structure** - Created at `/workspace/Library/AI_Models/`:
+   - Category directories (image, video, audio, language)
+   - Subdirectories for models, pipelines, configs
+   - README documentation
+
+6. **Testing** - Comprehensive test suite in `backend/tests/test_function_runner_foundation.py`
+
+### ❌ Missing Components (~40% Incomplete)
+
+1. **Celery Worker Infrastructure**:
+   - No Celery worker implementation
+   - No `backend/app/worker/` directory
+   - No task queue configuration
+   - No broker setup (RabbitMQ/Redis)
+
+2. **Docker SDK Integration**:
+   - No Docker client usage in worker
+   - No container lifecycle management
+   - No container orchestration logic
+   - No volume mount verification
+
+3. **Actual Task Execution**:
+   - Current implementation only simulates execution
+   - No real AI service connections
+   - No actual pipeline execution
+   - No resource monitoring
+
+4. **Worker-Specific Features**:
+   - No worker health checks
+   - No GPU resource management
+   - No concurrency limits per queue
+   - No graceful shutdown handling
+
+### Summary
+The foundation is well-architected with proper abstractions, quality mapping, and WebSocket/Redis integration. However, the actual execution layer (Celery workers) and container orchestration are not implemented. The current system can route tasks and track progress but cannot execute real AI workloads.

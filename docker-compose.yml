@@ -6,6 +6,10 @@ services:
   comfyui:
     image: ${COMFYUI_IMAGE:-comfyui/comfyui:latest}
     container_name: amd-comfyui
+    profiles:
+      - ai
+      - comfyui
+      - full
     ports:
       - "${COMFYUI_PORT:-8188}:8188"
     volumes:
@@ -33,6 +37,10 @@ services:
   wan2gp:
     image: ${WAN2GP_IMAGE:-wan2gp/wan2gp:latest}
     container_name: amd-wan2gp
+    profiles:
+      - ai
+      - video
+      - full
     ports:
       - "${WAN2GP_PORT:-7860}:7860"
     volumes:
@@ -59,6 +67,10 @@ services:
   rvc:
     image: ${RVC_IMAGE:-rvc/rvc:latest}
     container_name: amd-rvc
+    profiles:
+      - ai
+      - audio
+      - full
     ports:
       - "${RVC_PORT:-7865}:7865"
     volumes:
@@ -85,6 +97,10 @@ services:
   audioldm:
     image: ${AUDIOLDM_IMAGE:-audioldm/audioldm:latest}
     container_name: amd-audioldm
+    profiles:
+      - ai
+      - audio
+      - full
     ports:
       - "${AUDIOLDM_PORT:-7863}:7863"
     volumes:

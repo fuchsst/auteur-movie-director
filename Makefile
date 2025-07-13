@@ -20,6 +20,8 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev         - Start web platform dev servers (frontend + backend)"
+	@echo "  make dev-backend - Start backend server only"
+	@echo "  make dev-frontend - Start frontend server only"
 	@echo "  make test        - Run all tests"
 	@echo "  make test-quick  - Run quick tests (no integration)"
 	@echo "  make test-coverage - Generate coverage report"
@@ -55,9 +57,15 @@ help:
 	@echo ""
 	@echo "Docker AI Services:"
 	@echo "  make docker-up     - Start AI services with docker-compose"
+	@echo "  make docker-up-ai  - Start all AI services (profile: ai)"
+	@echo "  make docker-up-comfyui - Start ComfyUI only (profile: comfyui)"
+	@echo "  make docker-up-audio - Start audio services (profile: audio)"
+	@echo "  make docker-up-video - Start video services (profile: video)"
+	@echo "  make docker-up-full - Start all services (profile: full)"
 	@echo "  make docker-down   - Stop AI services"
 	@echo "  make docker-logs   - View AI service logs"
 	@echo "  make docker-status - Check AI service status"
+	@echo "  make docker-clean  - Clean Docker resources"
 	@echo "  make up-with-comfyui - Start core + AI services together"
 	@echo ""
 	@echo "Distribution:"
@@ -80,6 +88,12 @@ setup-prod:
 # Development commands
 dev:
 	@npm run dev
+
+dev-backend:
+	@npm run dev:backend
+
+dev-frontend:
+	@npm run dev:frontend
 
 test:
 	@npm run test
@@ -142,6 +156,21 @@ services-docker-stop:
 docker-up:
 	@docker-compose up -d
 
+docker-up-ai: ## Start all AI services
+	@docker-compose --profile ai up -d
+
+docker-up-comfyui: ## Start ComfyUI service only
+	@docker-compose --profile comfyui up -d
+
+docker-up-audio: ## Start audio services (RVC, AudioLDM)
+	@docker-compose --profile audio up -d
+
+docker-up-video: ## Start video services (Wan2GP)
+	@docker-compose --profile video up -d
+
+docker-up-full: ## Start all services with full profile
+	@docker-compose --profile full up -d
+
 docker-down:
 	@docker-compose down
 
@@ -176,6 +205,13 @@ new-project: ## Scaffold new project in workspace
 up-with-comfyui: ## Start core + AI services together
 	@docker-compose -f docker-compose.core.yml up -d
 	@docker-compose up -d
+
+docker-clean: ## Clean Docker containers, images, and volumes
+	@echo "🐳 Cleaning Docker resources..."
+	@docker-compose -f docker-compose.core.yml down -v --remove-orphans
+	@docker-compose down -v --remove-orphans
+	@docker system prune -f
+	@echo "✅ Docker clean complete"
 
 # Distribution
 package:

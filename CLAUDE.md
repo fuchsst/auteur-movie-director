@@ -3,26 +3,35 @@
 ## 🚀 Quick Start
 
 ```bash
+# First time setup
+make setup             # Full dev setup (installs UV if needed)
+
 # Start with Docker (recommended)
-./start.sh              # Frontend: http://localhost:3000
+make up                # Frontend: http://localhost:3000
                        # Backend: http://localhost:8000/api/docs
 
 # Or start manually
-npm install            # Install dependencies
-npm run dev           # Start development servers
+make dev               # Start development servers
 ```
+
+### Essential Make Commands
+- `make help` - Show all available commands
+- `make dev` - Start development servers
+- `make test` - Run all tests  
+- `make format` - Auto-format code
+- `make lint` - Check code quality
 
 ## 📋 Critical Commands (Run These Often!)
 
 ```bash
 # BEFORE committing or when code is complete:
-npm run format        # Auto-format code
-npm run lint         # Check code quality  
-npm run test         # Run all tests
+make format            # Auto-format code
+make lint             # Check code quality  
+make test             # Run all tests
 
 # During development:
-npm run test:backend  # Test Python code
-npm run test:frontend # Test JavaScript code
+make test-backend      # Test Python code
+make test-frontend     # Test JavaScript code
 ```
 
 ## 🏗️ Architecture Overview
@@ -142,21 +151,35 @@ Project → Act → Chapter → Scene → Shot → Take
 
 ```bash
 # Project Management
-npm run project:create                    # Create new project
-npm run workspace:init                    # Initialize workspace
+make new-project NAME="My Project"        # Create new project
+make setup                               # Initialize development environment
 
 # Development
-npm run dev                              # Start both servers
-npm run dev:backend                      # Backend only
-npm run dev:frontend                     # Frontend only
+make dev                                 # Start both servers
+make dev-backend                         # Backend only
+make dev-frontend                        # Frontend only
 
-# Testing Specific Files
-pytest tests/test_takes_service.py::test_cleanup_old_takes -v
-npm test src/lib/services/websocket.test.ts
+# Testing
+make test                                # Run all tests
+make test-quick                          # Quick tests (no integration)
+make test-coverage                       # Generate coverage report
+make test-integration                    # Integration tests
+make test-e2e                           # End-to-end tests with Docker
 
 # Docker Operations
-./start.sh && ./logs.sh                 # Start and watch logs
-docker-compose -f docker-compose.dev.yml ps  # Check status
+make up                                  # Start core services
+make down                               # Stop services
+make logs                               # View service logs
+make build                              # Build Docker images
+make docker-clean                       # Clean Docker resources
+
+# AI Services (Docker)
+make docker-up-ai                        # Start all AI services
+make docker-up-comfyui                   # ComfyUI only
+make docker-up-audio                     # Audio services (RVC, AudioLDM)
+make docker-up-video                     # Video services (Wan2GP)
+make docker-up-full                      # All services combined
+make up-with-comfyui                     # Core + AI services together
 ```
 
 ## ⚙️ Configuration

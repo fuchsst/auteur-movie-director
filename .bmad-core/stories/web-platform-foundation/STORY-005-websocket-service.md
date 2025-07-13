@@ -5,7 +5,7 @@
 **Type**: Backend  
 **Points**: 5 (Medium)  
 **Priority**: High  
-**Status**: ✅ Completed  
+**Status**: ⚠️ Partially Completed (January 2025)  
 
 ## Story Description
 As a frontend developer, I need a WebSocket connection to receive real-time updates about file changes, processing status, node state changes, task execution progress, and system events so that the UI can reflect the current state without polling. The service acts as the nervous system of the application, relaying events from the Function Runner architecture through Redis pub/sub for decoupled event publishing. The service must support container orchestration environments and handle connection management across container restarts.
@@ -1292,3 +1292,27 @@ This story has been enhanced to support the Function Runner architecture with:
 6. **Automatic Project Subscription**: Clients are automatically subscribed to their project's events on connection
 
 The WebSocket service now acts as the nervous system of the application, providing real-time communication between the web platform and the Function Runner architecture.
+
+## Implementation Summary (January 2025)
+
+### ✅ Implemented:
+- WebSocket endpoint at `/ws/{project_id}` 
+- Basic connection management per project
+- Redis pub/sub for progress updates
+- Core message types (ping/pong, start_generation, progress, complete, error)
+- JSON message format
+- Project-based organization
+
+### ❌ Missing:
+- Full event broadcasting service (EventBroadcaster class)
+- Heartbeat task implementation
+- Multiple clients per project support (currently single client only)
+- Comprehensive message types (only ~10% implemented)
+- Project-specific Redis channels
+- Reconnection handling
+- Container-aware connection management
+- Connection state persistence
+- Full Function Runner event relay
+- Character, takes, and creative workflow events
+
+The basic WebSocket infrastructure is in place but needs significant expansion to support all specified event types and features. Approximately 25-30% complete.
