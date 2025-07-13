@@ -5,6 +5,7 @@
   import CanvasView from '../views/CanvasView.svelte';
   import SceneView from '../views/SceneView.svelte';
   import AssetsView from '../views/AssetsView.svelte';
+  import GitView from '../views/GitView.svelte';
   import SettingsView from '../views/SettingsView.svelte';
   import TabBar from './TabBar.svelte';
   import { viewStore } from '$lib/stores/views';
@@ -35,11 +36,18 @@
       shortcut: 'Ctrl+3'
     },
     {
+      id: 'git',
+      label: 'Git',
+      icon: '📦',
+      component: GitView,
+      shortcut: 'Ctrl+4'
+    },
+    {
       id: 'settings',
       label: 'Settings',
       icon: '⚙️',
       component: SettingsView,
-      shortcut: 'Ctrl+4'
+      shortcut: 'Ctrl+5'
     }
   ];
 

@@ -3,8 +3,11 @@
  */
 
 export * from './app';
-
-// Future stores will be added here:
-// export * from './canvas';
-// export * from './nodes';
-// export * from './assets';
+export * from './assets';
+export * from './git';
+export * from './lfs';
+export * from './notifications';
+export * from './selection';
+export * from './tasks';
+export * from './views';
+export * from './websocket';
