@@ -82,14 +82,14 @@ def main():
         
         project_path, manifest = workspace_service.create_project(project_data)
         
-        logger.info(f"✅ Project created successfully!")
+        logger.info("✅ Project created successfully!")
         logger.info(f"📂 Location: {project_path}")
         logger.info(f"🎭 Narrative: {args.structure}")
         logger.info(f"⚡ Quality: {args.quality}")
-        logger.info(f"\n🚀 Next steps:")
+        logger.info("\n🚀 Next steps:")
         logger.info(f"   1. cd {project_path}")
-        logger.info(f"   2. Start adding creative assets")
-        logger.info(f"   3. Use the web interface to manage your project")
+        logger.info("   2. Start adding creative assets")
+        logger.info("   3. Use the web interface to manage your project")
         
     except Exception as e:
         logger.error(f"❌ Error creating project: {e}")

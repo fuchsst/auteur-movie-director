@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import shutil
+from datetime import UTC
 from pathlib import Path
 from uuid import uuid4
 
@@ -269,7 +270,7 @@ class WorkspaceService:
         self, project_path: Path, project_data: ProjectCreate
     ) -> ProjectManifest:
         """Create project manifest according to STORY-025 specification"""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         # Create the manifest according to the exact specification
         manifest_data = {
@@ -277,7 +278,7 @@ class WorkspaceService:
             "name": project_data.name,
             "version": "1.0.0",
             "structure_version": "1.0",
-            "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "created_by": project_data.director or os.environ.get("USER", "unknown"),
             "metadata": {"description": project_data.description or "", "tags": [], "settings": {}},
             "canvas_state": None,
@@ -481,6 +482,10 @@ class WorkspaceService:
             logger.error(f"Error updating project manifest: {e}")
             return False
 
+    def save_project_manifest(self, project_path: Path, manifest: ProjectManifest) -> bool:
+        """Save project manifest (alias for update_project_manifest)"""
+        return self.update_project_manifest(project_path, manifest)
+
     def add_character_to_project(
         self, project_path: Path, character_name: str, description: str = ""
     ) -> CharacterAsset | None:
@@ -545,7 +550,8 @@ class WorkspaceService:
         try:
             # Import here to avoid circular imports
             import asyncio
-            from datetime import datetime, timezone
+            from datetime import datetime
+
             from app.api.websocket import manager
 
             # Create notification message
@@ -553,7 +559,7 @@ class WorkspaceService:
                 "type": "project_created",
                 "project_id": project_id,
                 "project_path": project_path,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             # Run async broadcast synchronously

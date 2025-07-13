@@ -30,6 +30,7 @@ Node-based canvas type definitions for the Production Canvas.
 - `CHARACTER_SOCKET_COLOR` - Character connection color constant
 
 #### Advanced Node Types (Sprint 6)
+
 - `AudioNodeData` - Audio node specific data (source, volume, waveform, etc.)
 - `EffectNodeData` - Effect node specific data (effect type, intensity, parameters)
 - `CompositeNodeData` - Composite node specific data (layers, blend modes)

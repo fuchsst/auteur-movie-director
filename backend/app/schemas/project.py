@@ -3,7 +3,7 @@ Project schema definitions following the BMAD structure as API contract.
 Any deviation from these schemas is a breaking change.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -175,8 +175,8 @@ class ProjectManifest(BaseModel):
 
     id: str = Field(description="Project UUID")
     name: str = Field(description="Human-readable project name")
-    created: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    modified: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    modified: datetime = Field(default_factory=lambda: datetime.now(UTC))
     version: str = Field(default="1.0.0", description="Schema version")
     quality: QualityLevel = Field(default=QualityLevel.STANDARD)
     takes_system_enabled: bool = Field(default=True)
@@ -194,7 +194,7 @@ class ProjectManifest(BaseModel):
 
     @validator("modified", pre=True, always=True)
     def update_modified(cls, v):
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
 class ProjectCreate(BaseModel):

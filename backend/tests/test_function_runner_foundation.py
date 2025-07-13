@@ -5,14 +5,13 @@ Tests the task dispatcher, quality mapping, and generation task handler
 without requiring actual AI models.
 """
 
-import asyncio
-import json
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, patch
 
-from app.services.dispatcher import TaskDispatcher, QualityTier, task_dispatcher_service
+import pytest
+
 from app.core.dispatcher import GenerationTaskHandler, task_dispatcher
+from app.services.dispatcher import QualityTier, TaskDispatcher, task_dispatcher_service
 
 
 class TestTaskDispatcher:

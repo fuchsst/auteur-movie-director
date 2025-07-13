@@ -64,7 +64,7 @@ def create_app() -> FastAPI:
             # Continue without Redis for development
 
         # Register task handlers
-        from app.core.dispatcher import EchoTaskHandler, GenerationTaskHandler
+        from app.core.dispatcher import GenerationTaskHandler
 
         task_dispatcher.register_handler("echo", EchoTaskHandler())
         task_dispatcher.register_handler("generation", GenerationTaskHandler())

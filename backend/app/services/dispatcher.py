@@ -8,7 +8,7 @@ the foundation for containerized AI model execution.
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -75,10 +75,10 @@ class TaskDispatcher:
     }
 
     def __init__(self):
-        self.active_tasks: Dict[str, Dict[str, Any]] = {}
+        self.active_tasks: dict[str, dict[str, Any]] = {}
         logger.info("Task dispatcher initialized with quality mappings")
 
-    async def dispatch_task(self, node_type: str, quality: str, parameters: Dict[str, Any]) -> str:
+    async def dispatch_task(self, node_type: str, quality: str, parameters: dict[str, Any]) -> str:
         """
         Dispatch task to appropriate pipeline based on quality tier
 
@@ -166,15 +166,15 @@ class TaskDispatcher:
         except (ValueError, KeyError):
             return priority_mapping[QualityTier.STANDARD]
 
-    def get_active_tasks(self) -> Dict[str, Dict[str, Any]]:
+    def get_active_tasks(self) -> dict[str, dict[str, Any]]:
         """Get all active tasks"""
         return self.active_tasks.copy()
 
-    def get_task_info(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task_info(self, task_id: str) -> dict[str, Any] | None:
         """Get information about a specific task"""
         return self.active_tasks.get(task_id)
 
-    def mark_task_completed(self, task_id: str, result: Optional[Dict[str, Any]] = None):
+    def mark_task_completed(self, task_id: str, result: dict[str, Any] | None = None):
         """Mark a task as completed and clean up tracking"""
         if task_id in self.active_tasks:
             self.active_tasks[task_id]["status"] = "completed"

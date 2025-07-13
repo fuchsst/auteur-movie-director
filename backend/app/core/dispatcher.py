@@ -198,8 +198,8 @@ class GenerationTaskHandler(TaskHandler):
 
     async def process(self, task_id: str, params: dict[str, Any]) -> dict[str, Any]:
         """Process generation task with pipeline routing"""
-        from pathlib import Path
         import json
+        from pathlib import Path
 
         logger.info(f"Processing generation task {task_id}")
 

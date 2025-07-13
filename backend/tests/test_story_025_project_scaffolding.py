@@ -8,11 +8,11 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.schemas.project import ProjectCreate, NarrativeStructure, QualityLevel
+from app.schemas.project import NarrativeStructure, ProjectCreate, QualityLevel
 from app.services.workspace import WorkspaceService
 
 
@@ -34,8 +34,6 @@ class TestStory025ProjectScaffolding:
     @pytest.fixture(autouse=True)
     def mock_dependencies(self):
         """Mock external dependencies"""
-        import asyncio
-        import git
 
         with (
             patch("app.services.git.git_service") as mock_git,
@@ -304,7 +302,6 @@ class TestStory025ProjectScaffolding:
     def test_concurrent_creation_handles_race_conditions(self, workspace_service):
         """Test concurrent creation handles race conditions"""
         import threading
-        import time
         import uuid
 
         results = []

@@ -15,7 +15,7 @@ import CompositeNode from './CompositeNode.svelte';
 export const nodeTypes: Record<string, ComponentType<NodeProps>> = {
   [NodeType.AUDIO]: AudioNode as ComponentType<NodeProps>,
   [NodeType.EFFECT]: EffectNode as ComponentType<NodeProps>,
-  [NodeType.COMPOSITE]: CompositeNode as ComponentType<NodeProps>,
+  [NodeType.COMPOSITE]: CompositeNode as ComponentType<NodeProps>
   // Add other node types as they are implemented
 };
 

@@ -17,9 +17,9 @@ export interface CreateNodeOptions {
  */
 export function createNode(options: CreateNodeOptions): AuteurNode {
   const { type, position, data = {} } = options;
-  
+
   // Find the node definition
-  const definition = nodeDefinitions.find(def => def.type === type);
+  const definition = nodeDefinitions.find((def) => def.type === type);
   if (!definition) {
     throw new Error(`Unknown node type: ${type}`);
   }
@@ -71,14 +71,10 @@ export function updateNodeStatus(
 /**
  * Updates node parameters
  */
-export function updateNodeParameter(
-  node: AuteurNode,
-  parameter: string,
-  value: any
-): AuteurNode {
+export function updateNodeParameter(node: AuteurNode, parameter: string, value: any): AuteurNode {
   // Handle nested parameters (e.g., 'parameters.brightness')
   const keys = parameter.split('.');
-  
+
   if (keys.length === 1) {
     // Top-level parameter
     return {
@@ -104,16 +100,16 @@ export function updateNodeParameter(
     // Other nested parameters
     const newData = { ...node.data };
     let current: any = newData;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       if (!(keys[i] in current)) {
         current[keys[i]] = {};
       }
       current = current[keys[i]];
     }
-    
+
     current[keys[keys.length - 1]] = value;
-    
+
     return {
       ...node,
       data: newData
@@ -126,9 +122,9 @@ export function updateNodeParameter(
  */
 export function isNodeReady(node: AuteurNode): boolean {
   // Check if all required inputs are connected
-  const requiredInputs = node.data.inputs.filter(input => input.required);
-  const allConnected = requiredInputs.every(input => input.connected);
-  
+  const requiredInputs = node.data.inputs.filter((input) => input.required);
+  const allConnected = requiredInputs.every((input) => input.connected);
+
   // Check node-specific readiness
   switch (node.type) {
     case 'audio':
@@ -137,7 +133,7 @@ export function isNodeReady(node: AuteurNode): boolean {
         return false;
       }
       break;
-    
+
     case 'composite':
       const compositeData = node.data as any;
       if (compositeData.layers.length === 0) {
@@ -145,7 +141,7 @@ export function isNodeReady(node: AuteurNode): boolean {
       }
       break;
   }
-  
+
   return allConnected;
 }
 
@@ -167,12 +163,12 @@ export function getNodeExecutionParams(node: AuteurNode): Record<string, any> {
       params.voiceId = node.data.voiceId;
       params.volume = node.data.volume;
       break;
-    
+
     case 'effect':
       params.effectType = node.data.effectType;
       params.intensity = node.data.intensity;
       break;
-    
+
     case 'composite':
       params.layers = node.data.layers;
       params.blendMode = node.data.blendMode;

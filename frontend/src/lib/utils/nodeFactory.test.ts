@@ -96,12 +96,7 @@ describe('nodeFactory', () => {
         position: { x: 0, y: 0 }
       });
 
-      const updatedNode = updateNodeStatus(
-        node,
-        NodeStatus.ERROR,
-        undefined,
-        'Processing failed'
-      );
+      const updatedNode = updateNodeStatus(node, NodeStatus.ERROR, undefined, 'Processing failed');
 
       expect(updatedNode.data.status).toBe(NodeStatus.ERROR);
       expect(updatedNode.data.error).toBe('Processing failed');
@@ -137,14 +132,16 @@ describe('nodeFactory', () => {
         position: { x: 0, y: 0 }
       });
 
-      const layers = [{
-        id: 'layer-1',
-        name: 'Layer 1',
-        visible: true,
-        opacity: 1,
-        blendMode: BlendMode.NORMAL,
-        transform: { x: 0, y: 0, scale: 1, rotation: 0 }
-      }];
+      const layers = [
+        {
+          id: 'layer-1',
+          name: 'Layer 1',
+          visible: true,
+          opacity: 1,
+          blendMode: BlendMode.NORMAL,
+          transform: { x: 0, y: 0, scale: 1, rotation: 0 }
+        }
+      ];
 
       const updatedNode = updateNodeParameter(node, 'layers', layers);
 
@@ -236,9 +233,7 @@ describe('nodeFactory', () => {
         data: {
           label: 'Effect',
           status: NodeStatus.IDLE,
-          inputs: [
-            { id: 'input', name: 'Input', type: 'image', required: true, connected: false }
-          ],
+          inputs: [{ id: 'input', name: 'Input', type: 'image', required: true, connected: false }],
           outputs: [],
           parameters: {}
         }
@@ -309,14 +304,16 @@ describe('nodeFactory', () => {
     });
 
     it('returns execution parameters for composite node', () => {
-      const layers = [{
-        id: 'layer-1',
-        name: 'Layer 1',
-        visible: true,
-        opacity: 0.8,
-        blendMode: BlendMode.MULTIPLY,
-        transform: { x: 0, y: 0, scale: 1, rotation: 0 }
-      }];
+      const layers = [
+        {
+          id: 'layer-1',
+          name: 'Layer 1',
+          visible: true,
+          opacity: 0.8,
+          blendMode: BlendMode.MULTIPLY,
+          transform: { x: 0, y: 0, scale: 1, rotation: 0 }
+        }
+      ];
 
       const node: AuteurNode = {
         id: 'composite-1',

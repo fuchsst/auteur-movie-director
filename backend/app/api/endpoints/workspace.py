@@ -15,7 +15,7 @@ from app.schemas.project import (
     ProjectManifest,
     ProjectStructureValidation,
 )
-from app.services.workspace import get_workspace_service
+from app.services.workspace import WorkspaceService, get_workspace_service
 
 logger = logging.getLogger(__name__)
 

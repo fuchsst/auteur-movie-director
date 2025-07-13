@@ -31,7 +31,12 @@
       { name: 'hue', label: 'Hue Shift', type: 'range', min: -180, max: 180, step: 1 }
     ],
     filter: [
-      { name: 'preset', label: 'Filter Preset', type: 'select', options: ['vintage', 'noir', 'sepia', 'cool', 'warm'] },
+      {
+        name: 'preset',
+        label: 'Filter Preset',
+        type: 'select',
+        options: ['vintage', 'noir', 'sepia', 'cool', 'warm']
+      },
       { name: 'strength', label: 'Strength', type: 'range', min: 0, max: 100, step: 1 }
     ],
     sharpen: [
@@ -42,9 +47,7 @@
       { name: 'strength', label: 'Denoise Strength', type: 'range', min: 0, max: 100, step: 5 },
       { name: 'detail', label: 'Preserve Detail', type: 'range', min: 0, max: 100, step: 5 }
     ],
-    custom: [
-      { name: 'shader', label: 'Shader Code', type: 'text' }
-    ]
+    custom: [{ name: 'shader', label: 'Shader Code', type: 'text' }]
   };
 
   function handleEffectTypeChange(e: Event) {
@@ -58,7 +61,7 @@
   function handleParameterChange(paramName: string, e: Event) {
     const target = e.target as HTMLInputElement | HTMLSelectElement;
     const value = target.type === 'range' ? parseFloat(target.value) : target.value;
-    
+
     dispatch('parameterChange', {
       parameter: `parameters.${paramName}`,
       value
@@ -226,7 +229,7 @@
   }
 
   select,
-  input[type="range"],
+  input[type='range'],
   textarea {
     width: 100%;
     background: var(--input-bg, #0f172a);
@@ -254,8 +257,8 @@
     gap: 8px;
   }
 
-  .intensity-control input[type="range"],
-  .parameter input[type="range"] {
+  .intensity-control input[type='range'],
+  .parameter input[type='range'] {
     flex: 1;
   }
 

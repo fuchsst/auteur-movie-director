@@ -31,7 +31,7 @@
 
   function handleLayerVisibilityToggle(layerId: string) {
     const layers = [...data.layers];
-    const layer = layers.find(l => l.id === layerId);
+    const layer = layers.find((l) => l.id === layerId);
     if (layer) {
       layer.visible = !layer.visible;
       dispatch('parameterChange', {
@@ -44,7 +44,7 @@
   function handleLayerOpacityChange(layerId: string, e: Event) {
     const target = e.target as HTMLInputElement;
     const layers = [...data.layers];
-    const layer = layers.find(l => l.id === layerId);
+    const layer = layers.find((l) => l.id === layerId);
     if (layer) {
       layer.opacity = parseFloat(target.value);
       dispatch('parameterChange', {
@@ -57,7 +57,7 @@
   function handleLayerBlendModeChange(layerId: string, e: Event) {
     const target = e.target as HTMLSelectElement;
     const layers = [...data.layers];
-    const layer = layers.find(l => l.id === layerId);
+    const layer = layers.find((l) => l.id === layerId);
     if (layer) {
       layer.blendMode = target.value as BlendMode;
       dispatch('parameterChange', {
@@ -112,7 +112,7 @@
   function removeLayer(layerId: string) {
     dispatch('parameterChange', {
       parameter: 'layers',
-      value: data.layers.filter(l => l.id !== layerId)
+      value: data.layers.filter((l) => l.id !== layerId)
     });
   }
 
@@ -182,11 +182,7 @@
                 {layer.visible ? '👁️' : '👁️‍🗨️'}
               </button>
               <span class="layer-name">{layer.name}</span>
-              <button
-                type="button"
-                class="remove-layer-btn"
-                on:click={() => removeLayer(layer.id)}
-              >
+              <button type="button" class="remove-layer-btn" on:click={() => removeLayer(layer.id)}>
                 ×
               </button>
             </div>
@@ -250,7 +246,7 @@
   <Handle type="target" position={Position.Left} id="layer-1" style="top: 30%" />
   <Handle type="target" position={Position.Left} id="layer-2" style="top: 50%" />
   <Handle type="target" position={Position.Left} id="layer-3" style="top: 70%" />
-  
+
   <Handle type="source" position={Position.Right} id="composite-out" />
 </div>
 
@@ -301,7 +297,7 @@
   }
 
   select,
-  input[type="range"] {
+  input[type='range'] {
     width: 100%;
     background: var(--input-bg, #0f172a);
     border: 1px solid var(--input-border, #334155);

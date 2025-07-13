@@ -112,12 +112,7 @@
     {/if}
 
     <div class="waveform-container">
-      <canvas
-        bind:this={canvas}
-        width="200"
-        height="60"
-        use:drawWaveform={data.waveform}
-      />
+      <canvas bind:this={canvas} width="200" height="60" use:drawWaveform={data.waveform} />
     </div>
 
     <div class="volume-control">
@@ -204,7 +199,7 @@
 
   select,
   textarea,
-  input[type="range"] {
+  input[type='range'] {
     width: 100%;
     background: var(--input-bg, #0f172a);
     border: 1px solid var(--input-border, #334155);

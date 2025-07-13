@@ -7,9 +7,11 @@ The Production Canvas is a node-based visual workflow system for creating cinema
 ### Advanced Nodes (Sprint 6)
 
 #### Audio Node (`AudioNode.svelte`)
+
 Handles audio generation, processing, and file management.
 
 **Features:**
+
 - Audio source selection (file/generate/record)
 - Voice synthesis with text input
 - Waveform visualization
@@ -17,6 +19,7 @@ Handles audio generation, processing, and file management.
 - Duration display
 
 **Data Structure:**
+
 ```typescript
 interface AudioNodeData {
   audioSource?: 'file' | 'generate' | 'record';
@@ -31,9 +34,11 @@ interface AudioNodeData {
 ```
 
 #### Effect Node (`EffectNode.svelte`)
+
 Applies visual effects and post-processing to images/videos.
 
 **Features:**
+
 - Multiple effect types (blur, color, filter, sharpen, denoise, custom)
 - Effect-specific parameters
 - Intensity control
@@ -41,6 +46,7 @@ Applies visual effects and post-processing to images/videos.
 - Custom shader support
 
 **Effect Types:**
+
 - **Blur**: Gaussian, motion, box blur with radius control
 - **Color**: Brightness, contrast, saturation, hue adjustment
 - **Filter**: Preset filters (vintage, noir, sepia, cool, warm)
@@ -49,9 +55,11 @@ Applies visual effects and post-processing to images/videos.
 - **Custom**: User-defined shader code
 
 #### Composite Node (`CompositeNode.svelte`)
+
 Combines multiple layers into a single output.
 
 **Features:**
+
 - Layer management (add/remove/reorder)
 - Per-layer controls:
   - Visibility toggle
@@ -63,6 +71,7 @@ Combines multiple layers into a single output.
 - Output format selection (image/video)
 
 **Blend Modes:**
+
 - Normal, Multiply, Screen, Overlay
 - Soft Light, Hard Light
 - Color Dodge, Color Burn
@@ -76,6 +85,7 @@ The node factory (`nodeFactory.ts`) provides utilities for creating and managing
 ### Functions
 
 #### `createNode(options)`
+
 Creates a new node with default values.
 
 ```typescript
@@ -87,6 +97,7 @@ const audioNode = createNode({
 ```
 
 #### `updateNodeStatus(node, status, progress?, error?)`
+
 Updates node execution status.
 
 ```typescript
@@ -98,6 +109,7 @@ const updatedNode = updateNodeStatus(
 ```
 
 #### `updateNodeParameter(node, parameter, value)`
+
 Updates node parameters, supporting nested paths.
 
 ```typescript
@@ -109,9 +121,11 @@ const updated = updateNodeParameter(node, 'parameters.brightness', 20);
 ```
 
 #### `isNodeReady(node)`
+
 Validates if a node has all requirements to execute.
 
 #### `getNodeExecutionParams(node)`
+
 Extracts parameters for Function Runner execution.
 
 ## Node Registry
@@ -169,6 +183,7 @@ const compositeNode = createNode({
 ## Styling
 
 Nodes use CSS variables for theming:
+
 - `--node-bg`: Background color
 - `--node-border`: Border color
 - `--node-selected`: Selected state color
@@ -176,6 +191,7 @@ Nodes use CSS variables for theming:
 - `--input-bg/border`: Form control colors
 
 Each node type has a distinct handle color for visual differentiation:
+
 - Audio: Blue (#3b82f6)
 - Effect: Purple (#8b5cf6)
 - Composite: Amber (#f59e0b)
@@ -183,6 +199,7 @@ Each node type has a distinct handle color for visual differentiation:
 ## Testing
 
 Comprehensive test suites cover:
+
 - Component rendering and interaction
 - Parameter updates and event handling
 - Node factory functions
@@ -190,6 +207,7 @@ Comprehensive test suites cover:
 - State management
 
 Run tests with:
+
 ```bash
 npm test src/lib/components/canvas/nodes/
 npm test src/lib/utils/nodeFactory.test.ts

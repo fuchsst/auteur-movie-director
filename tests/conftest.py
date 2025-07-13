@@ -5,7 +5,6 @@ import asyncio
 import tempfile
 from pathlib import Path
 from typing import AsyncGenerator
-import os
 
 from httpx import AsyncClient
 from app.main import app
