@@ -55,6 +55,7 @@ export interface PropertyGroup {
 export interface SelectionContext {
   type: 'project' | 'asset' | 'node' | 'scene' | 'shot';
   id: string;
+  shotId?: string; // For shot selections - the full shot identifier
   assetType?: 'character' | 'location' | 'style' | 'music';
   metadata?: Record<string, unknown>;
 }

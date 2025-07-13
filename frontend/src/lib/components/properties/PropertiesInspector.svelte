@@ -4,9 +4,11 @@
   import { PropertyType } from '$lib/types/properties';
   import PropertyGroup from './PropertyGroup.svelte';
   import PropertyEditor from './PropertyEditor.svelte';
+  import ShotTakesPanel from './ShotTakesPanel.svelte';
   import { currentProject } from '$lib/stores/app';
   import { api } from '$lib/api/client';
   import type { ProjectManifest, CharacterAsset, Asset } from '$lib/types/project';
+  import type { TakeMetadata } from '$lib/api/takes';
 
   export let selection: SelectionContext | null = null;
 
@@ -38,6 +40,9 @@
           break;
         case 'asset':
           properties = await getAssetProperties(context.id, context.assetType);
+          break;
+        case 'shot':
+          properties = await getShotProperties(context.id, context.shotId);
           break;
         case 'node':
           // Future: Load node properties
@@ -191,6 +196,89 @@
         value: project.id,
         editable: false,
         group: 'Metadata'
+      }
+    ];
+  }
+
+  async function getShotProperties(projectId: string, shotId?: string): Promise<PropertyDefinition[]> {
+    if (!shotId) return [];
+
+    // Parse shot ID to extract components
+    const shotParts = shotId.split('/');
+    const shotName = shotParts[shotParts.length - 1] || shotId;
+    const sceneName = shotParts.length > 1 ? shotParts[shotParts.length - 2] : 'Default Scene';
+    const chapterName = shotParts.length > 2 ? shotParts[shotParts.length - 3] : 'Default Chapter';
+
+    return [
+      {
+        key: 'shot.name',
+        label: 'Shot Name',
+        type: PropertyType.TEXT,
+        value: shotName,
+        editable: true,
+        required: true,
+        group: 'Shot Details'
+      },
+      {
+        key: 'shot.scene',
+        label: 'Scene',
+        type: PropertyType.TEXT,
+        value: sceneName,
+        editable: false,
+        group: 'Hierarchy'
+      },
+      {
+        key: 'shot.chapter',
+        label: 'Chapter',
+        type: PropertyType.TEXT,
+        value: chapterName,
+        editable: false,
+        group: 'Hierarchy'
+      },
+      {
+        key: 'shot.description',
+        label: 'Description',
+        type: PropertyType.TEXTAREA,
+        value: '',
+        editable: true,
+        placeholder: 'Describe what happens in this shot...',
+        group: 'Shot Details'
+      },
+      {
+        key: 'shot.cameraAngle',
+        label: 'Camera Angle',
+        type: PropertyType.SELECT,
+        value: 'medium',
+        editable: true,
+        options: [
+          { label: 'Close Up', value: 'close-up' },
+          { label: 'Medium Shot', value: 'medium' },
+          { label: 'Wide Shot', value: 'wide' },
+          { label: 'Extreme Close Up', value: 'extreme-close-up' },
+          { label: 'Extreme Wide Shot', value: 'extreme-wide' }
+        ],
+        group: 'Camera'
+      },
+      {
+        key: 'shot.duration',
+        label: 'Duration (seconds)',
+        type: PropertyType.NUMBER,
+        value: 5,
+        editable: true,
+        min: 0.5,
+        max: 30,
+        step: 0.5,
+        group: 'Timing'
+      },
+      {
+        key: 'shot.prompt',
+        label: 'Generation Prompt',
+        type: PropertyType.TEXTAREA,
+        value: '',
+        editable: true,
+        placeholder: 'Enter the prompt for generating this shot...',
+        description: 'Prompt used for AI generation of this shot',
+        group: 'Generation'
       }
     ];
   }
@@ -394,6 +482,22 @@
 
     return null;
   }
+
+  // Take panel event handlers
+  function handleTakeSelected(event: CustomEvent<{ take: TakeMetadata }>) {
+    console.log('Take selected:', event.detail.take);
+    // Future: Update canvas or preview with selected take
+  }
+
+  function handleGenerateTake() {
+    console.log('Generate new take for shot:', selection?.shotId);
+    // Future: Trigger take generation
+  }
+
+  function handleActiveTakeChanged(event: CustomEvent<{ takeId: string }>) {
+    console.log('Active take changed:', event.detail.takeId);
+    // Future: Update shot metadata with new active take
+  }
 </script>
 
 <div class="properties-inspector">
@@ -461,6 +565,19 @@
           {/each}
         </PropertyGroup>
       {/each}
+      
+      <!-- Show takes panel for shot selections -->
+      {#if selection?.type === 'shot' && selection.id && selection.shotId}
+        <div class="takes-panel-container">
+          <ShotTakesPanel
+            projectId={selection.id}
+            shotId={selection.shotId}
+            on:takeSelected={handleTakeSelected}
+            on:generateTake={handleGenerateTake}
+            on:activeTakeChanged={handleActiveTakeChanged}
+          />
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -567,5 +684,11 @@
   .empty-state p {
     margin: 0;
     font-size: 0.875rem;
+  }
+
+  .takes-panel-container {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border, #3a3a3a);
   }
 </style>
