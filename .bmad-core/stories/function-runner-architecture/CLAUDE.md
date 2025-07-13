@@ -8,7 +8,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-041: Worker Pool Management](./STORY-041-worker-pool-management.md)** (8 points) ✅
   - Dynamic worker scaling, lifecycle management, graceful shutdown
 
-- **[STORY-042: Task Queue Configuration](./STORY-042-task-queue-configuration.md)** (7 points)
+- **[STORY-042: Task Queue Configuration](./STORY-042-task-queue-configuration.md)** (7 points) ✅
   - Intelligent routing, priority queuing, quality-based distribution
 
 - **[STORY-043: Worker Health Monitoring](./STORY-043-worker-health-monitoring.md)** (5 points)
@@ -48,7 +48,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-052: Performance Testing Suite](./STORY-052-performance-testing-suite.md)** (4 points)
   - Load testing, performance validation, benchmarking
 
-## Total Story Points: 82 (20 Completed, 62 Remaining)
+## Total Story Points: 82 (27 Completed, 55 Remaining)
 
 ## Story Dependencies
 
