@@ -233,6 +233,77 @@ class WorkerPoolManager:
         elif idle_workers > 0 and queue_depth <= self.scale_down_threshold:
             await self._terminate_idle_worker()
 
+    async def restart_worker(self, worker_id: str, force: bool = False) -> bool:
+        """Restart a specific worker"""
+        try:
+            logger.info(f"Restarting worker {worker_id}")
+            
+            # Get worker info before removing
+            worker = self.workers.get(worker_id)
+            if not worker:
+                logger.error(f"Worker {worker_id} not found")
+                return False
+            
+            worker_type = worker.type
+            
+            # Terminate old worker
+            success = await self.terminate_worker(worker_id, graceful=not force)
+            if not success:
+                logger.error(f"Failed to terminate worker {worker_id}")
+                return False
+            
+            # Wait a moment for cleanup
+            await asyncio.sleep(2)
+            
+            # Spawn new worker with same type
+            new_worker_id = await self.spawn_worker(worker_type)
+            
+            if new_worker_id:
+                logger.info(f"Worker {worker_id} restarted as {new_worker_id}")
+                
+                # Start health monitoring for new worker
+                try:
+                    from app.worker.health_monitor import worker_health_monitor
+                    if new_worker_id not in worker_health_monitor.monitoring_tasks:
+                        task = asyncio.create_task(
+                            worker_health_monitor.monitor_worker(new_worker_id)
+                        )
+                        worker_health_monitor.monitoring_tasks[new_worker_id] = task
+                except Exception as e:
+                    logger.warning(f"Could not start health monitoring for {new_worker_id}: {e}")
+                
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Failed to restart worker {worker_id}: {e}")
+            return False
+
+    async def get_worker(self, worker_id: str) -> Optional[WorkerInfo]:
+        """Get information about a specific worker"""
+        return self.workers.get(worker_id)
+
+    async def get_all_workers(self) -> List[WorkerInfo]:
+        """Get all workers"""
+        return list(self.workers.values())
+
+    async def add_worker(self, worker_type: str) -> Optional[WorkerInfo]:
+        """Add a new worker (alias for spawn_worker with string type)"""
+        try:
+            worker_type_enum = WorkerType(worker_type.lower())
+            worker_id = await self.spawn_worker(worker_type_enum)
+            if worker_id:
+                return self.workers.get(worker_id)
+            return None
+        except ValueError:
+            logger.error(f"Invalid worker type: {worker_type}")
+            return None
+
+    async def remove_worker(self, worker_id: str) -> bool:
+        """Remove a worker (alias for terminate_worker)"""
+        return await self.terminate_worker(worker_id)
+
     async def get_worker_metrics(self) -> Dict[str, Any]:
         """Get comprehensive worker pool metrics"""
         active_workers = self.get_active_workers()

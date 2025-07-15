@@ -4,7 +4,7 @@ Main API router that combines all endpoints.
 
 from fastapi import APIRouter
 
-from app.api.endpoints import health, system, upload, workspace, workers, queues
+from app.api.endpoints import health, system, upload, workspace, workers, queues, health_monitor
 from app.api.v1 import (
     asset_operations,
     assets,
@@ -35,3 +35,4 @@ api_router.include_router(export.router, tags=["export"])
 api_router.include_router(import_api.router, tags=["import"])
 api_router.include_router(workers.router, tags=["workers"])
 api_router.include_router(queues.router, tags=["queues"])
+api_router.include_router(health_monitor.router, tags=["health-monitoring"])

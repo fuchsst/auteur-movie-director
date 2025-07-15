@@ -11,7 +11,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-042: Task Queue Configuration](./STORY-042-task-queue-configuration.md)** (7 points) ✅
   - Intelligent routing, priority queuing, quality-based distribution
 
-- **[STORY-043: Worker Health Monitoring](./STORY-043-worker-health-monitoring.md)** (5 points)
+- **[STORY-043: Worker Health Monitoring](./STORY-043-worker-health-monitoring.md)** (5 points) ✅
   - Health checks, auto-recovery, monitoring dashboard
 
 ### Template Management Stories (18 points)
@@ -48,7 +48,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-052: Performance Testing Suite](./STORY-052-performance-testing-suite.md)** (4 points)
   - Load testing, performance validation, benchmarking
 
-## Total Story Points: 82 (27 Completed, 55 Remaining)
+## Total Story Points: 82 (32 Completed, 50 Remaining)
 
 ## Story Dependencies
 
