@@ -12,7 +12,14 @@ from pathlib import Path
 from typing import Optional
 from tabulate import tabulate
 
-from app.templates import TemplateValidator, FunctionTemplate
+from app.templates import (
+    TemplateValidator, 
+    FunctionTemplate,
+    TemplateValidationPipeline,
+    ValidationContext,
+    ValidationResultFormatter,
+    OutputFormat
+)
 from app.templates.registry import TemplateRegistry
 
 
@@ -25,9 +32,13 @@ def template():
 @template.command()
 @click.argument('template_file', type=click.Path(exists=True, path_type=Path))
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed validation output')
-def validate(template_file: Path, verbose: bool):
-    """Validate a template definition file"""
-    click.echo(f"Validating template: {template_file}")
+@click.option('--strict', is_flag=True, help='Enable strict validation mode')
+@click.option('--format', type=click.Choice(['cli', 'json', 'markdown']), default='cli', help='Output format')
+@click.option('--no-color', is_flag=True, help='Disable colored output')
+def validate(template_file: Path, verbose: bool, strict: bool, format: str, no_color: bool):
+    """Validate a template definition file with comprehensive checks"""
+    if not no_color:
+        click.echo(f"Validating template: {template_file}")
     
     try:
         # Load template file
@@ -37,39 +48,48 @@ def validate(template_file: Path, verbose: bool):
         else:
             definition = yaml.safe_load(content)
         
-        # Validate
-        validator = TemplateValidator()
-        errors = validator.validate(definition)
+        # Use comprehensive validation pipeline
+        pipeline = TemplateValidationPipeline()
+        formatter = ValidationResultFormatter()
         
-        if errors:
-            click.echo(click.style("❌ Template validation failed:", fg='red'))
-            for error in errors:
-                click.echo(f"  • {error}")
+        # Create validation context
+        context = ValidationContext(
+            strict_mode=strict,
+            check_uniqueness=True,
+            check_dependencies=True
+        )
+        
+        # Run validation
+        import asyncio
+        result = asyncio.run(pipeline.validate(definition, context))
+        
+        # Format output
+        output_format = OutputFormat(format)
+        if output_format == OutputFormat.CLI:
+            output = formatter.format_cli(result, use_color=not no_color)
+            click.echo(output)
+        elif output_format == OutputFormat.JSON:
+            output = formatter.format_json(result)
+            click.echo(json.dumps(output, indent=2))
+        elif output_format == OutputFormat.MARKDOWN:
+            output = formatter.format_markdown(result)
+            click.echo(output)
+        
+        # Exit with error code if validation failed
+        if not result.is_valid():
             sys.exit(1)
-        else:
-            click.echo(click.style("✓ Template is valid!", fg='green'))
             
-            if verbose:
-                # Show template info
-                template = FunctionTemplate(definition)
-                click.echo(f"\nTemplate Info:")
-                click.echo(f"  ID: {template.id}")
-                click.echo(f"  Name: {template.name}")
-                click.echo(f"  Version: {template.version}")
-                click.echo(f"  Category: {template.category}")
-                click.echo(f"  Author: {template.author}")
-                click.echo(f"  GPU Required: {template.resources.gpu}")
-                
-                # Show inputs
-                click.echo(f"\nInputs ({len(template.interface.inputs)}):")
-                for name, param in template.interface.inputs.items():
-                    req = "required" if param.required else "optional"
-                    click.echo(f"  • {name} ({param.type.value}, {req}): {param.description}")
-                
-                # Show outputs
-                click.echo(f"\nOutputs ({len(template.interface.outputs)}):")
-                for name, param in template.interface.outputs.items():
-                    click.echo(f"  • {name} ({param.type.value}): {param.description}")
+        # Show additional info if verbose and valid
+        if verbose and result.is_valid() and output_format == OutputFormat.CLI:
+            # Show template info
+            template = FunctionTemplate(definition)
+            click.echo(f"\nTemplate Info:")
+            click.echo(f"  ID: {template.id}")
+            click.echo(f"  Name: {template.name}")
+            click.echo(f"  Version: {template.version}")
+            click.echo(f"  Category: {template.category}")
+            click.echo(f"  Author: {template.author}")
+            click.echo(f"  GPU Required: {template.resources.gpu}")
     
     except Exception as e:
         click.echo(click.style(f"❌ Error loading template: {e}", fg='red'))
@@ -401,6 +421,111 @@ def create(output_file: Path, id: str, name: str, category: str):
     click.echo(f"1. Edit {output_file} to customize the template")
     click.echo(f"2. Run 'template validate {output_file}' to check validity")
     click.echo(f"3. Place in templates directory for auto-loading")
+
+
+@template.command(name='validate-batch')
+@click.argument('template_files', nargs=-1, type=click.Path(exists=True, path_type=Path))
+@click.option('--directory', '-d', type=click.Path(exists=True, path_type=Path), 
+              help='Validate all templates in directory')
+@click.option('--pattern', '-p', default='*.yaml', help='File pattern for directory search')
+@click.option('--strict', is_flag=True, help='Enable strict validation mode')
+@click.option('--format', type=click.Choice(['cli', 'json']), default='cli', help='Output format')
+def validate_batch(template_files: tuple, directory: Optional[Path], pattern: str, 
+                  strict: bool, format: str):
+    """Validate multiple template files"""
+    # Collect files to validate
+    files_to_validate = []
+    
+    if directory:
+        files_to_validate.extend(directory.glob(pattern))
+        if pattern != '*.yml':
+            files_to_validate.extend(directory.glob('*.yml'))
+    
+    files_to_validate.extend(template_files)
+    
+    if not files_to_validate:
+        click.echo("No template files found to validate", err=True)
+        sys.exit(1)
+    
+    # Use validation pipeline
+    pipeline = TemplateValidationPipeline()
+    formatter = ValidationResultFormatter()
+    
+    # Create validation context
+    context = ValidationContext(
+        strict_mode=strict,
+        check_uniqueness=True,
+        check_dependencies=True
+    )
+    
+    # Validate all files
+    import asyncio
+    results = asyncio.run(pipeline.validate_batch(files_to_validate, context))
+    
+    # Format output
+    output_format = OutputFormat(format)
+    summary = formatter.format_batch_summary(results, output_format)
+    
+    if output_format == OutputFormat.JSON:
+        click.echo(json.dumps(summary, indent=2))
+    else:
+        click.echo(summary)
+    
+    # Exit with error code if any validation failed
+    invalid_count = sum(1 for r in results.values() if not r.is_valid())
+    if invalid_count > 0:
+        sys.exit(1)
+
+
+@template.command(name='validation-rules')
+def show_validation_rules():
+    """Show all template validation rules"""
+    formatter = ValidationResultFormatter()
+    
+    click.echo(click.style("Template Validation Rules", bold=True))
+    click.echo("=" * 50)
+    
+    click.echo(click.style("\nValidation Stages:", fg='cyan'))
+    
+    stages = [
+        ("Schema", [
+            "Template must have required fields: id, name, version, interface, requirements",
+            "ID must contain only lowercase letters, numbers, and underscores",
+            "Version must follow semantic versioning (e.g., 1.0.0)",
+            "Category must be one of: generation, processing, analysis, utility"
+        ]),
+        ("Types", [
+            "All parameters must have a valid type",
+            "Valid types: string, integer, float, boolean, array, object, file",
+            "Constraints must be appropriate for the parameter type",
+            "Default values must match type and satisfy constraints"
+        ]),
+        ("Resources", [
+            "GPU templates must specify VRAM requirements",
+            "CPU cores must be at least 1",
+            "Memory requirements must be positive",
+            "Quality presets must match input enum values"
+        ]),
+        ("Examples", [
+            "Examples must have unique names",
+            "Example inputs must include all required parameters",
+            "Example inputs must pass parameter validation"
+        ]),
+        ("Dependencies", [
+            "No circular dependencies allowed",
+            "Parent templates must exist"
+        ]),
+        ("Uniqueness", [
+            "Template ID and version combination must be unique"
+        ])
+    ]
+    
+    for stage_name, rules in stages:
+        click.echo(click.style(f"\n{stage_name}:", fg='yellow'))
+        for rule in rules:
+            click.echo(f"  • {rule}")
+    
+    click.echo(click.style("\nRun 'template validate <file>' to check your template", fg='blue'))
 
 
 # Add to main CLI
