@@ -18,7 +18,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-044: Function Template Registry](./STORY-044-function-template-registry.md)** (8 points) ✅
   - Central registry, version management, metadata indexing
 
-- **[STORY-045: Template Validation System](./STORY-045-template-validation-system.md)** (5 points)
+- **[STORY-045: Template Validation System](./STORY-045-template-validation-system.md)** (5 points) ✅
   - Comprehensive validation, schema enforcement, error reporting
 
 - **[STORY-046: Resource Requirement Mapping](./STORY-046-resource-requirement-mapping.md)** (5 points)
@@ -48,7 +48,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-052: Performance Testing Suite](./STORY-052-performance-testing-suite.md)** (4 points)
   - Load testing, performance validation, benchmarking
 
-## Total Story Points: 82 (40 Completed, 42 Remaining)
+## Total Story Points: 82 (45 Completed, 37 Remaining)
 
 ## Story Dependencies
 
