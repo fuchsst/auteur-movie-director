@@ -86,6 +86,12 @@ class Settings(BaseSettings):
     git_author_name: str | None = Field(default=None, env="GIT_AUTHOR_NAME")
     git_author_email: str | None = Field(default=None, env="GIT_AUTHOR_EMAIL")
     git_lfs_threshold_mb: int = 50  # Files larger than this use LFS
+    
+    # Template Settings
+    TEMPLATE_DIRECTORIES: list[str] = Field(
+        default_factory=lambda: ["./templates", "./workspace/Library/Templates"],
+        env="TEMPLATE_DIRECTORIES"
+    )
 
     class Config:
         env_file = ".env"

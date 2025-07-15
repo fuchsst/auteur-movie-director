@@ -1,0 +1,133 @@
+template:
+  id: "image_generation"
+  name: "Image Generation"
+  version: "1.0.0"
+  description: "Generate images from text prompts using Stable Diffusion"
+  category: "generation"
+  author: "Auteur Team"
+  tags: ["image", "ai", "stable-diffusion", "text-to-image"]
+  
+  interface:
+    inputs:
+      prompt:
+        type: string
+        description: "Text description of the image to generate"
+        required: true
+        min_length: 1
+        max_length: 1000
+        
+      negative_prompt:
+        type: string
+        description: "What to avoid in the image"
+        required: false
+        default: ""
+        max_length: 500
+        
+      width:
+        type: integer
+        description: "Image width in pixels"
+        required: false
+        default: 512
+        enum: [512, 768, 1024, 1280, 1536]
+        
+      height:
+        type: integer
+        description: "Image height in pixels"
+        required: false
+        default: 512
+        enum: [512, 768, 1024, 1280, 1536]
+        
+      quality:
+        type: string
+        description: "Generation quality level"
+        required: false
+        default: "standard"
+        enum: ["draft", "standard", "high", "ultra"]
+        
+      seed:
+        type: integer
+        description: "Random seed for reproducibility"
+        required: false
+        min: 0
+        max: 2147483647
+        
+      num_images:
+        type: integer
+        description: "Number of images to generate"
+        required: false
+        default: 1
+        min: 1
+        max: 4
+        
+    outputs:
+      images:
+        type: array
+        description: "Generated image files"
+        
+      metadata:
+        type: object
+        description: "Generation metadata"
+        properties:
+          actual_seed:
+            type: integer
+          generation_time:
+            type: float
+          model_version:
+            type: string
+          parameters:
+            type: object
+            
+  requirements:
+    resources:
+      gpu: true
+      vram_gb: 8.0
+      cpu_cores: 2
+      memory_gb: 8.0
+      disk_gb: 20.0
+      
+    models:
+      - name: "stable-diffusion-v1-5"
+        type: "checkpoint"
+        size_gb: 4.2
+        source: "huggingface.co/runwayml/stable-diffusion-v1-5"
+        
+    quality_presets:
+      draft:
+        steps: 20
+        cfg_scale: 7.0
+        sampler: "euler_a"
+      standard:
+        steps: 30
+        cfg_scale: 7.5
+        sampler: "dpm++_2m"
+      high:
+        steps: 50
+        cfg_scale: 8.0
+        sampler: "dpm++_2m_karras"
+        hires_fix: true
+      ultra:
+        steps: 100
+        cfg_scale: 8.5
+        sampler: "dpm++_3m_sde"
+        hires_fix: true
+        upscale: 2.0
+        
+  examples:
+    - name: "Portrait Generation"
+      description: "Generate a professional portrait"
+      inputs:
+        prompt: "Professional portrait photo of a woman, studio lighting, high quality"
+        negative_prompt: "cartoon, anime, illustration, painting"
+        width: 512
+        height: 768
+        quality: "high"
+        
+    - name: "Landscape Scene"
+      description: "Generate a natural landscape"
+      inputs:
+        prompt: "Beautiful mountain landscape at sunset, golden hour lighting"
+        negative_prompt: "people, buildings, text"
+        width: 1024
+        height: 768
+        quality: "standard"
+        seed: 42
