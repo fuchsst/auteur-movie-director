@@ -5,7 +5,7 @@
 **Type**: Feature  
 **Points**: 5 (Medium)  
 **Priority**: High  
-**Status**: 🔲 Not Started  
+**Status**: ✅ Completed  
 
 ## Story Description
 As a resource manager, I want automatic mapping between function requirements and available worker resources, so that tasks are efficiently allocated to workers with appropriate CPU, memory, and GPU capabilities, maximizing throughput while preventing resource exhaustion.
