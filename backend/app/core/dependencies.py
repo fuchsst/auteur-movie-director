@@ -8,6 +8,9 @@ from pathlib import Path
 from app.templates import TemplateRegistry
 from app.resources import ResourceMapper, GPUResourceManager, ResourceMonitor
 from app.config import settings
+from app.progress import ProgressTracker
+from app.services.websocket import WebSocketManager
+from redis import asyncio as aioredis
 
 
 # Global instances
@@ -15,6 +18,9 @@ _template_registry: Optional[TemplateRegistry] = None
 _resource_mapper: Optional[ResourceMapper] = None
 _gpu_manager: Optional[GPUResourceManager] = None
 _resource_monitor: Optional[ResourceMonitor] = None
+_progress_tracker: Optional[ProgressTracker] = None
+_ws_manager: Optional[WebSocketManager] = None
+_redis_client: Optional[aioredis.Redis] = None
 
 
 def get_template_registry() -> TemplateRegistry:
@@ -119,3 +125,58 @@ def get_resource_monitor() -> ResourceMonitor:
             pass
     
     return _resource_monitor
+
+
+async def get_redis_client() -> aioredis.Redis:
+    """
+    Get or create Redis client instance.
+    
+    Returns:
+        aioredis.Redis: Redis client
+    """
+    global _redis_client
+    
+    if _redis_client is None:
+        _redis_client = await aioredis.from_url(
+            settings.redis_url,
+            encoding="utf-8",
+            decode_responses=True
+        )
+    
+    return _redis_client
+
+
+def get_ws_manager() -> WebSocketManager:
+    """
+    Get or create WebSocket manager instance.
+    
+    Returns:
+        WebSocketManager: WebSocket manager
+    """
+    global _ws_manager
+    
+    if _ws_manager is None:
+        _ws_manager = WebSocketManager()
+    
+    return _ws_manager
+
+
+async def get_progress_tracker() -> ProgressTracker:
+    """
+    Get or create progress tracker instance.
+    
+    Returns:
+        ProgressTracker: Progress tracker
+    """
+    global _progress_tracker
+    
+    if _progress_tracker is None:
+        redis_client = await get_redis_client()
+        ws_manager = get_ws_manager()
+        _progress_tracker = ProgressTracker(
+            redis_client, 
+            ws_manager,
+            preview_dir=str(settings.PREVIEW_DIR)
+        )
+    
+    return _progress_tracker

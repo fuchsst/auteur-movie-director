@@ -25,7 +25,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
   - Resource allocation, GPU/CPU requirements, optimization profiles
 
 ### API Client Layer Stories (22 points)
-- **[STORY-047: Function Runner API Client](./STORY-047-function-runner-api-client.md)** (10 points)
+- **[STORY-047: Function Runner API Client](./STORY-047-function-runner-api-client.md)** (10 points) ✅
   - TypeScript client, type safety, request/response handling
 
 - **[STORY-048: Progress Tracking System](./STORY-048-progress-tracking-system.md)** (7 points)
@@ -48,7 +48,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-052: Performance Testing Suite](./STORY-052-performance-testing-suite.md)** (4 points)
   - Load testing, performance validation, benchmarking
 
-## Total Story Points: 82 (50 Completed, 32 Remaining)
+## Total Story Points: 82 (60 Completed, 22 Remaining)
 
 ## Story Dependencies
 

@@ -17,7 +17,9 @@
       "Bash(python -m pytest:*)",
       "Bash(true)",
       "Bash(npm run test:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

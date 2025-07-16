@@ -92,6 +92,9 @@ class Settings(BaseSettings):
         default_factory=lambda: ["./templates", "./workspace/Library/Templates"],
         env="TEMPLATE_DIRECTORIES"
     )
+    
+    # Progress Tracking
+    PREVIEW_DIR: Path = Field(default=Path("./workspace/previews"), env="PREVIEW_DIR")
 
     class Config:
         env_file = ".env"
