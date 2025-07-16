@@ -10,6 +10,7 @@ from app.resources import ResourceMapper, GPUResourceManager, ResourceMonitor
 from app.config import settings
 from app.progress import ProgressTracker
 from app.services.websocket import WebSocketManager
+from app.error_handling import ErrorHandlingIntegration
 from redis import asyncio as aioredis
 
 
@@ -21,6 +22,7 @@ _resource_monitor: Optional[ResourceMonitor] = None
 _progress_tracker: Optional[ProgressTracker] = None
 _ws_manager: Optional[WebSocketManager] = None
 _redis_client: Optional[aioredis.Redis] = None
+_error_handler: Optional[ErrorHandlingIntegration] = None
 
 
 def get_template_registry() -> TemplateRegistry:
@@ -180,3 +182,36 @@ async def get_progress_tracker() -> ProgressTracker:
         )
     
     return _progress_tracker
+
+
+async def get_error_handler() -> ErrorHandlingIntegration:
+    """
+    Get or create error handling integration instance.
+    
+    Returns:
+        ErrorHandlingIntegration: Error handler
+    """
+    global _error_handler
+    
+    if _error_handler is None:
+        # Get dependencies
+        redis_client = await get_redis_client()
+        ws_manager = get_ws_manager()
+        
+        # Create error handler with all dependencies
+        _error_handler = ErrorHandlingIntegration(
+            # task_queue=task_queue,  # Will be injected when available
+            # resource_queue=resource_queue,  # Will be injected when available
+            # dead_letter_queue=dead_letter_queue,  # Will be injected when available
+            # notification_service=notification_service,  # Will be injected when available
+            # alert_service=alert_service,  # Will be injected when available
+            # worker_manager=worker_manager,  # Will be injected when available
+            # queue_manager=queue_manager,  # Will be injected when available
+            resource_monitor=get_resource_monitor(),
+            # storage_manager=storage_manager  # Will be injected when available
+        )
+        
+        # Start error handling systems
+        await _error_handler.start()
+    
+    return _error_handler
