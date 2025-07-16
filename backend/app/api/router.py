@@ -13,6 +13,7 @@ from app.api.v1 import (
     git_lfs,
     git_performance,
     projects,
+    quality,
     takes,
 )
 from app.api.v1 import import_ as import_api
@@ -39,3 +40,4 @@ api_router.include_router(health_monitor.router, tags=["health-monitoring"])
 api_router.include_router(templates.router, tags=["templates"])
 api_router.include_router(template_validation.router, tags=["template-validation"])
 api_router.include_router(resources.router, tags=["resources"])
+api_router.include_router(quality.router, tags=["quality"])

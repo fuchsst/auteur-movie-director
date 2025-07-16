@@ -4,6 +4,8 @@ Application dependencies for dependency injection
 
 from typing import Optional
 from pathlib import Path
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.templates import TemplateRegistry
 from app.resources import ResourceMapper, GPUResourceManager, ResourceMonitor
@@ -215,3 +217,40 @@ async def get_error_handler() -> ErrorHandlingIntegration:
         await _error_handler.start()
     
     return _error_handler
+
+
+# Security scheme for authentication
+security = HTTPBearer(auto_error=False)
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> str:
+    """
+    Get the current authenticated user.
+    
+    This is a placeholder implementation. In production, this would:
+    - Validate the JWT token
+    - Extract user information from the token
+    - Check user permissions
+    
+    For now, returns a mock user ID.
+    """
+    # In development, return a mock user
+    if not credentials:
+        return "dev_user"
+    
+    # In production, validate token and extract user
+    # Example:
+    # try:
+    #     payload = jwt.decode(credentials.credentials, settings.secret_key, algorithms=["HS256"])
+    #     user_id = payload.get("sub")
+    #     if not user_id:
+    #         raise HTTPException(status_code=401, detail="Invalid token")
+    #     return user_id
+    # except jwt.ExpiredSignatureError:
+    #     raise HTTPException(status_code=401, detail="Token expired")
+    # except jwt.JWTError:
+    #     raise HTTPException(status_code=401, detail="Invalid token")
+    
+    return "authenticated_user"

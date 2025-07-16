@@ -263,7 +263,7 @@ See `.bmad-core/methods/TESTING-GUIDE.md` for detailed testing documentation.
 
 ## 🚧 Development Progress
 
-### EPIC-003: Function Runner Architecture (72/82 points - 88% complete)
+### EPIC-003: Function Runner Architecture (86/90 points - 96% complete)
 
 **Completed Stories:**
 - ✅ STORY-041: Worker Pool Management (8 points)
@@ -275,9 +275,9 @@ See `.bmad-core/methods/TESTING-GUIDE.md` for detailed testing documentation.
 - ✅ STORY-047: Function Runner API Client (10 points)
 - ✅ STORY-048: Progress Tracking System (7 points)
 - ✅ STORY-049: Error Handling & Recovery (5 points)
+- ✅ STORY-050: Quality Preset System (6 points)
+- ✅ STORY-051: End-to-End Integration (8 points)
 - ⚠️ STORY-013: Function Runner Foundation (12 points - 60% complete)
 
 **Remaining Stories:**
-- 🔲 STORY-050: Quality Preset System (6 points)
-- 🔲 STORY-051: End-to-End Integration (8 points)
 - 🔲 STORY-052: Performance Testing Suite (4 points)
