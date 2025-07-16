@@ -28,10 +28,10 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-047: Function Runner API Client](./STORY-047-function-runner-api-client.md)** (10 points) ✅
   - TypeScript client, type safety, request/response handling
 
-- **[STORY-048: Progress Tracking System](./STORY-048-progress-tracking-system.md)** (7 points)
+- **[STORY-048: Progress Tracking System](./STORY-048-progress-tracking-system.md)** (7 points) ✅
   - Real-time progress, WebSocket integration, UI components
 
-- **[STORY-049: Error Handling & Recovery](./STORY-049-error-handling-recovery.md)** (5 points)
+- **[STORY-049: Error Handling & Recovery](./STORY-049-error-handling-recovery.md)** (5 points) ✅
   - Robust error handling, retry logic, fallback mechanisms
 
 ### Quality Abstraction Stories (18 points)
@@ -48,7 +48,7 @@ This directory contains all user stories for **EPIC-003: Function Runner Archite
 - **[STORY-052: Performance Testing Suite](./STORY-052-performance-testing-suite.md)** (4 points)
   - Load testing, performance validation, benchmarking
 
-## Total Story Points: 82 (60 Completed, 22 Remaining)
+## Total Story Points: 82 (72 Completed, 10 Remaining)
 
 ## Story Dependencies
 
