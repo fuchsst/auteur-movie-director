@@ -1,0 +1,12 @@
+# Performance testing dependencies
+aiohttp>=3.8.0
+click>=8.0.0
+uvloop>=0.17.0
+psutil>=5.9.0
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# Optional dependencies for enhanced functionality
+# pynvml>=11.4.1  # For GPU monitoring (optional)
+# prometheus-client>=0.15.0  # For Prometheus integration (optional)
+# grafana-client>=3.0.0  # For Grafana dashboard management (optional)
