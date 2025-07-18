@@ -38,6 +38,8 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(router.api_router, prefix="/api/v1")
     app.include_router(websocket_router, prefix="/ws")
+    from app.api.v1.collaboration import router as collaboration_router
+    app.include_router(collaboration_router, prefix="/api/v1/collaboration")
 
     # Root endpoint
     @app.get("/")
