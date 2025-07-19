@@ -4,8 +4,6 @@
   import SystemInfo from './SystemInfo.svelte';
 
   export let section: string;
-  export let project: any;
-  export let settings: any;
 
   let hasChanges = false;
 </script>

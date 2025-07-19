@@ -60,12 +60,11 @@
     <div class="panel-content">
       <slot name="left" />
     </div>
-    <div
+    <button
       class="resize-handle resize-handle-left"
       on:mousedown={() => (isResizingLeft = true)}
-      role="separator"
       aria-label="Resize left panel"
-      tabindex="0"
+      type="button"
     />
   </div>
 
@@ -78,12 +77,11 @@
 
   <!-- Right Panel -->
   <div class="panel panel-right" style="width: {rightPanelWidth}%">
-    <div
+    <button
       class="resize-handle resize-handle-right"
       on:mousedown={() => (isResizingRight = true)}
-      role="separator"
       aria-label="Resize right panel"
-      tabindex="0"
+      type="button"
     />
     <div class="panel-content">
       <slot name="right" />
@@ -123,6 +121,10 @@
     cursor: col-resize;
     transition: background-color 0.2s;
     z-index: 10;
+    border: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
   }
 
   .resize-handle:hover {

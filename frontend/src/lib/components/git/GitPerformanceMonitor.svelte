@@ -71,7 +71,7 @@
       disabled={loading}
       title="Refresh metrics"
     >
-      <Zap size={14} class:spinning={loading} />
+<Zap size={14} class={loading ? 'spinning' : ''} />
     </button>
   </div>
 

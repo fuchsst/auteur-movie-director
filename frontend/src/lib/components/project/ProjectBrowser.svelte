@@ -372,13 +372,13 @@
     {:else if viewMode === 'grid'}
       <div class="project-grid">
         {#each filteredProjects as project}
-          <div
+          <button
             class="project-card {selectedProject?.id === project.id ? 'selected' : ''}"
             on:click={() => handleProjectSelect(project)}
             on:dblclick={() => handleProjectDoubleClick(project)}
             on:contextmenu={(e) => handleRightClick(e, project)}
-            role="button"
-            tabindex="0"
+            type="button"
+            aria-label="Open project {project.name}"
           >
             <div class="project-thumbnail">
               <span class="thumbnail-icon">{getProjectThumbnail(project)}</span>
@@ -398,19 +398,19 @@
                 <span class="date">{formatDate(project.modified)}</span>
               </p>
             </div>
-          </div>
+          </button>
         {/each}
       </div>
     {:else}
       <div class="project-list">
         {#each filteredProjects as project}
-          <div
+          <button
             class="project-item {selectedProject?.id === project.id ? 'selected' : ''}"
             on:click={() => handleProjectSelect(project)}
             on:dblclick={() => handleProjectDoubleClick(project)}
             on:contextmenu={(e) => handleRightClick(e, project)}
-            role="button"
-            tabindex="0"
+            type="button"
+            aria-label="Open project {project.name}"
           >
             <div class="project-icon">
               <span class="thumbnail-icon">{getProjectThumbnail(project)}</span>
@@ -431,7 +431,7 @@
                 <span>Created: {formatDate(project.created)}</span>
               </div>
             </div>
-          </div>
+          </button>
         {/each}
       </div>
     {/if}
@@ -444,6 +444,13 @@
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px;"
     on:click={hideContextMenu}
+    role="menu"
+    tabindex="-1"
+    on:keydown={(e) => {
+      if (e.key === 'Escape') {
+        hideContextMenu();
+      }
+    }}
   >
     <button on:click={() => dispatch('openProject', selectedProject)}>Open</button>
     <button on:click={handleRenameProject}>Rename</button>
@@ -679,6 +686,9 @@
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
   }
 
   .project-card:hover {
@@ -766,6 +776,10 @@
     border-radius: 0.375rem;
     cursor: pointer;
     transition: all 0.2s;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
+    width: 100%;
   }
 
   .project-item:hover {

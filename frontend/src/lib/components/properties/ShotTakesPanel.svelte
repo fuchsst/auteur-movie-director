@@ -28,7 +28,19 @@
 </script>
 
 <div class="shot-takes-panel" class:expanded>
-  <div class="panel-header" on:click={() => (expanded = !expanded)} role="button" tabindex="0">
+  <div 
+    class="panel-header" 
+    on:click={() => (expanded = !expanded)} 
+    on:keydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        expanded = !expanded;
+      }
+    }}
+    role="button" 
+    tabindex="0"
+    aria-expanded={expanded}
+  >
     <div class="header-content">
       <Icon name="film" size={16} />
       <span>Takes</span>

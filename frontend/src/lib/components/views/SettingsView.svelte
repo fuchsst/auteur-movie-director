@@ -2,8 +2,6 @@
   import { currentProject } from '$lib/stores';
   import SettingsSection from '../settings/SettingsSection.svelte';
 
-  export let projectId: string;
-
   const settingsSections = [
     { id: 'general', label: 'General', icon: '⚙️' },
     { id: 'project', label: 'Project', icon: '📁' },

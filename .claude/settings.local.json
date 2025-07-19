@@ -19,7 +19,10 @@
       "Bash(npm run test:*)",
       "Bash(uv run:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build)",
+      "Bash(timeout 30 npm run build)"
     ],
     "deny": []
   }

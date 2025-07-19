@@ -36,12 +36,33 @@
   }
 </script>
 
-<div class="project-tree" class:selected>
-  <div class="project-header" on:click={handleClick}>
+<div class="project-tree" class:selected role="treeitem" aria-label={`Project: ${project.name}`}>
+  <div 
+    class="project-header" 
+    on:click={handleClick}
+    on:keydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleClick();
+      }
+    }}
+    role="button"
+    tabindex="0"
+    aria-expanded={expanded}
+  >
     <button
       class="expand-toggle"
       on:click={toggleExpanded}
-      aria-label={expanded ? 'Collapse' : 'Expand'}
+      on:keydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleExpanded(e);
+        }
+      }}
+      aria-label={expanded ? 'Collapse project structure' : 'Expand project structure'}
+      aria-expanded={expanded}
+      type="button"
     >
       {expanded ? '▼' : '▶'}
     </button>
@@ -66,16 +87,36 @@
   </div>
 
   {#if expanded}
-    <div class="project-structure">
+    <div class="project-structure" role="tree">
       {#each directories as dir}
-        <div class="directory">
-          <span class="dir-icon">{dir.icon}</span>
+        <div 
+          class="directory" 
+          role="treeitem"
+          tabindex="0"
+          on:keydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+            }
+          }}
+          aria-label={`${dir.name} directory ${dir.hasSubdirs ? 'with subdirectories' : ''}`}
+        >
+          <span class="dir-icon" aria-hidden="true">{dir.icon}</span>
           <span class="dir-name">{dir.name}</span>
         </div>
       {/each}
 
-      <div class="directory">
-        <span class="dir-icon">📋</span>
+      <div 
+        class="directory" 
+        role="treeitem"
+        tabindex="0"
+        on:keydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+          }
+        }}
+        aria-label="project.json configuration file"
+      >
+        <span class="dir-icon" aria-hidden="true">📋</span>
         <span class="dir-name">project.json</span>
       </div>
     </div>
@@ -108,6 +149,12 @@
     padding: 0.75rem;
     cursor: pointer;
     user-select: none;
+    outline: none;
+  }
+
+  .project-header:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
   }
 
   .expand-toggle {
@@ -167,9 +214,20 @@
     font-size: 0.875rem;
     color: var(--text-secondary);
     transition: color 0.2s;
+    outline: none;
+  }
+
+  .directory:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 
   .directory:hover {
+    color: var(--text-primary);
+  }
+
+  .directory:focus {
     color: var(--text-primary);
   }
 

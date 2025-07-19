@@ -3,7 +3,6 @@
   import SceneHierarchy from '../scene/SceneHierarchy.svelte';
   import ShotList from '../scene/ShotList.svelte';
 
-  export let projectId: string;
 </script>
 
 <div class="scene-view">
