@@ -242,6 +242,25 @@ class ShotAudio(BaseModel):
     bit_depth: int = Field(default=16, description="Audio bit depth")
 
 
+class ShotSpecification(BaseModel):
+    """Simplified shot specification for storyboard integration."""
+    
+    shot_id: str = Field(..., description="Unique identifier for the shot")
+    shot_type: ShotType = Field(..., description="Type of shot")
+    camera_angle: ShotAngle = Field(..., description="Camera angle")
+    camera_movement: CameraMovement = Field(..., description="Camera movement")
+    duration: float = Field(..., description="Shot duration in seconds")
+    description: str = Field(..., description="Shot description")
+    key_characters: List[str] = Field(default_factory=list, description="Key characters in shot")
+    key_props: List[str] = Field(default_factory=list, description="Key props in shot")
+    location: Optional[str] = Field(None, description="Location identifier")
+    mood: str = Field(..., description="Emotional mood")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    
+    class Config:
+        use_enum_values = True
+
+
 class GenerativeShot(BaseModel):
     """A single shot with comprehensive generative specifications."""
     

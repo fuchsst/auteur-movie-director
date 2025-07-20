@@ -296,7 +296,8 @@ class TestStoryboardService:
             frame_id="test_frame_1",
             scene_id="scene_001",
             shot_number=1,
-            frame_number=1
+            frame_number=1,
+            description="Test frame description"
         )
         
         shot.add_frame(frame)
@@ -333,7 +334,8 @@ class TestStoryboardService:
             frame_id="test_frame_1",
             scene_id="scene_001",
             shot_number=1,
-            frame_number=1
+            frame_number=1,
+            description="Test frame description"
         )
         
         shot.add_frame(frame)
@@ -346,10 +348,10 @@ class TestStoryboardService:
         )
         
         assert export_data is not None
-        assert export_data["format"] == "json"
+        assert export_data["export_metadata"]["format"] == "json"
         assert "sequence" in export_data
-        assert export_data["metadata"]["total_shots"] == 1
-        assert export_data["metadata"]["total_frames"] == 1
+        assert export_data["export_metadata"]["total_shots"] == 1
+        assert export_data["export_metadata"]["total_frames"] == 1
 
 
 class TestAPIEndpoints:
@@ -461,8 +463,8 @@ class TestIntegration:
             sequence.sequence_id, "json"
         )
         
-        assert export_data["metadata"]["total_shots"] == len(sequence.shots)
-        assert export_data["metadata"]["total_frames"] > 0
+        assert export_data["export_metadata"]["total_shots"] == len(sequence.shots)
+        assert export_data["export_metadata"]["total_frames"] > 0
     
     @pytest.mark.asyncio
     async def test_template_application(self, storyboard_service):
