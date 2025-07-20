@@ -14,6 +14,7 @@ from app.resources import ResourceMapper, GPUResourceManager, ResourceMonitor
 from app.config import settings
 from app.services.websocket import WebSocketManager
 from app.error_handling import ErrorHandlingIntegration
+from app.services.asset_registry import AssetRegistry
 from redis import asyncio as aioredis
 
 
@@ -26,6 +27,7 @@ _progress_tracker: Optional[None] = None  # Will be imported when needed
 _ws_manager: Optional[WebSocketManager] = None
 _redis_client: Optional[aioredis.Redis] = None
 _error_handler: Optional[ErrorHandlingIntegration] = None
+_asset_registry: Optional[AssetRegistry] = None
 
 
 def get_template_registry() -> TemplateRegistry:
@@ -218,6 +220,22 @@ async def get_error_handler() -> ErrorHandlingIntegration:
         await _error_handler.start()
     
     return _error_handler
+
+
+def get_asset_registry() -> AssetRegistry:
+    """
+    Get or create the global asset registry instance.
+    
+    Returns:
+        AssetRegistry: The global asset registry
+    """
+    global _asset_registry
+    
+    if _asset_registry is None:
+        from pathlib import Path
+        _asset_registry = AssetRegistry(Path("workspace"))
+    
+    return _asset_registry
 
 
 # Security scheme for authentication
