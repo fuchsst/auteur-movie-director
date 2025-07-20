@@ -5,10 +5,9 @@ import asyncio
 from datetime import datetime
 import uuid
 
-from app.core.websocket_manager import WebSocketManager
-from app.core.auth import get_current_user
+from app.services.websocket import WebSocketManager
+from app.core.dependencies import get_current_user
 from app.schemas.user import User
-from app.services.workspace_service import WorkspaceService
 
 router = APIRouter(prefix="/collaboration", tags=["collaboration"])
 

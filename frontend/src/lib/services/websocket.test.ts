@@ -189,7 +189,7 @@ describe('WebSocketService', () => {
     }
 
     // Should schedule reconnect
-    let state = get(wsState);
+    const state = get(wsState);
     expect(state.connected).toBe(false);
     expect(state.reconnectAttempts).toBe(1);
 

@@ -5,7 +5,7 @@ Provides intuitive quality presets (draft, standard, high, ultra) that automatic
 configure generation parameters across different function types.
 """
 
-from .models import QualityPreset, QualityLevel
+from .models import QualityPreset, QualityLevel, UseCase, RecommendationContext
 from .presets import QualityPresetManager, CustomPresetBuilder
 from .exceptions import PresetNotFoundError, PresetIncompatibleError
 from .calculation import ParameterCalculator
@@ -17,6 +17,8 @@ from .storage import PresetStorage
 __all__ = [
     "QualityPreset",
     "QualityLevel",
+    "UseCase",
+    "RecommendationContext",
     "QualityPresetManager",
     "CustomPresetBuilder",
     "ParameterCalculator",

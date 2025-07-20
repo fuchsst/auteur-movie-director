@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from .task_handler import IntegratedTaskSubmissionHandler
 from .models import IntegratedTaskRequest, TaskResponse
-from ..core.exceptions import (
+from app.core.exceptions import (
     InsufficientResourcesError,
     WorkflowExecutionError,
     WorkflowTimeoutError

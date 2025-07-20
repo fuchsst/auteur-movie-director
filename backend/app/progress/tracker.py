@@ -6,14 +6,14 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 from redis import asyncio as aioredis
 
-from .models import (
+from app.progress.models import (
     TaskProgress, StageProgress, TaskStatus, StageStatus,
     ProgressUpdate, BatchProgress, TaskHistory
 )
-from .stage_manager import StageManager
-from .eta_predictor import ETAPredictor
-from .preview_generator import PreviewGenerator
-from ..services.websocket import WebSocketManager
+from app.progress.stage_manager import StageManager
+from app.progress.eta_predictor import ETAPredictor
+from app.progress.preview_generator import PreviewGenerator
+from app.services.websocket import WebSocketManager
 
 
 class ProgressTracker:

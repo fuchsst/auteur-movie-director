@@ -20,13 +20,13 @@ from .models import (
     WorkflowTimeoutError,
     WorkflowCancelledError
 )
-from ..worker.models import WorkerTask, TaskState
-from ..worker.pool_manager import worker_pool_manager
-from ..templates.registry import TemplateRegistry
-from ..quality.presets import QualityPresetManager
-from ..progress.tracker import ProgressTracker
-from ..services.takes import TakesService
-from ..templates.base import FunctionTemplate
+from app.worker.models import WorkerTask, TaskState
+from app.worker.pool_manager import worker_pool_manager
+from app.templates.registry import TemplateRegistry
+from app.quality.presets import QualityPresetManager
+from app.progress.tracker import ProgressTracker
+from app.services.takes import TakesService
+from app.templates.base import FunctionTemplate
 
 logger = logging.getLogger(__name__)
 

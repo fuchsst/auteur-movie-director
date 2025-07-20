@@ -8,8 +8,8 @@ import logging
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 
-from ..templates.base import FunctionTemplate
-from .models import QualityPreset, QualityLevel
+from app.templates.base import FunctionTemplate
+from app.quality.models import QualityPreset, QualityLevel
 
 logger = logging.getLogger(__name__)
 

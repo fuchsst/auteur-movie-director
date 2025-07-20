@@ -12,9 +12,9 @@ from typing import Dict, Any, Optional
 import aiohttp
 import aiofiles
 
-from .models import StoredFile, OutputContext, Project
-from ..services.storage import StorageService
-from ..services.git_lfs import git_lfs_service
+from app.integration.models import StoredFile, OutputContext, Project
+from app.services.storage import StorageService
+from app.services.git_lfs import git_lfs_service
 
 logger = logging.getLogger(__name__)
 

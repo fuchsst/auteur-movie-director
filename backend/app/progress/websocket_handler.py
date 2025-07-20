@@ -5,8 +5,8 @@ from collections import defaultdict
 from fastapi import WebSocket, WebSocketDisconnect
 import json
 
-from .tracker import ProgressTracker
-from ..services.websocket import WebSocketManager
+from app.progress.tracker import ProgressTracker
+from app.services.websocket import WebSocketManager
 
 
 class ProgressWebSocketHandler:

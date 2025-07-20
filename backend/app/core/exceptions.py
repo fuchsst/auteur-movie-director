@@ -69,3 +69,42 @@ class WebSocketException(AppException):
         if project_id:
             details["project_id"] = project_id
         super().__init__(message=message, code="WEBSOCKET_ERROR", status_code=400, details=details)
+
+
+class InsufficientResourcesError(AppException):
+    """Raised when there are insufficient resources to complete a task"""
+
+    def __init__(self, resource_type: str, required: int, available: int):
+        super().__init__(
+            message=f"Insufficient {resource_type}: required {required}, available {available}",
+            code="INSUFFICIENT_RESOURCES",
+            status_code=503,
+            details={"resource_type": resource_type, "required": required, "available": available},
+        )
+
+
+class WorkflowExecutionError(AppException):
+    """Raised when workflow execution fails"""
+
+    def __init__(self, workflow_id: str, message: str, stage: str | None = None):
+        details = {"workflow_id": workflow_id}
+        if stage:
+            details["stage"] = stage
+        super().__init__(
+            message=f"Workflow execution failed: {message}",
+            code="WORKFLOW_EXECUTION_ERROR",
+            status_code=500,
+            details=details,
+        )
+
+
+class WorkflowTimeoutError(AppException):
+    """Raised when workflow execution times out"""
+
+    def __init__(self, workflow_id: str, timeout_seconds: int):
+        super().__init__(
+            message=f"Workflow execution timed out after {timeout_seconds} seconds",
+            code="WORKFLOW_TIMEOUT",
+            status_code=408,
+            details={"workflow_id": workflow_id, "timeout_seconds": timeout_seconds},
+        )

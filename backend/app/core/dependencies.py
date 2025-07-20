@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Application dependencies for dependency injection
 """
@@ -10,7 +12,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.templates import TemplateRegistry
 from app.resources import ResourceMapper, GPUResourceManager, ResourceMonitor
 from app.config import settings
-from app.progress import ProgressTracker
 from app.services.websocket import WebSocketManager
 from app.error_handling import ErrorHandlingIntegration
 from redis import asyncio as aioredis
@@ -21,7 +22,7 @@ _template_registry: Optional[TemplateRegistry] = None
 _resource_mapper: Optional[ResourceMapper] = None
 _gpu_manager: Optional[GPUResourceManager] = None
 _resource_monitor: Optional[ResourceMonitor] = None
-_progress_tracker: Optional[ProgressTracker] = None
+_progress_tracker: Optional[None] = None  # Will be imported when needed
 _ws_manager: Optional[WebSocketManager] = None
 _redis_client: Optional[aioredis.Redis] = None
 _error_handler: Optional[ErrorHandlingIntegration] = None

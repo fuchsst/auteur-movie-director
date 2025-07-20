@@ -10,17 +10,17 @@ import uuid
 from typing import Dict, Any, Optional, List
 from functools import partial
 
-from .models import (
+from app.integration.models import (
     IntegratedTaskRequest,
     TaskResponse,
     WorkflowResult,
     Project,
     OutputContext
 )
-from .orchestrator import FunctionRunnerOrchestrator
-from ..services.workspace import WorkspaceService
-from ..services.takes import TakesService
-from ..services.git import GitService
+from app.integration.orchestrator import FunctionRunnerOrchestrator
+from app.services.workspace import WorkspaceService
+from app.services.takes import TakesService
+from app.services.git import GitService
 
 logger = logging.getLogger(__name__)
 

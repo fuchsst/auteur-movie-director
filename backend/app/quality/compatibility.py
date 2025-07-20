@@ -9,8 +9,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
-from ..templates.base import FunctionTemplate
-from .models import QualityPreset
+from app.templates.base import FunctionTemplate
+from app.quality.models import QualityPreset
 
 logger = logging.getLogger(__name__)
 

@@ -4,10 +4,11 @@ from typing import Optional, List
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, WebSocket, Depends, Query
 
-from .models import ProgressResponse, LogsResponse, LogEntry, BatchProgress
-from .tracker import ProgressTracker
-from .websocket_handler import ProgressWebSocketHandler
-from ..core.dependencies import get_progress_tracker, get_ws_manager
+from app.progress.models import ProgressResponse, LogsResponse, LogEntry, BatchProgress
+from app.progress.tracker import ProgressTracker
+from app.progress.websocket_handler import ProgressWebSocketHandler
+from app.progress.dependencies import get_progress_tracker
+from app.core.dependencies import get_ws_manager
 
 
 router = APIRouter(prefix="/progress", tags=["progress"])

@@ -8,7 +8,7 @@ import aiofiles
 import os
 from pathlib import Path
 
-from ..config import settings
+from app.config import settings
 
 
 class PreviewGenerator:

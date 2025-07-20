@@ -11,6 +11,7 @@ from .compensation import CompensationManager, CompensationResult, Operation
 from .analytics import ErrorAnalytics, ErrorAnalysisReport, ErrorAnomaly
 from .self_healing import SelfHealingSystem, SystemIssue, HealingResult
 from .context import ErrorContext, ErrorHistory
+from .integration import ErrorHandlingIntegration
 
 __all__ = [
     # Classifier
@@ -49,5 +50,6 @@ __all__ = [
     
     # Context
     'ErrorContext',
-    'ErrorHistory'
+    'ErrorHistory',
+    'ErrorHandlingIntegration'
 ]

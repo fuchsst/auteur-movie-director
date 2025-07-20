@@ -9,11 +9,11 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from .models import ServiceEvent, IntegrationError, ServiceUnavailableError
-from ..services.workspace import WorkspaceService
-from ..services.takes import TakesService
-from ..services.git import GitService
-from ..api.websocket import WebSocketManager
+from app.integration.models import ServiceEvent, IntegrationError, ServiceUnavailableError
+from app.services.workspace import WorkspaceService
+from app.services.takes import TakesService
+from app.services.git import GitService
+from app.services.websocket import WebSocketManager
 
 logger = logging.getLogger(__name__)
 

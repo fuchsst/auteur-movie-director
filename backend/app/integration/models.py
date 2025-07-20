@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
-from ..worker.models import TaskResult, TaskState
+from app.worker.models import TaskResult, TaskState
 
 
 class IntegrationStatus(str, Enum):

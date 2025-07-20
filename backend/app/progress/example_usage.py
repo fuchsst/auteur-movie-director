@@ -3,9 +3,9 @@
 import asyncio
 from typing import Dict, Any
 
-from .tracker import ProgressTracker
-from .integration import ProgressContext, create_progress_callback
-from ..core.dependencies import get_progress_tracker
+from app.progress.tracker import ProgressTracker
+from app.progress.integration import ProgressContext, create_progress_callback
+from app.core.dependencies import get_progress_tracker
 
 
 async def example_image_generation_task(task_id: str, params: Dict[str, Any]):

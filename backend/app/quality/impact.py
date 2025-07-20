@@ -12,8 +12,8 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from ..templates.base import FunctionTemplate
-from .models import QualityPreset, QualityLevel
+from app.templates.base import FunctionTemplate
+from app.quality.models import QualityPreset, QualityLevel
 
 logger = logging.getLogger(__name__)
 

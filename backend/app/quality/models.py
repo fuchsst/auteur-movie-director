@@ -7,7 +7,7 @@ Defines the core data structures used throughout the quality preset system.
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from dataclasses import dataclass, field
-from enum import IntEnum
+from enum import IntEnum, Enum
 
 
 class QualityLevel(IntEnum):
@@ -80,3 +80,41 @@ class QualityPreset:
             data['updated_at'] = datetime.fromisoformat(data['updated_at'])
         
         return cls(**data)
+
+
+class UseCase(Enum):
+    """Use case enumeration for quality recommendations"""
+    PREVIEW = "preview"
+    REVIEW = "review"
+    FINAL = "final"
+    EXPERIMENT = "experiment"
+    QUICK_TEST = "quick_test"
+    PRODUCTION = "production"
+
+
+@dataclass
+class RecommendationContext:
+    """Context for quality preset recommendations"""
+    use_case: Optional[UseCase] = None
+    output_type: Optional[str] = None  # image, video, audio, text
+    target_platform: Optional[str] = None
+    time_constraint: Optional[float] = None  # seconds
+    budget_constraint: Optional[float] = None  # cost units
+    quality_requirement: Optional[str] = None  # minimum, balanced, maximum
+    resolution: Optional[tuple] = None  # (width, height)
+    duration: Optional[float] = None  # seconds
+    file_size_limit: Optional[float] = None  # MB
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            'use_case': self.use_case.value if self.use_case else None,
+            'output_type': self.output_type,
+            'target_platform': self.target_platform,
+            'time_constraint': self.time_constraint,
+            'budget_constraint': self.budget_constraint,
+            'quality_requirement': self.quality_requirement,
+            'resolution': list(self.resolution) if self.resolution else None,
+            'duration': self.duration,
+            'file_size_limit': self.file_size_limit
+        }

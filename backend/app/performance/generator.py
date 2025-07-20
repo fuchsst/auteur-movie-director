@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
 
-from ..integration.api import FunctionRunnerClient
-from .scenarios import LoadScenario, TaskProfile
+from app.integration.api import FunctionRunnerClient
+from app.performance.scenarios import LoadScenario, TaskProfile
 
 logger = logging.getLogger(__name__)
 

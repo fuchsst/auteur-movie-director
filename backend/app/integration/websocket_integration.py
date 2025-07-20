@@ -8,8 +8,8 @@ import logging
 from typing import Dict, Any, Optional, Set
 import json
 
-from .models import ServiceEvent, WebSocketEvent
-from ..api.websocket import WebSocketManager
+from app.integration.models import ServiceEvent, WebSocketEvent
+from app.services.websocket import WebSocketManager
 
 logger = logging.getLogger(__name__)
 

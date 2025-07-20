@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from 'svelte';
   import { workspaceApi, type ProjectResponse } from '$lib/api/workspace';
-  import { projects, currentProject, selectProject, setLoading, setError } from '$lib/stores';
+  import { projects, selectProject, setLoading, setError } from '$lib/stores';
   import { selectionStore } from '$lib/stores/selection';
-  import ProjectTree from './ProjectTree.svelte';
   import NewProjectDialog from './NewProjectDialog.svelte';
   import ProjectExportDialog from './ProjectExportDialog.svelte';
   import ProjectImportDialog from './ProjectImportDialog.svelte';
+  import { formatBytes } from '$lib/utils/format';
 
   const dispatch = createEventDispatcher();
 
@@ -77,7 +77,7 @@
 
     // Sort filtered results
     filteredProjects.sort((a, b) => {
-      let aVal: any, bVal: any;
+      let aVal: string | number, bVal: string | number;
       switch (sortBy) {
         case 'name':
           aVal = a.name.toLowerCase();
@@ -110,11 +110,11 @@
     selectedProject = project;
 
     // Convert to legacy format for compatibility
-    const legacyProject = {
-      name: project.name,
-      path: project.path,
-      manifest: project.manifest
-    };
+    // const legacyProject = {
+    //   name: project.name,
+    //   path: project.path,
+    //   manifest: project.manifest
+    // };
 
     selectProject(project.manifest);
     selectionStore.selectProject(project.id);
@@ -251,13 +251,6 @@
     hideContextMenu();
   }
 
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
@@ -394,7 +387,7 @@
                 <span class="structure">{project.narrative_structure}</span>
               </p>
               <p class="project-details">
-                <span class="size">{formatFileSize(project.size_bytes)}</span>
+                <span class="size">{formatBytes(project.size_bytes)}</span>
                 <span class="date">{formatDate(project.modified)}</span>
               </p>
             </div>
@@ -424,7 +417,7 @@
               <div class="project-meta">
                 <span class="quality badge">{project.quality}</span>
                 <span class="structure">{project.narrative_structure}</span>
-                <span class="size">{formatFileSize(project.size_bytes)}</span>
+                <span class="size">{formatBytes(project.size_bytes)}</span>
               </div>
               <div class="project-dates">
                 <span>Modified: {formatDate(project.modified)}</span>

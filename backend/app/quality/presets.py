@@ -10,9 +10,9 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from ..templates.base import FunctionTemplate
-from .models import QualityPreset, QualityLevel
-from .exceptions import PresetNotFoundError, PresetIncompatibleError
+from app.templates.base import FunctionTemplate
+from app.quality.models import QualityPreset, QualityLevel
+from app.quality.exceptions import PresetNotFoundError, PresetIncompatibleError
 
 logger = logging.getLogger(__name__)
 
