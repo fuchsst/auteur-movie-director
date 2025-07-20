@@ -19,6 +19,26 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class TestMetrics:
+    """Metrics collected during performance testing."""
+    
+    scenario_name: str
+    start_time: datetime
+    end_time: datetime
+    duration_seconds: float
+    total_tasks: int = 0
+    successful_tasks: int = 0
+    failed_tasks: int = 0
+    average_latency: float = 0.0
+    p95_latency: float = 0.0
+    p99_latency: float = 0.0
+    throughput_per_second: float = 0.0
+    error_rate: float = 0.0
+    resource_usage: Dict[str, Any] = field(default_factory=dict)
+    error_details: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
 class AppMetrics:
     """Application-level metrics."""
     
@@ -392,7 +412,7 @@ class MetricsCollector:
             logger.error(f"Error collecting app metrics: {e}")
             return AppMetrics()
     
-    def _collect_custom_metrics(self) -> CustomMetrics:
+    async def _collect_custom_metrics(self) -> CustomMetrics:
         """Collect custom metrics specific to the Function Runner."""
         
         if not self.enable_custom:

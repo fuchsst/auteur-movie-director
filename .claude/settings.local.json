@@ -29,7 +29,9 @@
       "WebFetch(domain:docs.crewai.com)",
       "WebFetch(domain:docs.comfy.org)",
       "WebFetch(domain:svelteflow.dev)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(chmod:*)",
+      "Bash(python:*)"
     ],
     "deny": []
   }

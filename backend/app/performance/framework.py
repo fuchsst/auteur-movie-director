@@ -18,6 +18,7 @@ from .generator import LoadGenerator
 from .metrics import MetricsCollector, TestMetrics
 from .analyzer import ResultAnalyzer, PerformanceAnalysis
 from .report import ReportGenerator
+from .types import TestResults, TestMetrics
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ the function runner architecture under various load conditions.
 """
 
 from .framework import PerformanceTestFramework
-from .scenarios import LoadScenarios, LoadScenario
+from .scenarios import LoadScenarios, LoadScenario, TestSuiteConfig
 from .generator import LoadGenerator, VirtualUser
 from .metrics import MetricsCollector, TestMetrics
 from .analyzer import ResultAnalyzer, PerformanceAnalysis
@@ -18,6 +18,7 @@ __all__ = [
     "PerformanceTestFramework",
     "LoadScenarios",
     "LoadScenario",
+    "TestSuiteConfig",
     "LoadGenerator",
     "VirtualUser",
     "MetricsCollector",

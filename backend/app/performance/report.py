@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import asdict
 
-from .framework import TestResults
+from .types import TestResults
 from .analyzer import PerformanceAnalysis
 from .scenarios import TestSuiteConfig
 

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .metrics import TestMetrics
 from .scenarios import LoadScenario, PassCriteria
+from .types import TestResults, PerformanceAnalysis
 
 logger = logging.getLogger(__name__)
 

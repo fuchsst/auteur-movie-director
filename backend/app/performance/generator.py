@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
 
-from app.integration.api import FunctionRunnerClient
+from app.integration.client import FunctionRunnerClient
 from app.performance.scenarios import LoadScenario, TaskProfile
 
 logger = logging.getLogger(__name__)
@@ -148,15 +148,12 @@ class VirtualUser:
             task_id = str(uuid.uuid4())
             submit_start = time.time()
             
-            task_data = {
-                'template_id': task_profile.template_id,
-                'inputs': inputs,
-                'quality': quality,
-                'user_id': self.user_id,
-                'task_id': task_id
-            }
-            
-            response = await self.client.submit_task(**task_data)
+            response = await self.client.submit_task(
+                template_id=task_profile.template_id,
+                inputs=inputs,
+                quality=quality,
+                metadata={"user_id": self.user_id, "task_id": task_id}
+            )
             submit_latency = time.time() - submit_start
             
             # Track submission
