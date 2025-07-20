@@ -26,6 +26,14 @@ class AssetType(str, Enum):
     MUSIC = "music"
 
 
+class PropagationMode(str, Enum):
+    """Propagation modes for asset inheritance rules."""
+    INHERIT = "inherit"
+    OVERRIDE = "override"
+    MERGE = "merge"
+    BLOCK = "block"
+
+
 class AssetCategory(str, Enum):
     """Categories for organizing assets within each type."""
     # Prop categories
