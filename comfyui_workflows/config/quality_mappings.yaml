@@ -1,0 +1,221 @@
+version: "1.0"
+metadata:
+  created: "2025-01-21"
+  description: "Fixed quality tier mappings for three-tier system"
+  author: "Auteur Quality System"
+
+# Fixed quality-to-workflow mappings
+# Each task type maps to three quality tiers with predefined workflows
+
+mappings:
+  # Character-related tasks
+  character_portrait:
+    low:
+      workflow_path: "library/character/character_portrait/low_v1"
+      description: "Fast character portrait generation (30-45s)"
+      parameters:
+        steps: 20
+        cfg_scale: 7.0
+        width: 512
+        height: 768
+        positive_prompt_suffix: ", detailed face, portrait, low quality"
+        model: "flux-schnell"
+        
+    standard:
+      workflow_path: "library/character/character_portrait/standard_v1"
+      description: "Balanced character portrait quality (60-90s)"
+      parameters:
+        steps: 35
+        cfg_scale: 7.5
+        width: 512
+        height: 768
+        positive_prompt_suffix: ", detailed face, portrait, high quality"
+        model: "flux-dev-fp8"
+        
+    high:
+      workflow_path: "library/character/character_portrait/high_v1"
+      description: "High-quality character portrait with fine details (120-180s)"
+      parameters:
+        steps: 60
+        cfg_scale: 8.0
+        width: 768
+        height: 1024
+        positive_prompt_suffix: ", ultra detailed face, portrait, masterpiece"
+        model: "flux-dev-fp16"
+
+  character_fullbody:
+    low:
+      workflow_path: "library/character/character_fullbody/low_v1"
+      description: "Fast full body character generation (45-60s)"
+      parameters:
+        steps: 25
+        cfg_scale: 7.0
+        width: 768
+        height: 1024
+        positive_prompt_suffix: ", full body character, simple details"
+        model: "flux-schnell"
+        
+    standard:
+      workflow_path: "library/character/character_fullbody/standard_v1"
+      description: "Balanced full body character quality (90-120s)"
+      parameters:
+        steps: 40
+        cfg_scale: 7.5
+        width: 768
+        height: 1024
+        positive_prompt_suffix: ", full body character, detailed clothing"
+        model: "flux-dev-fp8"
+        
+    high:
+      workflow_path: "library/character/character_fullbody/high_v1"
+      description: "High-quality full body character with details (180-240s)"
+      parameters:
+        steps: 70
+        cfg_scale: 8.5
+        width: 1024
+        height: 1536
+        positive_prompt_suffix: ", ultra detailed full body, masterpiece"
+        model: "flux-dev-fp16"
+
+  # Scene and environment tasks
+  scene_generation:
+    low:
+      workflow_path: "library/scene/scene_generation/low_v1"
+      description: "Fast scene generation (60-90s)"
+      parameters:
+        steps: 25
+        cfg_scale: 7.0
+        width: 768
+        height: 512
+        positive_prompt_suffix: ", scene, environment, low quality"
+        model: "flux-schnell"
+        
+    standard:
+      workflow_path: "library/scene/scene_generation/standard_v1"
+      description: "Balanced scene quality (120-180s)"
+      parameters:
+        steps: 40
+        cfg_scale: 7.5
+        width: 1024
+        height: 576
+        positive_prompt_suffix: ", cinematic scene, detailed environment"
+        model: "flux-dev-fp8"
+        
+    high:
+      workflow_path: "library/scene/scene_generation/high_v1"
+      description: "High-quality scene with fine details (240-360s)"
+      parameters:
+        steps: 70
+        cfg_scale: 8.5
+        width: 1280
+        height: 720
+        positive_prompt_suffix: ", cinematic masterpiece, ultra detailed scene"
+        model: "flux-dev-fp16"
+
+  # Style and artistic tasks
+  style_generation:
+    low:
+      workflow_path: "library/style/style_generation/low_v1"
+      description: "Fast style transfer (30-45s)"
+      parameters:
+        steps: 20
+        cfg_scale: 7.0
+        width: 512
+        height: 512
+        positive_prompt_suffix: ", artistic style, simple"
+        model: "flux-schnell"
+        
+    standard:
+      workflow_path: "library/style/style_generation/standard_v1"
+      description: "Balanced style quality (60-90s)"
+      parameters:
+        steps: 35
+        cfg_scale: 7.5
+        width: 768
+        height: 768
+        positive_prompt_suffix: ", artistic style, detailed"
+        model: "flux-dev-fp8"
+        
+    high:
+      workflow_path: "library/style/style_generation/high_v1"
+      description: "High-quality style with fine details (120-180s)"
+      parameters:
+        steps: 60
+        cfg_scale: 8.0
+        width: 1024
+        height: 1024
+        positive_prompt_suffix: ", artistic masterpiece, ultra detailed"
+        model: "flux-dev-fp16"
+
+  # Video generation tasks
+  video_generation:
+    low:
+      workflow_path: "library/video/video_generation/low_v1"
+      description: "Fast video generation (120-180s)"
+      parameters:
+        steps: 15
+        cfg_scale: 7.0
+        width: 512
+        height: 512
+        frames: 24
+        model: "wan2gp-lite"
+        positive_prompt_suffix: ", video, animation, low quality"
+        
+    standard:
+      workflow_path: "library/video/video_generation/standard_v1"
+      description: "Balanced video quality (300-420s)"
+      parameters:
+        steps: 25
+        cfg_scale: 7.5
+        width: 768
+        height: 768
+        frames: 48
+        model: "wan2gp-standard"
+        positive_prompt_suffix: ", cinematic video, smooth animation"
+        
+    high:
+      workflow_path: "library/video/video_generation/high_v1"
+      description: "High-quality video with fine details (600-900s)"
+      parameters:
+        steps: 40
+        cfg_scale: 8.5
+        width: 1024
+        height: 1024
+        frames: 96
+        model: "wan2gp-pro"
+        positive_prompt_suffix: ", cinematic masterpiece, ultra detailed video"
+
+  # Lighting tasks
+  lighting_generation:
+    low:
+      workflow_path: "library/lighting/lighting_generation/low_v1"
+      description: "Fast lighting setup (45-60s)"
+      parameters:
+        steps: 20
+        cfg_scale: 7.0
+        width: 768
+        height: 576
+        positive_prompt_suffix: ", lighting setup, basic"
+        model: "flux-schnell"
+        
+    standard:
+      workflow_path: "library/lighting/lighting_generation/standard_v1"
+      description: "Balanced lighting quality (90-120s)"
+      parameters:
+        steps: 35
+        cfg_scale: 7.5
+        width: 1024
+        height: 576
+        positive_prompt_suffix: ", cinematic lighting, professional"
+        model: "flux-dev-fp8"
+        
+    high:
+      workflow_path: "library/lighting/lighting_generation/high_v1"
+      description: "High-quality lighting with fine control (180-240s)"
+      parameters:
+        steps: 60
+        cfg_scale: 8.0
+        width: 1280
+        height: 720
+        positive_prompt_suffix: ", cinematic masterpiece lighting, ultra detailed"
+        model: "flux-dev-fp16"
