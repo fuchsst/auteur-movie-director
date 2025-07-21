@@ -3,12 +3,13 @@
 ## Executive Summary
 
 ### Business Justification
-The Quality Management System transforms the complex landscape of AI model selection into three simple choices, enabling universal access to generative media creation. By intelligently routing tasks based on project quality settings and available resources, this system democratizes AI-powered production:
-- **Universal Access**: Create on any hardware from 12GB to 24GB+ VRAM
+The Quality Management System provides three simple quality tiers (Low/Standard/High) with fixed quality-to-workflow mappings. Users select their desired quality level, and the system applies the corresponding workflow with predefined parameters. This creates a predictable, consistent experience:
+- **Universal Access**: Fixed quality tiers work across all hardware configurations
 - **Zero Technical Knowledge Required**: Users never see model names or parameters
-- **100% Success Rate**: Intelligent fallbacks ensure results every time
-- **Predictable Performance**: Clear time estimates for each quality tier
+- **Predictable Performance**: Fixed time estimates based on quality tier selection
 - **Scalable Business Model**: Natural upgrade path drives revenue growth
+- **100% Success Rate**: Fixed mappings ensure reliable workflow execution
+- **Market Expansion**: Opens platform to users with any hardware configuration
 
 ### Target User Personas
 - **Casual Creators**: Quick drafts on consumer GPUs
@@ -49,8 +50,8 @@ The Quality Management System transforms the complex landscape of AI model selec
 
 ## Solution Overview
 
-### Three Simple Quality Tiers
-Transform model selection into intuitive quality choices:
+### Three Simple Quality Tiers with Fixed Mappings
+Transform complex model selection into three intuitive choices with fixed quality-to-workflow mappings:
 
 **What Users See:**
 ```
@@ -63,17 +64,15 @@ Quality Setting
 ```
 
 **What System Does:**
-- Maps quality to appropriate models
-- Checks available hardware resources
-- Routes to optimal configuration
-- Falls back gracefully if needed
-- Monitors and optimizes continuously
+- Maps quality tier directly to predefined workflows
+- Applies quality-specific parameters automatically
+- Provides consistent results across all hardware
+- No resource checking or dynamic adjustments
+- Simple, predictable user experience
 
-### Intelligent Routing Architecture
+### Fixed Quality Architecture
 ```
-Project Quality → Function Request → Resource Check → Model Selection → Execution
-                                           ↓
-                                    Fallback if Needed
+User Quality Choice → Fixed Workflow Mapping → Parameter Application → Execution
 ```
 
 ## User Stories & Acceptance Criteria
@@ -102,17 +101,17 @@ Project Quality → Function Request → Resource Check → Model Selection → 
 - [ ] Progress uses creative language
 - [ ] Errors avoid technical jargon
 
-### Epic 3: Guaranteed Results
-**As a** user on any hardware  
-**I want to** always get output  
-**So that** I'm never blocked
+### Epic 3: Consistent Results
+**As a** user  
+**I want to** get reliable, consistent output quality  
+**So that** I can trust the system
 
 **Acceptance Criteria:**
-- [ ] Automatic quality adjustment
-- [ ] Clear fallback notifications
-- [ ] Option to proceed or cancel
-- [ ] Explanation in simple terms
-- [ ] Suggestions for better results
+- [ ] Fixed quality tiers always produce consistent results
+- [ ] Same quality selection gives same output quality regardless of hardware
+- [ ] Clear quality tier explanations
+- [ ] Predictable generation times
+- [ ] No unexpected quality changes
 
 ### Epic 4: Predictable Performance
 **As a** user planning work  
@@ -140,28 +139,18 @@ Project Quality → Function Request → Resource Check → Model Selection → 
 
 ## Technical Requirements
 
-### Resource Monitoring Infrastructure
-#### Development Environment Setup
-- **GPU Monitoring Tools**: nvidia-smi integration for VRAM tracking
-- **Container Resource Limits**: Docker configuration for memory constraints
-- **Prometheus Metrics**: Export resource usage for monitoring
-- **Grafana Dashboards**: Visual resource utilization tracking
-- **Alert Configuration**: Warnings for resource exhaustion
+### Fixed Quality Configuration System
+#### Configuration Management
+- **YAML-based Configuration**: Quality tier definitions in simple YAML files
+- **Workflow Mapping**: Fixed paths from quality tier to ComfyUI workflows
+- **Parameter Templates**: Quality-specific parameter sets for each tier
+- **Validation System**: Ensure workflow availability and correctness
 
-#### Dynamic Resource Allocation
-- **VRAM Profiling**: Real-time memory usage per model
-- **CPU/RAM Monitoring**: System resource tracking
-- **Queue Management**: Priority-based task scheduling
-- **Preemptive Swapping**: Unload models before OOM
-- **Resource Reservation**: Guarantee minimum resources per tier
-
-#### Development Profiles
-- **Test Modes**: Simulate different hardware configurations
-  - `VRAM_LIMIT=8GB` - Test on constrained systems
-  - `VRAM_LIMIT=16GB` - Standard development
-  - `VRAM_LIMIT=24GB` - Full quality testing
-- **Mock Resources**: Artificial resource constraints for testing
-- **Performance Benchmarks**: Track generation speed per configuration
+#### Quality Tier Definitions
+- **Three-tier System**: Low, Standard, High quality tiers
+- **Fixed Parameters**: Predefined settings for each quality level
+- **Consistent Mapping**: Same quality tier always maps to same workflow
+- **Predictable Results**: Known output quality for each tier
 
 ### Quality Tier Mapping
 
@@ -239,64 +228,31 @@ high_quality:
 class QualityManager:
     def __init__(self):
         self.quality_configs = load_quality_configs()
-        self.resource_monitor = ResourceMonitor()
         
     def route_task(self, function, project_quality):
-        """Route task to appropriate model based on quality and resources"""
+        """Route task directly to quality tier workflow"""
         
-        # Get target configuration
+        # Get quality configuration directly
         target_config = self.quality_configs[project_quality]
-        required_vram = target_config['target_vram']
         
-        # Check if we can run at requested quality
-        available_vram = self.resource_monitor.get_available_vram()
-        
-        if available_vram >= required_vram:
-            # Use requested quality
-            return self._get_model_config(function, project_quality)
-        
-        # Need to fall back
-        fallback_quality = self._find_best_fallback(
-            function, 
-            available_vram,
-            project_quality
-        )
-        
-        if fallback_quality != project_quality:
-            self._notify_user_fallback(project_quality, fallback_quality)
-            
-        return self._get_model_config(function, fallback_quality)
-    
-    def _notify_user_fallback(self, requested, actual):
-        """Notify user of quality adjustment"""
-        notification = {
-            'type': 'quality_fallback',
-            'message': f'{requested} quality not available, using {actual}',
-            'reason': 'Insufficient GPU memory',
-            'suggestion': 'Close other applications to free memory'
-        }
-        self.websocket.send(notification)
+        # Fixed mapping - no resource checking or fallback
+        return self._get_model_config(function, project_quality)
 ```
 
-### Resource Monitoring
+### Fixed Quality Configuration Service
 ```python
-class ResourceMonitor:
-    def get_available_vram(self):
-        """Get available VRAM in GB"""
-        gpu_info = self.query_gpu()
-        total = gpu_info['memory_total']
-        used = gpu_info['memory_used']
-        reserved = 2048  # 2GB OS reservation
-        
-        available_mb = total - used - reserved
-        return max(0, available_mb / 1024)  # Convert to GB
+class QualityConfiguration:
+    def get_quality_workflow(self, task_type, quality_tier):
+        """Get fixed workflow path for quality tier"""
+        return self.quality_mappings[task_type][quality_tier]
     
-    def predict_usage(self, model_config):
-        """Predict VRAM usage for configuration"""
-        base = self.model_profiles[model_config['model']]['base_vram']
-        resolution_factor = (model_config['resolution'] / 1024) ** 2
-        
-        return base * resolution_factor * 1.2  # 20% safety margin
+    def validate_configuration(self):
+        """Validate all quality mappings exist"""
+        for task_type in self.quality_mappings:
+            for tier in ['low', 'standard', 'high']:
+                workflow_path = self.quality_mappings[task_type][tier]
+                if not os.path.exists(workflow_path):
+                    raise ConfigurationError(f"Missing workflow: {workflow_path}")
 ```
 
 ### Project Integration
@@ -418,25 +374,25 @@ Quality-related notifications appear in the right panel's Progress and Notificat
 
 ### Testing Infrastructure Requirements
 #### Quality Tier Testing
-- **Unit Tests**: Quality mapping logic, fallback decisions
-- **Integration Tests**: End-to-end quality routing through Function Runner
-- **Performance Tests**: Generation time accuracy for each tier
-- **Resource Tests**: VRAM usage stays within limits
-- **Fallback Tests**: Graceful degradation scenarios
+- **Unit Tests**: Quality mapping accuracy, parameter validation
+- **Integration Tests**: End-to-end workflow execution with quality tiers
+- **Performance Tests**: Generation time consistency for each tier
+- **Configuration Tests**: Validate all workflow mappings exist
+- **Regression Tests**: Ensure quality consistency across updates
 
-#### A/B Testing Framework
-- **Quality Comparisons**: Side-by-side output evaluation
-- **Performance Metrics**: Track actual vs. estimated times
-- **User Preference**: Collect feedback on quality trade-offs
-- **Model Updates**: Test new models before deployment
-- **Automatic Reporting**: Quality metrics dashboard
+#### Quality Validation Framework
+- **Output Quality**: Consistent results across tiers
+- **Configuration Tests**: All quality mappings are valid
+- **Performance Benchmarks**: Stable time estimates
+- **User Experience**: Simple quality selection flow
+- **Integration Tests**: Complete quality flow validation
 
 #### Development Testing Commands
-- **Test Harness**: Simulate different hardware profiles
-- **Load Testing**: Multiple concurrent quality requests
-- **Stress Testing**: Resource exhaustion scenarios
-- **Monitoring**: Real-time resource usage visualization
-- **Benchmarking**: Quality vs. performance curves
+- **Configuration Validation**: Ensure all workflows exist
+- **Quality Mapping Tests**: Verify tier-to-workflow accuracy
+- **Parameter Tests**: Validate quality-specific parameters
+- **End-to-End Tests**: Complete quality selection flow
+- **Performance Testing**: Consistent timing benchmarks
 
 ## Success Metrics
 
@@ -448,11 +404,11 @@ Quality-related notifications appear in the right panel's Progress and Notificat
 - **Satisfaction Rating**: 4.5+ stars
 
 ### Technical Metrics
-- **Routing Accuracy**: 99% optimal selection
-- **Fallback Success**: 100% produce output
-- **Performance Prediction**: ±20% accuracy
-- **Resource Efficiency**: 85% GPU utilization
-- **Queue Fairness**: < 30s wait variance
+- **Mapping Accuracy**: 100% valid quality-to-workflow mappings
+- **Configuration Validity**: All quality tiers properly configured
+- **Parameter Consistency**: Fixed parameters applied correctly
+- **Workflow Availability**: 100% workflow paths valid
+- **Testing Coverage**: 100% quality tiers and task types
 
 ### Business Metrics
 - **Tier Distribution**: 
@@ -468,46 +424,46 @@ Quality-related notifications appear in the right panel's Progress and Notificat
 ## Risk Mitigation
 
 ### Technical Risks
-1. **Model Updates**: New models change requirements
-   - *Mitigation*: Versioned configurations, gradual rollout
-2. **Hardware Detection**: Incorrect VRAM readings
-   - *Mitigation*: Conservative estimates, user override
-3. **Queue Starvation**: High tier monopolizes resources
-   - *Mitigation*: Fair scheduling, tier quotas
+1. **Workflow Availability**: Missing workflows for quality tiers
+   - *Mitigation*: Configuration validation, deployment scripts
+2. **Configuration Errors**: Invalid YAML or missing mappings
+   - *Mitigation*: Schema validation, error handling
+3. **Parameter Compatibility**: Quality parameters incompatible with workflows
+   - *Mitigation*: Parameter validation, testing framework
 
-### User Risks
-1. **Quality Disappointment**: Low tier too limited
-   - *Mitigation*: Clear examples, upgrade prompts
-2. **Fallback Frustration**: Frequent downgrades
-   - *Mitigation*: Predictive warnings, optimization tips
-3. **Choice Paralysis**: Even three options confuse
-   - *Mitigation*: Smart defaults, recommendations
+### User Experience Risks
+1. **Quality Disappointment**: Fixed quality tiers may not meet expectations
+   - *Mitigation*: Clear examples and time estimates
+2. **Configuration Complexity**: Users may struggle with YAML setup
+   - *Mitigation*: User-friendly configuration tools
+3. **Limited Flexibility**: Fixed tiers constrain power users
+   - *Mitigation*: Clear documentation of tier benefits
 
 ## Development Roadmap
 
 ### Phase 1: Core System (Week 1-2)
 - Quality configuration schema
-- Basic routing logic
-- Model mapping tables
-- Project integration
+- Fixed quality-to-workflow mappings
+- Parameter template system
+- Configuration validation
 
-### Phase 2: Intelligence Layer (Week 3-4)
-- Resource monitoring
-- Fallback algorithm
-- Usage prediction
-- Queue management
+### Phase 2: Quality Integration (Week 3-4)
+- Workflow integration with quality parameters
+- Quality tier testing across task types
+- Configuration management tools
+- Quality validation system
 
 ### Phase 3: User Interface (Week 5-6)
 - Quality selector component
-- Notification system
+- Quality tier documentation
 - Progress indicators
-- Help documentation
+- User preference system
 
-### Phase 4: Optimization (Week 7-8)
-- Performance tuning
-- A/B testing tiers
-- Analytics integration
-- User feedback loop
+### Phase 4: Testing & Deployment (Week 7-8)
+- Comprehensive quality testing
+- Configuration deployment
+- Documentation completion
+- Quality system validation
 
 ## Future Enhancements
 - **Adaptive Quality**: Auto-adjust based on content
@@ -519,7 +475,7 @@ Quality-related notifications appear in the right panel's Progress and Notificat
 ## Boundary Definitions & Cross-References
 
 ### PRD-006 Boundaries
-**Scope**: Quality tier management, resource allocation, and intelligent routing
+**Scope**: Quality tier management with fixed quality-to-workflow mappings
 **Excludes**:
 - Asset storage and management (PRD-002)
 - AI model generation (PRD-003)
@@ -528,50 +484,37 @@ Quality-related notifications appear in the right panel's Progress and Notificat
 - Story content creation (PRD-007)
 - Production management visualization (PRD-008)
 - Web platform infrastructure (PRD-001)
+- Resource monitoring and allocation (PRD-001)
+- Dynamic routing or fallback systems
 
 ### Interface Contracts
-**Consumes from PRD-001 (Web Platform)**:
-- Resource monitoring via Prometheus/Grafana
-- GPU utilization data from container environment
-- System health metrics for fallback decisions
-
 **Consumes from PRD-003 (Function Runner)**:
-- Model resource requirements and specifications
-- Container lifecycle status
-- Performance metrics for quality tier validation
+- Workflow execution capabilities
+- Parameter injection for quality tiers
+- ComfyUI workflow integration
 
 **Provides to PRD-003 (Function Runner)**:
-- Quality tier selection for model routing
-- Resource allocation decisions
-- Fallback instructions when resources are constrained
+- Quality tier selection
+- Fixed workflow paths for quality tiers
+- Quality-specific parameter sets
 
 **Provides to PRD-004 (Production Canvas)**:
 - Quality tier UI elements
-- Real-time resource availability indicators
-- Fallback notifications and explanations
+- Fixed quality selection component
+- Quality tier documentation
 
 **Provides to PRD-005 (Video Assembly)**:
 - Quality tier information for export settings
-- Resource usage data for optimization
 
 **Provides to PRD-007 (Story Breakdown)**:
-- Quality tier defaults based on story complexity
-- Resource recommendations for story scope
-
-**Provides to PRD-008 (Production Management)**:
-- Quality tier usage analytics
-- Resource optimization recommendations
-- Performance metrics for project planning
+- Quality tier defaults for story generation
 
 ### Data Flow Architecture
 ```
-PRD-006 ← PRD-001: System resource monitoring
-PRD-006 ← PRD-003: Model requirements and performance
-PRD-006 → PRD-003: Quality routing decisions
-PRD-006 → PRD-004: UI quality indicators and notifications
+PRD-006 → PRD-003: Quality tier selection and workflow paths
+PRD-006 → PRD-004: Quality tier UI components
 PRD-006 → PRD-005: Export quality settings
-PRD-006 → PRD-007: Story complexity recommendations
-PRD-006 → PRD-008: Analytics and optimization data
+PRD-006 → PRD-007: Story generation quality defaults
 ```
 
 ### Strict Boundary Enforcement
@@ -582,13 +525,14 @@ PRD-006 → PRD-008: Analytics and optimization data
 - Handles video assembly or final export
 - Provides canvas UI functionality
 - Manages web platform infrastructure
+- Performs resource monitoring or allocation
+- Provides fallback or dynamic routing
 
 **PRD-006 ONLY**:
-- Routes quality tier selections to appropriate models
-- Monitors and manages resource allocation
-- Provides fallback decisions when constraints are encountered
-- Delivers quality-related UI elements and notifications
-- Collects analytics on quality tier usage
+- Maps quality tier selections to fixed workflows
+- Provides quality-specific parameter templates
+- Delivers quality-related UI elements
+- Manages quality configuration and validation
 
 ---
 
