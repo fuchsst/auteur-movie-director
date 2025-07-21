@@ -11,7 +11,7 @@ from .generator import LoadGenerator, VirtualUser
 from .metrics import MetricsCollector, TestMetrics
 from .analyzer import ResultAnalyzer, PerformanceAnalysis
 from .dashboard import PerformanceDashboard
-from .cicd import PerformanceCI
+from .cicd import PerformanceCI, CITestConfig
 from .profiler import PerformanceProfiler, PerformanceProfile
 
 __all__ = [
@@ -27,6 +27,7 @@ __all__ = [
     "PerformanceAnalysis",
     "PerformanceDashboard",
     "PerformanceCI",
+    "CITestConfig",
     "PerformanceProfiler",
     "PerformanceProfile",
 ]

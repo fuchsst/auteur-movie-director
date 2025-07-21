@@ -5,7 +5,7 @@ STORY-088 Implementation
 REST API endpoints for digital table read analysis and creative bible generation.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
 import logging
@@ -281,16 +281,3 @@ async def health_check() -> Dict[str, str]:
     """Health check endpoint."""
     return {"status": "healthy", "service": "table-read"}
 
-
-# Error handlers
-@router.exception_handler(ValueError)
-async def value_error_handler(request, exc):
-    """Handle validation errors."""
-    return {"error": str(exc), "status_code": 422}
-
-
-@router.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    """Handle general exceptions."""
-    logger.error(f"Unexpected error: {str(exc)}")
-    return {"error": "Internal server error", "status_code": 500}

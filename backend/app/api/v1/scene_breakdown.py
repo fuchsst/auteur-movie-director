@@ -6,7 +6,7 @@ REST API endpoints for scene-by-scene breakdown visualization system.
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
 from sqlalchemy.orm import Session
 import uuid
 import json
@@ -94,7 +94,7 @@ async def delete_scene(
 @router.post("/scene/{scene_id}/reorder", response_model=List[SceneSummary])
 async def reorder_scene(
     scene_id: str = Path(..., description="Scene identifier"),
-    reorder_request: SceneReorderRequest,
+    reorder_request: SceneReorderRequest = Body(...),
     db: Session = Depends(get_db)
 ):
     """Reorder scenes (drag and drop)."""
@@ -104,7 +104,7 @@ async def reorder_scene(
 
 @router.post("/scenes/bulk-update")
 async def bulk_update_scenes(
-    bulk_update: SceneBulkUpdate,
+    bulk_update: SceneBulkUpdate = Body(...),
     db: Session = Depends(get_db)
 ):
     """Update multiple scenes at once."""

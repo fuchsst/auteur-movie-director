@@ -8,13 +8,24 @@ import pytest
 import os
 import tempfile
 from pathlib import Path
-from backend.app.services.quality_config_manager import QualityConfigManager, QualityTierMapper
+from app.services.quality_config_manager import QualityConfigManager, QualityTierMapper
 
 
 class TestQualityConfigManager:
     
+    @pytest.fixture(autouse=True)
+    def cleanup_temp_files(self):
+        """Cleanup temporary files after tests."""
+        temp_files = []
+        yield temp_files
+        for temp_file in temp_files:
+            try:
+                os.unlink(temp_file)
+            except FileNotFoundError:
+                pass
+    
     @pytest.fixture
-    def temp_config(self):
+    def temp_config(self, cleanup_temp_files):
         """Create temporary configuration file for testing."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             config_content = """
@@ -62,9 +73,8 @@ mappings:
 """
             f.write(config_content)
             f.flush()
+            cleanup_temp_files.append(f.name)
             yield f.name
-        finally:
-            os.unlink(f.name)
     
     @pytest.fixture
     def config_manager(self, temp_config):
@@ -119,8 +129,8 @@ mappings:
         """Test successful configuration validation."""
         report = config_manager.validate_configuration()
         assert report['valid'] is True
-        assert report['valid_mappings'] == 6  # 2 task types * 3 tiers
-        assert report['total_mappings'] == 6
+        assert report['valid_mappings'] == 5  # 2 task types: character_portrait (3) + scene_generation (2)
+        assert report['total_mappings'] == 5
     
     def test_validate_configuration_missing_fields(self):
         """Test validation with missing required fields."""
@@ -164,8 +174,19 @@ mappings:
 
 class TestQualityTierMapper:
     
+    @pytest.fixture(autouse=True)
+    def cleanup_temp_files(self):
+        """Cleanup temporary files after tests."""
+        temp_files = []
+        yield temp_files
+        for temp_file in temp_files:
+            try:
+                os.unlink(temp_file)
+            except FileNotFoundError:
+                pass
+    
     @pytest.fixture
-    def temp_config(self):
+    def temp_config(self, cleanup_temp_files):
         """Create temporary configuration file for testing."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             config_content = """
@@ -187,9 +208,8 @@ mappings:
 """
             f.write(config_content)
             f.flush()
+            cleanup_temp_files.append(f.name)
             yield f.name
-        finally:
-            os.unlink(f.name)
     
     @pytest.fixture
     def tier_mapper(self, temp_config):

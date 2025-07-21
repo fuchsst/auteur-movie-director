@@ -238,6 +238,19 @@ def get_asset_registry() -> AssetRegistry:
     return _asset_registry
 
 
+def get_breakdown_service() -> "BreakdownService":
+    """
+    Get or create the global breakdown service instance.
+    
+    Returns:
+        BreakdownService: The global breakdown service
+    """
+    from app.services.breakdown_service import BreakdownService
+    
+    # Create a new instance for each request to ensure fresh state
+    return BreakdownService()
+
+
 # Security scheme for authentication
 security = HTTPBearer(auto_error=False)
 
