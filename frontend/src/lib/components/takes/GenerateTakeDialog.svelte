@@ -3,6 +3,7 @@
   import { takesApi, type GenerationParams } from '$lib/api/takes';
   import Icon from '$lib/components/common/Icon.svelte';
   import { progressStore } from '$lib/stores/progress';
+  import QualitySelector from '$lib/components/QualitySelector.svelte';
 
   export let projectId: string;
   export let shotId: string;
@@ -27,12 +28,6 @@
   };
 
   let quality = 'standard';
-
-  const qualityOptions = [
-    { value: 'draft', label: 'Draft', description: 'Fast preview, lower quality' },
-    { value: 'standard', label: 'Standard', description: 'Production quality' },
-    { value: 'high', label: 'High', description: 'Maximum quality, slower' }
-  ];
 
   const modelOptions = [
     { value: 'stable-diffusion-xl', label: 'Stable Diffusion XL' },
@@ -116,24 +111,12 @@
         {/if}
 
         <div class="form-group">
-          <label for="quality">Quality Level</label>
-          <div class="quality-options">
-            {#each qualityOptions as option}
-              <label class="quality-option">
-                <input
-                  type="radio"
-                  name="quality"
-                  value={option.value}
-                  bind:group={quality}
-                  disabled={generating}
-                />
-                <div class="quality-info">
-                  <span class="quality-label">{option.label}</span>
-                  <span class="quality-description">{option.description}</span>
-                </div>
-              </label>
-            {/each}
-          </div>
+          <label>Quality Level</label>
+          <QualitySelector 
+            taskType="character_portrait" 
+            bind:selectedTier={quality}
+            on:qualityChange={(e) => quality = e.detail.tier}
+          />
         </div>
 
         <div class="form-group">

@@ -105,11 +105,19 @@ export class FunctionRunnerClient {
     const template = await this.getTemplate(templateId);
     const validatedInputs = await this.validateInputs(template, inputs);
     
+    // Map quality tier if using three-tier system
+    let quality = options?.quality || 'standard';
+    if (['low', 'standard', 'high'].includes(quality)) {
+      // Import dynamically to avoid circular dependencies
+      const { mapQualityTierToFunctionRunner } = await import('$lib/utils/quality-mapping');
+      quality = mapQualityTierToFunctionRunner(quality as any);
+    }
+    
     // Create submission
     const submission: TaskSubmission = {
       template_id: templateId,
       inputs: validatedInputs,
-      quality: options?.quality || 'standard',
+      quality: quality,
       priority: options?.priority || 5,
       metadata: options?.metadata
     };

@@ -12,6 +12,7 @@ export interface PopulationOptions {
   includeShots: boolean;
   autoLayout: boolean;
   startPosition: { x: number; y: number };
+  quality: 'low' | 'standard' | 'high';
 }
 
 export interface PopulationResult {

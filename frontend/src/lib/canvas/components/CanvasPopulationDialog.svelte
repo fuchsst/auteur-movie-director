@@ -3,6 +3,7 @@
   import { canvasPopulationService } from '$lib/canvas/services/canvas-population';
   import { canvasStore } from '$lib/canvas/core/canvas-store';
   import type { ProjectData } from '$lib/types/project';
+  import QualitySelector from '$lib/components/QualitySelector.svelte';
 
   export let project: ProjectData;
   export let isOpen = false;
@@ -15,7 +16,8 @@
     includeScenes: true,
     includeShots: true,
     autoLayout: true,
-    startPosition: { x: 100, y: 100 }
+    startPosition: { x: 100, y: 100 },
+    quality: 'standard' as 'low' | 'standard' | 'high'
   };
 
   let isLoading = false;
@@ -163,6 +165,21 @@
                 <span class="ml-2 text-sm text-gray-700">Shots</span>
               </label>
             </div>
+          </div>
+
+          <!-- Quality Selection -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Generation Quality
+            </label>
+            <QualitySelector 
+              taskType="scene_generation" 
+              bind:selectedTier={options.quality}
+              on:qualityChange={(e) => {
+                options.quality = e.detail.tier as 'low' | 'standard' | 'high';
+                generatePreview();
+              }}
+            />
           </div>
 
           <!-- Layout Options -->

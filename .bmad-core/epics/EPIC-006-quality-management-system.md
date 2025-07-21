@@ -84,18 +84,17 @@ User Quality Choice → Fixed Workflow Mapping → Parameter Application → Exe
 - **STORY-095**: Quality Tier Mapping System with Fixed Workflows
 - **STORY-096**: ComfyUI Workflow Integration with Quality Parameters
 - **STORY-097**: Quality Selection Interface and User Preferences
-- **STORY-098**: Basic Quality Dashboard and Configuration
 
 ### Phase 2: Configuration & Integration (Weeks 3-4)
-- **STORY-099**: Quality Workflow Configuration Management
-- **STORY-100**: ComfyUI Integration Service Implementation
-- **STORY-101**: Character Creator Quality Integration
-- **STORY-102**: Generative Pipeline Quality Consistency
+- **STORY-098**: Quality Workflow Configuration Management
+- **STORY-099**: ComfyUI Integration Service Implementation
+- **STORY-100**: Character Creator Quality Integration
+- **STORY-101**: Generative Pipeline Quality Consistency
 
 ### Phase 3: Testing & Documentation (Weeks 5-6)
-- **STORY-103**: Comprehensive Quality Testing Suite
-- **STORY-104**: Quality System Deployment and Validation
-- **STORY-105**: Complete Quality System Documentation
+- **STORY-102**: Comprehensive Quality Testing Suite
+- **STORY-103**: Quality System Deployment and Validation
+- **STORY-104**: Complete Quality System Documentation
 
 ## Risk Assessment
 
