@@ -570,9 +570,75 @@ class ModelLoadTest(HttpUser):
 - **Federated Learning**: Privacy-preserving training
 - **Quantum Ready**: Future computational paradigms
 
+## Boundary Definitions & Cross-References
+
+### PRD-003 Boundaries
+**Scope**: AI model execution, container orchestration, and quality-based routing
+**Excludes**: 
+- Asset storage and management (PRD-002)
+- Project structure and organization (PRD-001)
+- Story content generation (PRD-007)
+- Production management visualization (PRD-008)
+- Canvas UI and user interaction (PRD-004)
+
+### Interface Contracts
+**Consumes from PRD-001 (Web Platform)**:
+- Container orchestration environment via Docker/Compose
+- API endpoints for function execution requests
+- WebSocket infrastructure for real-time progress updates
+- Resource monitoring via Prometheus/Grafana
+
+**Consumes from PRD-002 (Asset Management)**:
+- Asset references for model inputs (character, style, location assets)
+- File paths for source materials
+- Asset metadata for processing parameters
+
+**Consumes from PRD-006 (Quality Management)**:
+- Quality tier selection (Low/Standard/High)
+- Resource allocation decisions
+- Fallback routing instructions
+
+**Provides to PRD-004 (Production Canvas)**:
+- Function execution results (generated media)
+- Progress updates for UI display
+- Error messages translated to user-friendly format
+
+**Provides to PRD-005 (Video Assembly)**:
+- Generated video files for assembly
+- Metadata for EDL generation
+- Take information for final renders
+
+**Provides to PRD-008 (Production Management)**:
+- Analytics data for usage tracking
+- Performance metrics for optimization
+- Quality tier usage patterns
+
+### Data Flow Architecture
+```
+PRD-003 ← PRD-001: Execution environment, API requests
+PRD-003 ← PRD-002: Asset inputs and parameters
+PRD-003 ← PRD-006: Quality tier and resource decisions
+PRD-003 → PRD-004: Generated content and progress updates
+PRD-003 → PRD-005: Generated media files for assembly
+PRD-003 → PRD-008: Usage analytics and performance data
+```
+
+### Strict Boundary Enforcement
+**PRD-003 NEVER**:
+- Manages asset storage or organization
+- Generates story content or narrative structure
+- Handles production scheduling or logistics
+- Manipulates canvas UI or user interface elements
+
+**PRD-003 ONLY**:
+- Executes AI model functions based on requests
+- Manages container lifecycle and resource allocation
+- Provides quality-based routing decisions
+- Delivers generated content to consuming systems
+
 ---
 
-**Document Version**: 2.0  
+**Document Version**: 2.1  
 **Created**: 2025-01-02  
 **Last Updated**: 2025-01-02  
 **Status**: Final Draft  

@@ -301,11 +301,26 @@ Each crew operates within the CrewAI framework, ensuring structured collaboratio
    - Chapter markers in final video
    - Narrative metadata preservation
 
-4. **Quality Management (PRD-006)**:
-   - Fast mode for story iteration
-   - Standard mode for previz
-   - High mode for final shots
-   - Quality affects generation speed, not story
+4. **Digital Production Management (PRD-008)** - **STRICT BOUNDARY**:
+   - **Data Provider**: Story structure and beat data for visualization
+   - **Structure Validation**: Narrative consistency checks
+   - **Asset Linking**: Story elements to digital assets for visualization
+   - **Timeline Export**: Story progression data for timeline views
+   - **BOUNDARY ENFORCEMENT**: PRD-007 generates story structure; PRD-008 visualizes it
+
+   **EXPLICIT SEPARATION**:
+   - **PRD-007 ONLY**: Story structure generation, beat creation, narrative planning, story content creation
+   - **PRD-007 NEVER**: Story visualization, timeline display, narrative analytics, story analysis
+   - **PRD-008 ONLY**: Story visualization, timeline display, narrative analytics, story analysis and quality assurance
+   - **PRD-008 NEVER**: Story structure generation, beat creation, narrative planning, story content creation
+   - **Interface Contract**: PRD-007 exports `story_structure.json` → PRD-008 consumes for visualization
+   - **Validation Flow**: PRD-008 validates structure → PRD-007 receives feedback for refinement
+
+### BOUNDARY ENFORCEMENT RULES
+- **PRD-007 SHALL NOT**: Provide any visualization capabilities, manage physical assets, handle file storage
+- **PRD-007 SHALL**: Generate only story content and structure data
+- **Interface Stability**: All story data exposed through stable JSON schema
+- **Version Control**: Story structure schema versioned for compatibility
 
 ## Success Metrics
 

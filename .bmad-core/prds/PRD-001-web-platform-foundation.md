@@ -441,9 +441,60 @@ make up-with-comfyui  # Start with ComfyUI model
 - **Cost Optimization**: Scale services independently
 - **DevOps Continuity**: Same tooling and workflows
 
+## Boundary Definitions & Cross-References
+
+### PRD-001 Boundaries
+**Scope**: Web platform foundation, infrastructure, and core services
+**Excludes**: 
+- Asset management (PRD-002)
+- AI model execution (PRD-003)
+- Production canvas UI (PRD-004)
+- Story breakdown (PRD-007)
+- Production management (PRD-008)
+
+### Interface Contracts
+**Provides to PRD-002 (Asset Management)**:
+- File storage abstraction through `WORKSPACE_ROOT` environment variable
+- Git repository management APIs
+- File upload/download endpoints
+- Git LFS integration for large files
+
+**Provides to PRD-003 (Function Runner)**:
+- Container orchestration environment
+- WebSocket gateway for real-time updates
+- API endpoints for function execution
+- Resource monitoring hooks
+
+**Provides to PRD-004 (Production Canvas)**:
+- WebSocket infrastructure for real-time collaboration
+- Project persistence via Git-based storage
+- User authentication and authorization
+- Asset serving endpoints
+
+**Provides to PRD-007 (Story Breakdown)**:
+- Project creation and management APIs
+- File storage for story documents
+- Git versioning for story evolution
+- WebSocket notifications for collaborative editing
+
+**Provides to PRD-008 (Production Management)**:
+- Project metadata storage via project.json
+- WebSocket real-time updates
+- File-based data persistence
+- Cross-project asset sharing via Library
+
+### Data Flow Architecture
+```
+PRD-001 ←→ PRD-002: Asset storage and retrieval
+PRD-001 ←→ PRD-003: Function execution requests
+PRD-001 ←→ PRD-004: Canvas state persistence
+PRD-001 ←→ PRD-007: Story document storage
+PRD-001 ←→ PRD-008: Project metadata storage
+```
+
 ---
 
-**Document Version**: 2.0  
+**Document Version**: 2.1  
 **Created**: 2025-01-02  
 **Last Updated**: 2025-01-02  
 **Status**: Final Draft  

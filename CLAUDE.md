@@ -263,6 +263,39 @@ See `.bmad-core/methods/TESTING-GUIDE.md` for detailed testing documentation.
 
 ## 🚧 Development Progress
 
+### EPIC-008: Production Management & Scene Visualization Suite (Digital-Only)
+*New epic bridging story breakdown and final export*
+
+**From relocated stories:**
+- **STORY-090**: Scene-by-Scene Breakdown Visualization
+- **STORY-091**: Character Arc Tracking Dashboard
+- **STORY-092**: Asset Usage Analytics
+- **STORY-093**: Export Pipeline Integration
+- **STORY-094**: Cross-Project Asset Management
+- **STORY-095**: Advanced Filtering and Search
+- **STORY-096**: Collaborative Review System
+
+### EPIC-005: Video Assembly Pipeline (Updated)
+*Stories reorganized to maintain focus on video assembly*
+
+**Core Video Assembly Stories:**
+- **STORY-067**: VSEAssemblerNode Terminal Node Implementation
+- **STORY-068**: Basic MoviePy Assembly Pipeline
+- **STORY-069**: Simple Concatenation and Export
+- **STORY-070**: Properties Panel UI Design
+- **STORY-071**: CMX3600 EDL Format Generator
+- **STORY-072**: Story Metadata Integration
+- **STORY-073**: Take Information Preservation
+- **STORY-074**: Professional Metadata Standards
+- **STORY-075**: Multi-format Export Support
+- **STORY-076**: Real-time Progress Tracking
+- **STORY-077**: Error Handling and Recovery
+- **STORY-078**: Batch Operations Support
+- **STORY-079**: Performance Optimization
+- **STORY-080**: Memory Management Improvements
+- **STORY-081**: Comprehensive Testing Suite
+- **STORY-082**: Documentation and User Guides
+
 ### EPIC-003: Function Runner Architecture (90/90 points - 100% complete) ✅
 
 **All Stories Completed:**

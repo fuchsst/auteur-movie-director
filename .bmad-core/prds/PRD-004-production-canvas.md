@@ -513,21 +513,30 @@ Located at bottom of Scene View, provides CLI for power users:
 - Rapid workflow construction via commands
 - Combines visual intuitiveness with text-based speed
 
-### Story Integration Features
+### Story Integration Features - **BOUNDARY-COMPLIANT CONSUMPTION**
 
-#### Automatic Canvas Population
-When importing a story breakdown:
-1. **Structure Creation**: Canvas generates hierarchical node structure matching narrative
-   - ActGroupNodes for three-act structure with proper sizing (25%-50%-25%)
-   - PlotPointNodes positioned at narrative turning points
-   - SceneGroupNodes for each chapter with beat indicators
-   - ShotNodes pre-created for each shot in the breakdown
-2. **Parameter Pre-filling**: Shot prompts populated from shot lists
-   - Character descriptions from story assets
-   - Camera and lighting specs from cinematographer agent
-   - Mood and tone from beat metadata
-3. **Asset Connections**: Characters/Locations auto-connected based on scene requirements
-4. **Timing Metadata**: Shot duration estimates from script annotations
+#### Automatic Canvas Population - **CONSUMER-ONLY**
+When consuming story structure from PRD-007:
+1. **Structure Display**: Canvas displays existing hierarchical node structure from PRD-007
+   - ActGroupNodes sized according to story structure percentages (25%-50%-25%)
+   - PlotPointNodes positioned using data from PRD-007
+   - SceneGroupNodes created from existing chapter data
+   - ShotNodes populated from pre-existing shot lists
+2. **Data Consumption**: Uses shot prompts provided by PRD-007
+   - Character descriptions from PRD-007 story assets
+   - Camera specs from PRD-007 cinematographer output
+   - Mood parameters from PRD-007 beat metadata
+3. **Asset Integration**: References assets managed by PRD-002
+   - Character assets linked via PRD-002 asset references
+   - Location assets referenced from PRD-002 storage
+   - Style assets applied from PRD-002 definitions
+
+**BOUNDARY ENFORCEMENT**:
+- **PRD-004 NEVER**: Generates story content, creates narrative structure, manages assets
+- **PRD-004 ONLY**: Displays and organizes existing story data within canvas
+- **Data Source**: Consumes story structure JSON from PRD-007
+- **Asset Source**: References assets managed by PRD-002
+- **No Creation**: Never generates new story content, only visualizes existing
 
 #### Story-Aware Layout
 - **Auto-Arrangement**: Nodes automatically position based on story structure

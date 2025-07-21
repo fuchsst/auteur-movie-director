@@ -567,9 +567,70 @@ This deep integration ensures that the narrative structure defined during story 
 - Collaborative review tools
 - Version control for edits
 
+## Boundary Definitions & Cross-References
+
+### PRD-005 Boundaries
+**Scope**: Video assembly, EDL generation, and final export pipeline
+**Excludes**:
+- Asset storage and management (PRD-002)
+- AI model generation (PRD-003)
+- Production canvas UI (PRD-004)
+- Story content creation (PRD-007)
+- Production management visualization (PRD-008)
+- Quality tier selection (PRD-006)
+
+### Interface Contracts
+**Consumes from PRD-001 (Web Platform)**:
+- File storage via `WORKSPACE_ROOT` for final exports
+- API endpoints for assembly requests
+- WebSocket infrastructure for progress updates
+- Git versioning for assembly configurations
+
+**Consumes from PRD-002 (Asset Management)**:
+- Generated media files from 03_Renders/ directory
+- Asset metadata for EDL comments
+- Take information for active selections
+
+**Consumes from PRD-003 (Function Runner)**:
+- Generated video files for assembly
+- Take metadata and generation parameters
+- Quality tier information for export settings
+
+**Consumes from PRD-007 (Story Breakdown)**:
+- Story structure for hierarchical ordering
+- Narrative metadata for EDL comments
+- Scene/shot relationships for assembly sequence
+
+**Provides to PRD-008 (Production Management)**:
+- Final assembled videos for project completion
+- Export metadata for delivery tracking
+- Assembly analytics for optimization
+
+### Data Flow Architecture
+```
+PRD-005 ← PRD-001: Storage for exports, API access
+PRD-005 ← PRD-002: Generated media files and metadata
+PRD-005 ← PRD-003: Generated video content and takes
+PRD-005 ← PRD-007: Story structure and narrative data
+PRD-005 → PRD-008: Final deliverables and completion status
+```
+
+### Strict Boundary Enforcement
+**PRD-005 NEVER**:
+- Generates new media content via AI models
+- Creates or modifies story structure
+- Manages asset storage or organization
+- Handles production scheduling or logistics
+
+**PRD-005 ONLY**:
+- Assembles existing generated media into final videos
+- Generates industry-standard EDL files
+- Provides final export functionality
+- Delivers completed projects to storage
+
 ---
 
-**Document Version**: 2.0  
+**Document Version**: 2.1  
 **Created**: 2025-01-02  
 **Last Updated**: 2025-01-02  
 **Status**: Final Draft  

@@ -563,16 +563,25 @@ class ProjectManager {
 - Team activity feed
 - Permission management
 
-### Story-Driven Asset Creation
+### Story-Driven Asset Creation - **BOUNDARY-COMPLIANT INTEGRATION**
 
-When the Story Breakdown System (PRD-007) analyzes scripts, it automatically:
+When the Story Breakdown System (PRD-007) analyzes scripts, it **requests** asset creation through **immutable interface**:
 
-1. **Character Extraction**: Creates Character assets from named entities
-2. **Location Discovery**: Identifies and creates Location assets from scene headings
-3. **Style Inference**: Suggests visual Style assets based on genre and tone
-4. **Asset Linking**: Bidirectional references between story elements and assets
+1. **Character Extraction**: PRD-007 identifies characters → PRD-002 creates Character assets
+2. **Location Discovery**: PRD-007 identifies locations → PRD-002 creates Location assets  
+3. **Style Inference**: PRD-007 suggests styles → PRD-002 creates Style assets
+4. **Asset Linking**: PRD-002 maintains bidirectional references to story elements
 
-This integration ensures that creative vision flows seamlessly from narrative to visual production, with all necessary assets automatically prepared for the Production Canvas.
+**BOUNDARY ENFORCEMENT**:
+- **PRD-002 NEVER**: Generates story content, creates narrative structure
+- **PRD-002 ONLY**: Stores and manages asset files, provides asset references
+- **Interface**: Asset creation requests via stable API contract
+- **Data Flow**: One-way from PRD-007 → PRD-002 (story → asset storage)
+
+### PRD BOUNDARY COMPLIANCE
+**PRD-002 Scope**: File-based project containers, Git/LFS integration, digital asset storage and lifecycle
+**PRD-002 NEVER**: Generates story content, provides visualization, handles physical logistics
+**Interface Contracts**: Stable JSON schemas for asset references and metadata
 
 ## Future Vision
 

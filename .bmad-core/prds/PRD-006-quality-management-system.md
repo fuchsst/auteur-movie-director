@@ -516,9 +516,83 @@ Quality-related notifications appear in the right panel's Progress and Notificat
 - **Predictive Caching**: Pre-warm likely models
 - **Cost Transparency**: Show generation costs
 
+## Boundary Definitions & Cross-References
+
+### PRD-006 Boundaries
+**Scope**: Quality tier management, resource allocation, and intelligent routing
+**Excludes**:
+- Asset storage and management (PRD-002)
+- AI model generation (PRD-003)
+- Production canvas UI (PRD-004)
+- Video assembly and export (PRD-005)
+- Story content creation (PRD-007)
+- Production management visualization (PRD-008)
+- Web platform infrastructure (PRD-001)
+
+### Interface Contracts
+**Consumes from PRD-001 (Web Platform)**:
+- Resource monitoring via Prometheus/Grafana
+- GPU utilization data from container environment
+- System health metrics for fallback decisions
+
+**Consumes from PRD-003 (Function Runner)**:
+- Model resource requirements and specifications
+- Container lifecycle status
+- Performance metrics for quality tier validation
+
+**Provides to PRD-003 (Function Runner)**:
+- Quality tier selection for model routing
+- Resource allocation decisions
+- Fallback instructions when resources are constrained
+
+**Provides to PRD-004 (Production Canvas)**:
+- Quality tier UI elements
+- Real-time resource availability indicators
+- Fallback notifications and explanations
+
+**Provides to PRD-005 (Video Assembly)**:
+- Quality tier information for export settings
+- Resource usage data for optimization
+
+**Provides to PRD-007 (Story Breakdown)**:
+- Quality tier defaults based on story complexity
+- Resource recommendations for story scope
+
+**Provides to PRD-008 (Production Management)**:
+- Quality tier usage analytics
+- Resource optimization recommendations
+- Performance metrics for project planning
+
+### Data Flow Architecture
+```
+PRD-006 ← PRD-001: System resource monitoring
+PRD-006 ← PRD-003: Model requirements and performance
+PRD-006 → PRD-003: Quality routing decisions
+PRD-006 → PRD-004: UI quality indicators and notifications
+PRD-006 → PRD-005: Export quality settings
+PRD-006 → PRD-007: Story complexity recommendations
+PRD-006 → PRD-008: Analytics and optimization data
+```
+
+### Strict Boundary Enforcement
+**PRD-006 NEVER**:
+- Executes AI models directly
+- Manages asset storage or file operations
+- Creates story content or narrative structure
+- Handles video assembly or final export
+- Provides canvas UI functionality
+- Manages web platform infrastructure
+
+**PRD-006 ONLY**:
+- Routes quality tier selections to appropriate models
+- Monitors and manages resource allocation
+- Provides fallback decisions when constraints are encountered
+- Delivers quality-related UI elements and notifications
+- Collects analytics on quality tier usage
+
 ---
 
-**Document Version**: 2.0  
+**Document Version**: 2.1  
 **Created**: 2025-01-02  
 **Last Updated**: 2025-01-02  
 **Status**: Final Draft  

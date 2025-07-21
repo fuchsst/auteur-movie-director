@@ -27,7 +27,6 @@ The Video Assembly Pipeline epic transforms Auteur Movie Director from a shot cr
 - **Audio Mixing**: Multi-track audio mixing beyond basic concatenation
 - **Visual Effects**: Transitions, overlays, and visual effects beyond cuts
 - **Cloud Rendering**: Distributed rendering or cloud-based processing
-- **Collaborative Editing**: Real-time collaborative assembly features
 - **Archive Management**: Long-term storage and archival features
 - **Mobile/Tablet Support**: Assembly features on mobile devices
 
@@ -140,6 +139,7 @@ Shot Sequences → VSEAssemblerNode → EDL Generation → MoviePy Assembly → 
 - **EPIC-003**: Function Runner Architecture (processing framework)
 - **EPIC-002**: Story Structure System (narrative metadata)
 - **EPIC-001**: Project Management (directory structure and file handling)
+- **EPIC-008**: Production Management (scene visualization and analytics) - receives final exports
 
 ### External Dependencies
 - **MoviePy**: Python video processing library
